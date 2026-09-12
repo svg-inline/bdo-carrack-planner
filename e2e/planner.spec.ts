@@ -10,6 +10,36 @@ test("works as a useful guide without JavaScript", async ({ browser }) => {
   await context.close();
 });
 
+test("loads the ship and equipment artwork in the overview", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /Gradual/ }).click();
+
+  const heroImage = page.locator(".hero-art img");
+  await expect(heroImage).toBeVisible();
+  await expect(heroImage).toHaveAttribute("src", /epheria-caravel/);
+  await expect.poll(() => heroImage.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
+
+  const equipmentImages = page.locator(".gear-mini .item-icon");
+  await expect(equipmentImages).toHaveCount(4);
+  await expect.poll(() => equipmentImages.evaluateAll((images: HTMLImageElement[]) => images.every((image) => image.complete && image.naturalWidth > 0))).toBe(true);
+});
+
+test("keeps the active screen below the sticky navigation on mobile", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.getByRole("button", { name: /Gradual/ }).click();
+  await page.getByRole("button", { name: "Inventário" }).click();
+
+  const heading = page.getByRole("heading", { name: "Inventário de materiais" });
+  const sidebar = page.locator(".sidebar");
+  await expect(heading).toBeVisible();
+  await expect.poll(async () => {
+    const headingBox = await heading.boundingBox();
+    const sidebarBox = await sidebar.boundingBox();
+    return Boolean(headingBox && sidebarBox && headingBox.y >= sidebarBox.y + sidebarBox.height);
+  }).toBe(true);
+});
+
 test("creates different and repeated presets with independent persisted progress", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Qual Carraca você quer planejar?" })).toBeVisible();

@@ -4,7 +4,7 @@ import type { GearKey, MaterialId } from "@/types";
 
 function Item({ id }: { id: MaterialId }) {
   const material = MATERIAL_BY_ID[id];
-  return <span className="item-label"><Image src={material.icon} alt="" width={20} height={20} /><span>{material.name}</span></span>;
+  return <span className="item-label"><Image className="item-icon" src={material.icon} alt="" width={28} height={28} /><span>{material.name}</span></span>;
 }
 
 export default function Reference() {

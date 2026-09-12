@@ -16,6 +16,7 @@ Todas as mudanças relevantes para usuários são registradas em `Unreleased`, n
 - Dependências atualizadas para a geração estável mais recente compatível, incluindo Next.js 16.3.5, React 19.3 e Tailwind CSS 4.3.
 - Estado salvo validado e normalizado antes de ser usado nos cálculos.
 - O planner agora começa pela escolha da Carraca de um novo preset e permite alternar entre todos os planos pelo seletor lateral.
+- Textos, ícones de materiais e imagens de equipamentos foram ampliados em todas as telas para melhorar a leitura.
 
 ### Removed
 
@@ -26,3 +27,5 @@ Todas as mudanças relevantes para usuários são registradas em `Unreleased`, n
 
 - Progresso dos equipamentos ignora aprimoramento azul antes da fabricação da peça.
 - Campos, navegação, foco e indicadores de progresso receberam nomes e estados acessíveis.
+- As rotas do Navio Mercante e do Contratorpedeiro agora exibem uma captura oficial do jogo, e os resumos de equipamento mostram as miniaturas sem o marcador que parecia uma imagem vazia.
+- A troca de abas no celular mantém o título da tela visível abaixo da navegação fixa.

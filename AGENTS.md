@@ -11,6 +11,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 ### REGRA DE OURO
 
 O site deve funcionar de forma básica, sem JavaScript. E o site deve funcionar caso as APIs do WordPress caiam.
+SEMPRE QUE POSSÍVEL USE IMAGENS REAIS DO JOGO, EM VEZ DE ILUSTRAÇÕES OU PLACEHOLDERS, NA PASTA DOCS TEM VARIOS LINKS PARA REFERÊNCIA. QUANDO NÃO FOR POSSÍVEL, JUSTIFIQUE O USO DE PLACEHOLDERS OU IMAGENS GENÉRICAS.
 
 ## Qualidade obrigatória
 

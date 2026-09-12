@@ -22,6 +22,10 @@ type SourceFilter = "all" | "missions" | "crow" | "processing" | "hunt" | "barte
 
 const categoryLabel: Record<MaterialCategory, string> = { carrack: "Carraca", "blue-gear": "Equip. azul", enhancement: "Aprimoramento" };
 const sourceLabel: Record<AcquisitionType, string> = { daily: "Missão diária", weekly: "Missão semanal", barter: "Permuta", crow: "Comprar", hunt: "Drop / caça", processing: "Processar", market: "Mercado" };
+const shipArt: Record<ShipBranch, { src: string; alt: string }> = {
+  caravel: { src: "/assets/epheria-caravel.png", alt: "Navio Mercante de Epheria" },
+  galleass: { src: "/assets/epheria-caravel.png", alt: "Contratorpedeiro de Epheria" },
+};
 
 function number(v: number) { return new Intl.NumberFormat("pt-BR").format(v); }
 function escapeRegExp(value: string) { return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
@@ -56,16 +60,21 @@ function StorageStatus() {
     : <p role="status" className="text-gold-bright">Salvamento indisponível. O progresso vale apenas nesta sessão.</p>;
 }
 
-function ItemIcon({ src, alt, size = 20, className = "" }: { src: string; alt: string; size?: number; className?: string }) {
-  return <Image className={`item-icon ${className}`.trim()} src={src} alt={alt} width={size} height={size} style={{ width: size, height: size }} />;
+function ItemIcon({ src, alt, size = 28, className = "" }: { src: string; alt: string; size?: number; className?: string }) {
+  return <Image className={`item-icon ${className}`.trim()} src={src} alt={alt} width={size} height={size} />;
 }
 
-function MaterialLabel({ id, size = 20, className = "" }: { id: MaterialId; size?: number; className?: string }) {
+function ShipImage({ branch, className = "", decorative = false }: { branch: ShipBranch; className?: string; decorative?: boolean }) {
+  const art = shipArt[branch];
+  return <Image className={`${className} ship-branch-${branch}`.trim()} src={art.src} alt={decorative ? "" : art.alt} width={960} height={600} sizes="(max-width: 780px) 100vw, 340px" />;
+}
+
+function MaterialLabel({ id, size = 28, className = "" }: { id: MaterialId; size?: number; className?: string }) {
   const item = MATERIAL_BY_ID[id];
   return <span className={`item-label ${className}`.trim()}><ItemIcon src={item.icon} alt={item.name} size={size} /><span className="item-label-text">{item.name}</span></span>;
 }
 
-function GearLabel({ branch, gearKey, base = false, size = 24, className = "" }: { branch: ShipBranch; gearKey: GearKey; base?: boolean; size?: number; className?: string }) {
+function GearLabel({ branch, gearKey, base = false, size = 30, className = "" }: { branch: ShipBranch; gearKey: GearKey; base?: boolean; size?: number; className?: string }) {
   const gear = GEAR_SETS[branch][gearKey];
   const label = base ? gear.base : gear.name;
   const icon = base ? gear.baseIcon : gear.icon;
@@ -77,7 +86,7 @@ function TextWithItemIcons({ text }: { text: string }) {
   return <>{parts.map((part, index) => {
     const match = ITEM_MENTION_MAP.get(part.toLowerCase());
     if (!match) return <span key={`${part}-${index}`}>{part}</span>;
-    return <span className="inline-item-mention" key={`${part}-${index}`}><ItemIcon src={match.icon} alt={match.label} size={16} /><span>{match.label}</span></span>;
+    return <span className="inline-item-mention" key={`${part}-${index}`}><ItemIcon src={match.icon} alt={match.label} size={22} /><span>{match.label}</span></span>;
   })}</>;
 }
 
@@ -90,9 +99,8 @@ function CarrackChoices({ onSelect }: { onSelect: (target: CarrackTarget) => voi
     {CARRACK_ORDER.map((id) => {
       const carrack = CARRACKS[id];
       return <button key={id} onClick={() => onSelect(id)}>
-        <span className="carrack-role">{carrack.role}</span>
-        <strong>{carrack.shortName}</strong>
-        <small>{carrack.sourceShip}</small>
+        <ShipImage branch={carrack.branch} className="carrack-choice-image" decorative />
+        <span className="carrack-choice-copy"><span className="carrack-role">{carrack.role}</span><strong>{carrack.shortName}</strong><small>{carrack.sourceShip}</small></span>
       </button>;
     })}
   </div>;
@@ -122,7 +130,7 @@ function Sidebar({ tab, setTab, onAddPreset }: { tab: Tab; setTab: (tab: Tab) =>
   return <aside className="sidebar">
     <div className="brand"><div className="brand-mark">☸</div><div><span>CARRACK</span><strong>LEDGER</strong></div></div>
     <div className="preset-control"><label htmlFor="active-preset">PRESET ATIVO</label><select id="active-preset" value={activePresetId ?? ""} onChange={(event) => selectPreset(event.target.value)}>{presets.map((preset) => <option value={preset.id} key={preset.id}>{preset.name}</option>)}</select><button onClick={onAddPreset}>＋ Adicionar preset</button></div>
-    <div className="ship-route-card"><span>ROTA ATUAL</span><strong>{carrack.sourceShip}</strong><i>↓</i><em>{carrack.name}</em></div>
+    <div className="ship-route-card"><ShipImage branch={carrack.branch} className="ship-route-image" decorative /><div><span>ROTA ATUAL</span><strong>{carrack.sourceShip}</strong><i>↓</i><em>{carrack.name}</em></div></div>
     <nav aria-label="Seções do planner">{tabs.map(([key, label], idx) => <button key={key} aria-current={tab === key ? "page" : undefined} className={tab === key ? "active" : ""} onClick={() => setTab(key)}><span>0{idx + 1}</span>{label}</button>)}</nav>
     <div className="sidebar-footer"><span>{activePreset.name}</span><strong>{carrack.shortName}</strong><small>{number(profile.crowCoins)} Moedas Corvo</small></div>
   </aside>;
@@ -149,18 +157,18 @@ function Overview() {
   return <>
     <Header title="Rota para sua Carraca" subtitle="Cada preset mantém seu próprio inventário, equipamentos, missões e progresso." />
     <section className={`hero-panel carrack-hero ${carrack.branch}`}>
-      <div className="hero-art">{carrack.branch === "galleass" ? <Image src="/assets/epheria-galleass.png" alt="Contratorpedeiro de Epheria" fill sizes="(max-width: 780px) 100vw, 300px" /> : <div className="ship-symbol">⚓</div>}<div className="hero-vignette" /></div>
+      <div className="hero-art"><ShipImage branch={carrack.branch} /><div className="hero-vignette" /></div>
       <div className="hero-copy"><Badge kind="gold">{carrack.role}</Badge><h2>{carrack.name}</h2><p>{carrack.description}</p><div className="route-line"><span>{carrack.sourceShip}</span><i>→</i><strong>{carrack.shortName}</strong></div><div className="hero-stats"><div><span>Progresso geral</span><strong>{completion}%</strong></div><div><span>Materiais azuis</span><strong>{bluePct}%</strong></div><div><span>Materiais Carraca</span><strong>{carrackPct}%</strong></div></div></div>
       <div className="completion-ring" style={{ "--progress": `${completion * 3.6}deg` } as React.CSSProperties}><div><strong>{completion}%</strong><span>concluído</span></div></div>
     </section>
 
 
     <div className="dashboard-grid">
-      <section className="panel priority-panel"><div className="panel-title"><div><span className="eyebrow">ORDEM DE FOCO</span><h3>Gargalos atuais</h3></div><Badge kind="red">DINÂMICO</Badge></div><div className="bottleneck-list">{hard.map((m, index) => <div className="bottleneck" key={m.id}><span className="rank">0{index + 1}</span><div className="bottle-main"><div><div className="item-heading"><MaterialLabel id={m.id} size={18} /></div><span>Dificuldade {"◆".repeat(m.difficulty)}{"◇".repeat(5 - m.difficulty)}</span></div><Progress value={materialCompletion(profile, m.id) * 100} /><small>{number(profile.materials[m.id])} / {number(m.required)} · faltam {number(m.missing)}</small></div></div>)}</div></section>
+      <section className="panel priority-panel"><div className="panel-title"><div><span className="eyebrow">ORDEM DE FOCO</span><h3>Gargalos atuais</h3></div><Badge kind="red">DINÂMICO</Badge></div><div className="bottleneck-list">{hard.map((m, index) => <div className="bottleneck" key={m.id}><span className="rank">0{index + 1}</span><div className="bottle-main"><div><div className="item-heading"><MaterialLabel id={m.id} size={28} /></div><span>Dificuldade {"◆".repeat(m.difficulty)}{"◇".repeat(5 - m.difficulty)}</span></div><Progress value={materialCompletion(profile, m.id) * 100} /><small>{number(profile.materials[m.id])} / {number(m.required)} · faltam {number(m.missing)}</small></div></div>)}</div></section>
       <section className="panel"><div className="panel-title"><div><span className="eyebrow">AGORA</span><h3>Próximas ações</h3></div></div><div className="action-list">{actions.map((a) => <article key={a.title} className={`action ${a.tone}`}><i /><div><strong>{a.title}</strong><p>{a.detail}</p></div></article>)}</div></section>
     </div>
 
-    <section className="panel gear-overview"><div className="panel-title"><div><span className="eyebrow">{carrack.sourceShip.toUpperCase()}</span><h3>Quatro equipamentos azuis obrigatórios</h3></div><Badge kind="blue">TODOS +10</Badge></div><div className="gear-mini-grid">{(Object.keys(gearSet) as GearKey[]).map((key) => { const state = profile.gear[carrack.branch][key]; const done = state.crafted && state.blueEnhancement >= 10; return <div className={`gear-mini ${done ? "done" : ""}`} key={key}><Sigil>{done ? "✓" : "✦"}</Sigil><div><div className="item-heading"><GearLabel branch={carrack.branch} gearKey={key} size={20} /></div><span>{state.crafted ? `Azul +${state.blueEnhancement}` : `Base +${state.baseEnhancement} · não fabricada`}</span></div><em>{done ? "PRONTA" : "PENDENTE"}</em></div>; })}</div></section>
+    <section className="panel gear-overview"><div className="panel-title"><div><span className="eyebrow">{carrack.sourceShip.toUpperCase()}</span><h3>Quatro equipamentos azuis obrigatórios</h3></div><Badge kind="blue">TODOS +10</Badge></div><div className="gear-mini-grid">{(Object.keys(gearSet) as GearKey[]).map((key) => { const state = profile.gear[carrack.branch][key]; const done = state.crafted && state.blueEnhancement >= 10; return <div className={`gear-mini ${done ? "done" : ""}`} key={key}><div><div className="item-heading"><GearLabel branch={carrack.branch} gearKey={key} size={34} /></div><span>{state.crafted ? `Azul +${state.blueEnhancement}` : `Base +${state.baseEnhancement} · não fabricada`}</span></div><em>{done ? "✓ PRONTA" : "PENDENTE"}</em></div>; })}</div></section>
   </>;
 }
 
@@ -249,7 +257,10 @@ function App({ children }: { children: React.ReactNode }) {
     Promise.resolve(usePlannerStore.persist.rehydrate()).finally(() => { if (active) setMounted(true); });
     return () => { active = false; };
   }, []);
-  useEffect(() => { mainRef.current?.focus(); }, [tab]);
+  useEffect(() => {
+    mainRef.current?.focus({ preventScroll: true });
+    window.scrollTo(0, 0);
+  }, [tab]);
   if (!mounted) return children;
   const activePreset = presets.find((preset) => preset.id === activePresetId);
   if (!activePreset) return <main id="main-content" tabIndex={-1} ref={mainRef} className="preset-start-shell"><div className="preset-start-brand"><div className="brand-mark">☸</div><div><span>CARRACK</span><strong>LEDGER</strong></div></div><PresetSetup canCancel={false} onClose={() => setCreatingPreset(false)} /></main>;

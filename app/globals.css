@@ -164,3 +164,57 @@ footer>div{display:flex;gap:14px}
 
 @media (max-width:780px){.preset-start-shell{padding:16px}.preset-start-brand{margin-bottom:16px}.preset-setup{padding:24px 18px}.preset-setup-heading{display:block}.preset-setup-heading .button{margin-top:14px}.preset-control{min-width:180px;margin:0}.preset-control label{display:none}.preset-control button{text-align:center}.sidebar .ship-route-card{display:none}footer{gap:12px;align-items:flex-start}footer>div{flex-direction:column;gap:7px;align-items:flex-end}}
 .gear-prep{display:flex;flex-direction:column;gap:6px;padding:10px 11px;margin:0 0 10px;border:1px solid #2e363b;background:#0b1013;color:#788188;font-size:8px;line-height:1.45}.gear-prep b{color:#a69d8f}.gear-prep .item-label{font-size:8px;color:#b9b1a5;vertical-align:middle}
+
+/* Escala de leitura e visibilidade dos assets */
+.app-shell{grid-template-columns:260px minmax(0,1fr)}
+.sidebar{width:260px;padding:24px 16px}
+.brand span,.preset-start-brand span{font-size:10px}
+.brand strong,.preset-start-brand strong{font-size:20px}
+.brand-mark{width:44px;height:44px;font-size:22px}
+.preset-control label{font-size:10px}.preset-control select{font-size:13px;padding:10px}.preset-control button{font-size:11px;padding:5px 0}
+.ship-route-card{position:relative;height:132px;padding:17px 14px;overflow:hidden;justify-content:flex-end}
+.ship-route-card>div{position:relative;z-index:2;width:68%}
+.ship-route-image{position:absolute;right:-36px;bottom:-7px;width:164px;height:118px;object-fit:cover;opacity:.68;filter:saturate(.72) brightness(.75)}
+.ship-route-card::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#0b0f12 25%,rgba(11,15,18,.86) 56%,transparent)}
+.ship-route-card span{font-size:10px}.ship-route-card strong{font-size:15px}.ship-route-card em{font-size:12px}
+.sidebar nav button{padding:13px 11px;font-size:14px}.sidebar nav button span{font-size:10px}
+.sidebar-footer span{font-size:10px}.sidebar-footer strong{font-size:16px}.sidebar-footer small{font-size:11px}
+.content-inner{padding:34px 36px 72px}
+.topbar h1{font-size:34px}.topbar p:not(.eyebrow){font-size:14px}.eyebrow{font-size:11px}
+.coin-box{padding:8px 12px}.coin-box .sigil{width:34px;height:34px}.coin-box small{font-size:10px}.coin-box input{font-size:14px}
+.status-dot{font-size:10px}.status-dot i{width:8px;height:8px}
+.badge{min-height:26px;padding:4px 9px;font-size:10px}
+.hero-panel{min-height:280px;grid-template-columns:340px 1fr 150px;gap:28px}
+.hero-art{height:280px}.hero-art>img{width:100%;height:100%;object-fit:cover!important;transform:scale(1.04);filter:saturate(.78) contrast(1.06) brightness(.68)}
+.ship-branch-caravel{object-position:left center}.ship-branch-galleass{object-position:right center}
+.hero-copy h2{font-size:34px}.hero-copy p{font-size:14px}.route-line,.route-line strong{font-size:11px}
+.hero-stats span{font-size:10px}.hero-stats strong{font-size:24px}.completion-ring{width:120px;height:120px}.completion-ring strong{font-size:28px}.completion-ring span{font-size:10px}
+.panel,.gear-card{padding:22px}.panel-title h3{font-size:24px}
+.bottleneck{grid-template-columns:44px 1fr;padding:14px 0}.rank{font-size:11px}.bottle-main>div>span{font-size:10px}.bottle-main small{font-size:12px}.bottle-main .progress{margin:9px 0 7px}
+.action{padding:14px}.action strong{font-size:13px}.action p{font-size:12px}
+.gear-mini-grid{grid-template-columns:repeat(2,minmax(300px,1fr))}
+.gear-mini{grid-template-columns:minmax(0,1fr) auto;padding:14px;gap:12px}.gear-mini span{font-size:11px;margin:5px 0 0 42px}.gear-mini em{font-size:10px}
+.item-heading{font-size:13px}.item-label{gap:10px}.item-label-text{line-height:1.4}.item-icon{object-fit:contain}
+.progress{height:6px}
+.segmented button,.source-filter-bar button{font-size:12px;padding:10px 14px}.sorter,.legend{font-size:11px}.sorter select,.gear-controls select{font-size:12px;padding-block:10px}
+.material-head,.inventory-head{font-size:10px}.material-row{min-height:84px}.material-name strong{font-size:13px}.material-name>div>span{font-size:11px}.source-chips .badge{font-size:9px}.qty-input{font-size:14px;padding:11px}.num{font-size:18px}
+.gear-card h3{font-size:24px}.gear-card p{font-size:12px}.gear-controls label>span{font-size:11px}.crafted-check span{font-size:12px}.recipe-title strong{font-size:12px}.recipe-row{grid-template-columns:24px 1fr auto;padding:10px 0}.recipe-row strong{font-size:12px}.recipe-row small{font-size:11px}
+.quest-card{grid-template-columns:52px 1fr}.quest-check{font-size:22px}.quest-body{padding:17px}.quest-top h3{font-size:20px}.quest-location span{font-size:11px}.quest-location strong{font-size:12px}.objective{font-size:12px}.rewards span{font-size:11px;padding:7px 9px}.quest-source{font-size:10px}
+.panel-note{font-size:12px}.purchase{grid-template-columns:36px 1fr auto;padding:13px 0}.purchase>span{font-size:10px}.purchase strong{font-size:12px}.purchase small{font-size:11px}.purchase em{font-size:17px}.purchase-total{font-size:12px}.why-title strong{font-size:13px}.why-list p{font-size:11px}.source-links a{font-size:12px;padding:13px}.source-disclaimer,.empty-state{font-size:11px}
+footer,footer button{font-size:10px}
+.carrack-selector button{min-height:136px;padding:18px;display:grid;grid-template-columns:112px 1fr;align-items:center;gap:16px;overflow:hidden}
+.carrack-choice-image{width:112px;height:96px;object-fit:cover;filter:saturate(.75) brightness(.72)}
+.carrack-choice-copy{position:relative;z-index:1}.carrack-selector button .carrack-role{font-size:10px}.carrack-selector button strong{font-size:24px}.carrack-selector button small{font-size:11px}
+.carrack-stats-strip span{font-size:9px}.carrack-stats-strip strong{font-size:15px}
+.inventory-summary span{font-size:10px}.inventory-summary strong{font-size:21px}.inventory-search{font-size:12px;padding:11px 13px}.inventory-material-row{min-height:86px}.inventory-item>.item-label{font-size:13px}.inventory-material-row>strong{font-size:17px}
+.acquisition-item>.item-label{font-size:16px}.acquisition-numbers span{font-size:10px}.acquisition-numbers strong{font-size:12px}.used-in>span{font-size:9px}.used-in small{font-size:11px}.source-card strong{font-size:11px}.source-card p{font-size:10px}.branch-banner span{font-size:10px}.branch-banner strong,.branch-banner em{font-size:13px}
+.gear-prep{font-size:11px;padding:12px 13px}.gear-prep .item-label{font-size:11px}
+.preset-setup-heading p:not(.eyebrow),.panel>p,.panel li,.panel summary{font-size:14px}
+
+@media (max-width:1150px){
+  .app-shell{grid-template-columns:220px minmax(0,1fr)}.sidebar{width:220px}.content-inner{padding:26px}.hero-panel{grid-template-columns:250px 1fr 120px}.gear-mini-grid{grid-template-columns:repeat(2,minmax(250px,1fr))}
+}
+
+@media (max-width:780px){
+  .app-shell{display:block}.sidebar{position:sticky;width:100%;padding:10px 12px;display:grid;grid-template-columns:auto minmax(190px,1fr);gap:8px 12px;overflow:visible}.brand{padding:0}.brand-mark{width:36px;height:36px}.sidebar nav{grid-column:1/-1;min-width:0;overflow-x:auto}.sidebar nav button{padding:10px;font-size:12px}.content-inner{padding:20px 14px 52px}.topbar h1{font-size:29px}.topbar p:not(.eyebrow){font-size:13px}.hero-panel{grid-template-columns:1fr}.hero-art{height:190px}.hero-copy{padding:0 20px 22px}.hero-copy h2{font-size:29px}.hero-stats{gap:14px;flex-wrap:wrap}.dashboard-grid,.gear-mini-grid,.gear-grid,.strategy-grid{grid-template-columns:1fr}.panel,.gear-card{padding:18px}.panel-title h3{font-size:22px}.carrack-selector button{grid-template-columns:96px 1fr}.carrack-choice-image{width:96px;height:82px}.preset-control{min-width:0}.action strong{font-size:12px}
+}
