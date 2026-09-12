@@ -3,8 +3,8 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { cva, type VariantProps } from "class-variance-authority";
-import { CARRACK_ORDER, CARRACKS, GEAR_SETS, MATERIALS, MATERIAL_BY_ID, PASS_REWARDS, QUESTS, SOURCES } from "@/lib/data";
-import { bestExtravagantChoices, bestNormalChestChoices, bottlenecks, getMissing, getRequired, materialCompletion, nextActions, overallCompletion, purchasePlan, questResetKey } from "@/lib/planner";
+import { CARRACK_ORDER, CARRACKS, GEAR_SETS, MATERIALS, MATERIAL_BY_ID, QUESTS, SOURCES } from "@/lib/data";
+import { bottlenecks, getMissing, getRequired, materialCompletion, nextActions, overallCompletion, purchasePlan, questResetKey } from "@/lib/planner";
 import { usePlannerStore } from "@/lib/store";
 import type { Acquisition, AcquisitionType, CarrackTarget, GearKey, MaterialCategory, MaterialId, PlannerPreset, ShipBranch } from "@/types";
 
@@ -14,15 +14,14 @@ const tabs = [
   ["materials", "Como obter"],
   ["gear", "Azuis +10"],
   ["quests", "Missões"],
-  ["pass", "Passe"],
   ["strategy", "Estratégia"],
 ] as const;
 
 type Tab = (typeof tabs)[number][0];
-type SourceFilter = "all" | "missions" | "crow" | "processing" | "hunt" | "barter" | "event";
+type SourceFilter = "all" | "missions" | "crow" | "processing" | "hunt" | "barter";
 
 const categoryLabel: Record<MaterialCategory, string> = { carrack: "Carraca", "blue-gear": "Equip. azul", enhancement: "Aprimoramento" };
-const sourceLabel: Record<AcquisitionType, string> = { daily: "Missão diária", weekly: "Missão semanal", barter: "Permuta", crow: "Comprar", hunt: "Drop / caça", processing: "Processar", event: "Evento", market: "Mercado" };
+const sourceLabel: Record<AcquisitionType, string> = { daily: "Missão diária", weekly: "Missão semanal", barter: "Permuta", crow: "Comprar", hunt: "Drop / caça", processing: "Processar", market: "Mercado" };
 
 function number(v: number) { return new Intl.NumberFormat("pt-BR").format(v); }
 function escapeRegExp(value: string) { return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
@@ -46,7 +45,7 @@ const badgeVariants = cva("badge", {
   variants: { kind: {
     default: "badge-default", gold: "badge-gold", red: "badge-red", blue: "badge-blue", done: "badge-done",
     daily: "badge-daily", weekly: "badge-weekly", barter: "badge-barter", crow: "badge-crow",
-    hunt: "badge-hunt", processing: "badge-processing", event: "badge-event", market: "badge-market",
+    hunt: "badge-hunt", processing: "badge-processing", market: "badge-market",
   } }, defaultVariants: { kind: "default" },
 });
 function Badge({ children, kind }: { children: React.ReactNode } & VariantProps<typeof badgeVariants>) { return <span className={badgeVariants({ kind })}>{children}</span>; }
@@ -202,8 +201,8 @@ function AcquisitionCatalog() {
     return labels;
   };
 
-  return <><Header title="Materiais e onde conseguir" subtitle="Missões, compra com Moeda Corvo, processamento, drops, permuta e evento em uma única lista." />
-    <div className="source-filter-bar"><button className={filter === "all" ? "active" : ""} onClick={() => setFilter("all")}>Todos</button><button className={filter === "missions" ? "active" : ""} onClick={() => setFilter("missions")}>Missões</button><button className={filter === "crow" ? "active" : ""} onClick={() => setFilter("crow")}>Comprar</button><button className={filter === "processing" ? "active" : ""} onClick={() => setFilter("processing")}>Processar</button><button className={filter === "hunt" ? "active" : ""} onClick={() => setFilter("hunt")}>Drop / caça</button><button className={filter === "barter" ? "active" : ""} onClick={() => setFilter("barter")}>Permuta</button><button className={filter === "event" ? "active" : ""} onClick={() => setFilter("event")}>Evento</button></div>
+  return <><Header title="Materiais e onde conseguir" subtitle="Missões, compra com Moeda Corvo, processamento, drops e permuta em uma única lista." />
+    <div className="source-filter-bar"><button className={filter === "all" ? "active" : ""} onClick={() => setFilter("all")}>Todos</button><button className={filter === "missions" ? "active" : ""} onClick={() => setFilter("missions")}>Missões</button><button className={filter === "crow" ? "active" : ""} onClick={() => setFilter("crow")}>Comprar</button><button className={filter === "processing" ? "active" : ""} onClick={() => setFilter("processing")}>Processar</button><button className={filter === "hunt" ? "active" : ""} onClick={() => setFilter("hunt")}>Drop / caça</button><button className={filter === "barter" ? "active" : ""} onClick={() => setFilter("barter")}>Permuta</button></div>
     <div className="acquisition-list">{materials.map((m) => { const required = getRequired(m.id, profile.target); const missing = getMissing(profile, m.id); const sources = m.sources.filter((s) => sourceMatches(s, filter)); return <article className="acquisition-card" key={m.id}><div className="acquisition-item"><MaterialLabel id={m.id} size={42} /><div className="acquisition-numbers"><span>Meta <strong>{required ? number(required) : "Aprimoramento"}</strong></span><span>Tenho <strong>{number(profile.materials[m.id])}</strong></span><span>Falta <strong className={missing === 0 ? "ok-text" : "warn-text"}>{required ? number(missing) : "—"}</strong></span></div></div><div className="used-in"><span>USADO EM</span>{usedIn(m.id).map((label) => <small key={label}>{label}</small>)}</div><div className="acquisition-sources">{sources.map((source, index) => <div className={`source-card source-${source.type}`} key={`${source.type}-${index}`}><Badge kind={source.type}>{sourceLabel[source.type]}</Badge><strong>{source.label}</strong>{source.detail && <p>{source.detail}</p>}</div>)}</div></article>; })}</div>
   </>;
 }
@@ -230,20 +229,6 @@ function Quests() {
   const quests = QUESTS.filter((q) => q.cadence === cadence).sort((a, b) => { const ar = a.recommendedFor.some((id) => hardIds.has(id)) ? 1 : 0; const br = b.recommendedFor.some((id) => hardIds.has(id)) ? 1 : 0; return br - ar || b.priority - a.priority; });
   const resetKey = questResetKey(cadence);
   return <><Header title="Missões do Oceano" subtitle="As missões ligadas aos materiais que mais faltam aparecem primeiro." /><div className="toolbar"><div className="segmented"><button className={cadence === "daily" ? "active" : ""} onClick={() => setCadence("daily")}>Diárias</button><button className={cadence === "weekly" ? "active" : ""} onClick={() => setCadence("weekly")}>Semanais</button></div><div className="legend"><i className="priority-mark" /> Compatível com seus gargalos</div></div><div className="quest-list">{quests.map((q) => { const done = completedQuests[q.id] === resetKey; const relevant = q.recommendedFor.some((id) => hardIds.has(id)); return <article className={`quest-card ${done ? "done" : ""} ${relevant ? "relevant" : ""}`} key={q.id}><button className="quest-check" aria-label={`${done ? "Desmarcar" : "Concluir"} missão: ${q.title}`} aria-pressed={done} onClick={() => toggleQuest(q.id, resetKey)}>{done ? "✓" : ""}</button><div className="quest-body"><div className="quest-top"><div><Badge kind={q.cadence}>{q.cadence === "daily" ? "DIÁRIA" : "SEMANAL"}</Badge>{relevant && <Badge kind="gold">FOCO ATUAL</Badge>}<h3>{q.title}</h3></div><div className="quest-location"><span>{q.npc}</span><strong>{q.location}</strong></div></div><p className="objective">{q.objective}</p><div className="rewards">{q.rewards.map((r) => <span key={r}><TextWithItemIcons text={r} /></span>)}</div><small className="quest-source">Fonte: {q.source}</small></div></article>; })}</div></>;
-}
-
-function Pass() {
-  const profile = useActivePreset().profile;
-  const setProfile = usePlannerStore((state) => state.setProfile);
-  const normal = bestNormalChestChoices(profile);
-  const extravagant = bestExtravagantChoices(profile);
-  const nextReward = PASS_REWARDS.find((r) => r.points > profile.passPoints);
-  return <><Header title="Passe Especial de Navegação" subtitle={`As escolhas dos baús são calculadas para ${CARRACKS[profile.target].name}.`} />
-    <section className="pass-hero"><div className="pass-image"><Image src="/assets/navigation-pass.png" alt="Baús do Passe Especial de Navegação" fill sizes="(max-width: 780px) 100vw, 360px" /></div><div className="pass-copy"><Badge kind="gold">EVENTO 2026</Badge><h2>Passe Especial de Navegação</h2><p>Registre seus pontos e os baús fechados para priorizar os materiais que ainda faltam.</p><div className="pass-controls"><label><span>Pontos</span><input type="number" min={0} max={400} value={profile.passPoints} onChange={(e) => setProfile({ passPoints: Number(e.target.value) })} /></label><label className="toggle-compact"><input type="checkbox" checked={profile.passOwned} onChange={(e) => setProfile({ passOwned: e.target.checked })} /><span>Passe Especial comprado</span></label></div><Progress value={Math.min(100, profile.passPoints / 4)} /><small>{nextReward ? `Próximo marco: ${nextReward.points} pontos · faltam ${nextReward.points - profile.passPoints} permutas` : "400 pontos concluídos"}</small></div></section>
-    <div className="chest-grid"><section className="panel chest-card"><div className="panel-title"><div><span className="eyebrow">BAÚ NORMAL</span><h3>Melhor escolha em cada etapa</h3></div><label className="mini-number">Fechados<input type="number" min={0} value={profile.normalChests} onChange={(e) => setProfile({ normalChests: Number(e.target.value) })} /></label></div><div className="selection-block"><span>PRIMEIRA SELEÇÃO</span>{!normal.stage1.length && <p className="empty-state">Materiais desta etapa concluídos.</p>}{normal.stage1.slice(0, 3).map((x, i) => <div className={`choice ${i === 0 ? "best" : ""}`} key={x.id}><em>{i === 0 ? "MELHOR" : `#${i + 1}`}</em><div className="choice-item"><MaterialLabel id={x.id} size={18} /></div><small>×{x.qty} · faltam {number(getMissing(profile, x.id))}</small></div>)}</div><div className="selection-block"><span>SEGUNDA SELEÇÃO</span>{!normal.stage2.length && <p className="empty-state">Materiais desta etapa concluídos.</p>}{normal.stage2.slice(0, 3).map((x, i) => <div className={`choice ${i === 0 ? "best" : ""}`} key={x.id}><em>{i === 0 ? "MELHOR" : `#${i + 1}`}</em><div className="choice-item"><MaterialLabel id={x.id} size={18} /></div><small>×{x.qty} · faltam {number(getMissing(profile, x.id))}</small></div>)}</div></section>
-      <section className="panel chest-card extravagant"><div className="panel-title"><div><span className="eyebrow">BAÚ EXTRAVAGANTE</span><h3>Prioridade atual</h3></div><label className="mini-number">Fechados<input type="number" min={0} value={profile.extravagantChests} onChange={(e) => setProfile({ extravagantChests: Number(e.target.value) })} /></label></div><div className="selection-block single">{!extravagant.length && <p className="empty-state">Materiais deste baú concluídos.</p>}{extravagant.map((x, i) => <div className={`choice ${i === 0 ? "best" : ""}`} key={x.id}><em>{i === 0 ? "PEGUE AGORA" : `#${i + 1}`}</em><div className="choice-item"><MaterialLabel id={x.id} size={18} /></div><small>×{x.qty} · faltam {number(getMissing(profile, x.id))} · Corvo {number((x.material.crowPrice || 0) * x.qty)}</small></div>)}</div></section></div>
-    <section className="panel reward-track"><div className="panel-title"><div><span className="eyebrow">MARCOS</span><h3>Trilha de recompensas</h3></div></div><div className="track">{PASS_REWARDS.map((r) => { const reached = profile.passPoints >= r.points; return <div className={`track-node ${reached ? "reached" : ""}`} key={r.points}><span>{r.points}</span><strong><TextWithItemIcons text={r.basic} /></strong><small>{profile.passOwned ? <TextWithItemIcons text={r.premium} /> : "Passe Especial não ativo"}</small></div>; })}</div></section>
-  </>;
 }
 
 function Strategy() {
@@ -278,7 +263,7 @@ function App({ children }: { children: React.ReactNode }) {
     if (confirm(`Excluir o preset “${activePreset?.name}” e todo o progresso dele?`)) removePreset(activePresetId!);
   }
 
-  return <div className="app-shell"><Sidebar tab={tab} setTab={(nextTab) => { setCreatingPreset(false); setTab(nextTab); }} onAddPreset={showPresetCreator} /><main id="main-content" tabIndex={-1} ref={mainRef} className="content"><div className="content-inner">{creatingPreset ? <PresetSetup canCancel onClose={() => setCreatingPreset(false)} /> : <>{tab === "overview" && <Overview />}{tab === "inventory" && <Inventory />}{tab === "materials" && <AcquisitionCatalog />}{tab === "gear" && <Gear />}{tab === "quests" && <Quests />}{tab === "pass" && <Pass />}{tab === "strategy" && <Strategy />}</>}</div><footer><span>Carrack Ledger · {presets.length} {presets.length === 1 ? "preset salvo" : "presets salvos"} neste navegador</span><div><button onClick={deleteActivePreset}>Excluir preset atual</button><button onClick={() => { if (confirm("Apagar todos os presets e progressos salvos?")) resetAll(); }}>Redefinir tudo</button></div></footer></main></div>;
+  return <div className="app-shell"><Sidebar tab={tab} setTab={(nextTab) => { setCreatingPreset(false); setTab(nextTab); }} onAddPreset={showPresetCreator} /><main id="main-content" tabIndex={-1} ref={mainRef} className="content"><div className="content-inner">{creatingPreset ? <PresetSetup canCancel onClose={() => setCreatingPreset(false)} /> : <>{tab === "overview" && <Overview />}{tab === "inventory" && <Inventory />}{tab === "materials" && <AcquisitionCatalog />}{tab === "gear" && <Gear />}{tab === "quests" && <Quests />}{tab === "strategy" && <Strategy />}</>}</div><footer><span>Carrack Ledger · {presets.length} {presets.length === 1 ? "preset salvo" : "presets salvos"} neste navegador</span><div><button onClick={deleteActivePreset}>Excluir preset atual</button><button onClick={() => { if (confirm("Apagar todos os presets e progressos salvos?")) resetAll(); }}>Redefinir tudo</button></div></footer></main></div>;
 }
 
 export default App;

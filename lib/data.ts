@@ -58,7 +58,6 @@ export const MATERIALS: MaterialDefinition[] = [
       { type: "weekly", label: "[Semanal] Caçador de Kandidum da Guilda Lua Minguante", detail: "Escolha de recompensa x4." },
       { type: "barter", label: "Permuta de Mercadoria Marítima [Nível 4]", detail: "Pode aparecer nas rotas de material de navio." },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "200 Moedas Corvo por unidade." },
-      { type: "event", label: "Baú de Auxílio-Expansão de Carraca à La Carte", detail: "Primeira seleção x5." },
     ],
   },
   {
@@ -75,7 +74,6 @@ export const MATERIALS: MaterialDefinition[] = [
       { type: "hunt", label: "Criaturas Marinhas", detail: "Pode ser obtida eliminando criaturas marinhas." },
       { type: "barter", label: "Permuta de Mercadoria Marítima [Nível 4]", detail: "Material de navio em rotas de permuta." },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "40 Moedas Corvo por unidade." },
-      { type: "event", label: "Baú de Auxílio-Expansão de Carraca à La Carte", detail: "Primeira seleção x30." },
     ],
   },
   {
@@ -91,7 +89,6 @@ export const MATERIALS: MaterialDefinition[] = [
       { type: "daily", label: "[Diário] Para o bem dos jovens Vendedores Lontras", detail: "Recompensa diária no Olho de Okilua." },
       { type: "barter", label: "Permuta de Mercadoria Marítima [Nível 4]", detail: "Pode aparecer nas rotas de material de navio." },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "80 Moedas Corvo por unidade." },
-      { type: "event", label: "Baú de Auxílio-Expansão de Carraca à La Carte", detail: "Primeira seleção x15." },
     ],
   },
   {
@@ -107,7 +104,6 @@ export const MATERIALS: MaterialDefinition[] = [
       { type: "hunt", label: "Criaturas Marinhas", detail: "Pode ser obtido eliminando criaturas marinhas." },
       { type: "barter", label: "Permuta de Mercadoria Marítima [Nível 4]", detail: "Material de navio em rotas de permuta." },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "130 Moedas Corvo por unidade." },
-      { type: "event", label: "Baú de Auxílio-Expansão de Carraca à La Carte", detail: "Segunda seleção x15." },
     ],
   },
   {
@@ -124,7 +120,6 @@ export const MATERIALS: MaterialDefinition[] = [
       { type: "hunt", label: "Criaturas Marinhas", detail: "Pode ser obtido eliminando criaturas marinhas." },
       { type: "barter", label: "Permuta de Mercadoria Marítima [Nível 3]", detail: "Pode aparecer nas rotas marítimas." },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "200 Moedas Corvo por unidade." },
-      { type: "event", label: "Baú de Auxílio-Expansão de Carraca à La Carte", detail: "Segunda seleção x7." },
     ],
   },
   {
@@ -141,7 +136,6 @@ export const MATERIALS: MaterialDefinition[] = [
       { type: "barter", label: "Permuta de Mercadoria Marítima [Nível 2]", detail: "Pode aparecer nas rotas marítimas." },
       { type: "hunt", label: "Criaturas Marinhas", detail: "Pode ser obtido eliminando criaturas marinhas." },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "120 Moedas Corvo por unidade." },
-      { type: "event", label: "Baú de Auxílio-Expansão de Carraca à La Carte", detail: "Segunda seleção x10." },
     ],
   },
   {
@@ -162,7 +156,6 @@ export const MATERIALS: MaterialDefinition[] = [
       { type: "hunt", label: "Criaturas Marinhas / Piratas Cox", detail: "Drops usados diretamente ou no processamento." },
       { type: "barter", label: "Permuta [Nível 4] e [Nível 5]", detail: "Pode aparecer nas rotas marítimas." },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "120 Moedas Corvo por unidade." },
-      { type: "event", label: "Baú Extravagante à La Carte", detail: "Escolha x4." },
     ],
   },
   {
@@ -179,7 +172,6 @@ export const MATERIALS: MaterialDefinition[] = [
       { type: "hunt", label: "Khan, Olho de Okilua", detail: "A Escama do Khan é obtida derrotando Khan." },
       { type: "barter", label: "Permuta de Mercadoria Marítima [Nível 5]", detail: "Pode aparecer nas rotas marítimas." },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "15 Moedas Corvo por unidade." },
-      { type: "event", label: "Baú de Auxílio-Expansão de Carraca à La Carte", detail: "Primeira seleção x80." },
     ],
   },
   {
@@ -197,7 +189,6 @@ export const MATERIALS: MaterialDefinition[] = [
       { type: "barter", label: "Permuta de Mercadoria Marítima [Nível 4]", detail: "Pode aparecer nas rotas marítimas." },
       { type: "hunt", label: "Fantasma dos Piratas Cox / Navio Fantasma Naufragado", detail: "Fonte do material usado no processamento." },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "80 Moedas Corvo por unidade." },
-      { type: "event", label: "Baú de Auxílio-Expansão de Carraca à La Carte", detail: "Segunda seleção x25." },
     ],
   },
   {
@@ -214,7 +205,6 @@ export const MATERIALS: MaterialDefinition[] = [
       { type: "hunt", label: "Criaturas Marinhas", detail: "Pode ser obtida eliminando criaturas marinhas." },
       { type: "barter", label: "Permuta de Mercadoria Marítima [Nível 3]", detail: "Pode aparecer nas rotas marítimas." },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "30 Moedas Corvo por unidade." },
-      { type: "event", label: "Baú de Auxílio-Expansão de Carraca à La Carte", detail: "Primeira seleção x30." },
     ],
   },
   {
@@ -231,7 +221,6 @@ export const MATERIALS: MaterialDefinition[] = [
       { type: "hunt", label: "Criaturas Marinhas", detail: "Pode ser obtido eliminando criaturas marinhas." },
       { type: "barter", label: "Permuta de Mercadoria Marítima [Nível 4]", detail: "Pode aparecer nas rotas marítimas." },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "400 Moedas Corvo por unidade." },
-      { type: "event", label: "Baú de Auxílio-Expansão de Carraca à La Carte", detail: "Segunda seleção x5." },
     ],
   },
   {
@@ -247,7 +236,6 @@ export const MATERIALS: MaterialDefinition[] = [
       { type: "barter", label: "Permuta de Mercadoria Marítima [Nível 4]", detail: "Pode aparecer nas rotas marítimas." },
       { type: "hunt", label: "Criaturas Marinhas", detail: "Pode ser obtida eliminando criaturas marinhas." },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "400 Moedas Corvo por unidade." },
-      { type: "event", label: "Baú Extravagante à La Carte", detail: "Escolha x1." },
     ],
   },
   {
@@ -265,7 +253,6 @@ export const MATERIALS: MaterialDefinition[] = [
       { type: "hunt", label: "Khan, Olho de Okilua", detail: "O Tendão do Khan é obtido derrotando Khan." },
       { type: "barter", label: "Permuta de Mercadoria Marítima [Nível 5]", detail: "Pode aparecer nas rotas marítimas." },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "40 Moedas Corvo por unidade." },
-      { type: "event", label: "Baú de Auxílio-Expansão de Carraca à La Carte", detail: "Primeira seleção x30." },
     ],
   },
   {
@@ -283,7 +270,6 @@ export const MATERIALS: MaterialDefinition[] = [
       { type: "hunt", label: "Navios/Piratas Cox no oceano", detail: "Fonte do Estilhaço do Navio Pirata Utilizável." },
       { type: "barter", label: "Permuta de Mercadoria Marítima [Nível 5]", detail: "Pode aparecer nas rotas marítimas." },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "80 Moedas Corvo por unidade." },
-      { type: "event", label: "Baú de Auxílio-Expansão de Carraca à La Carte", detail: "Segunda seleção x20." },
     ],
   },
   {
@@ -299,7 +285,6 @@ export const MATERIALS: MaterialDefinition[] = [
       { type: "hunt", label: "Criaturas Marinhas", detail: "Drop raro de conteúdo oceânico." },
       { type: "barter", label: "Permuta de Mercadoria Marítima [Nível 5]", detail: "Material brilhante de Carraca." },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "400 Moedas Corvo por unidade." },
-      { type: "event", label: "Baú Extravagante à La Carte", detail: "Escolha x1." },
     ],
   },
   {
@@ -315,7 +300,6 @@ export const MATERIALS: MaterialDefinition[] = [
       { type: "hunt", label: "Criaturas Marinhas", detail: "Drop raro de conteúdo oceânico." },
       { type: "barter", label: "Permuta de Mercadoria Marítima [Nível 5]", detail: "Material brilhante de Carraca." },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "400 Moedas Corvo por unidade." },
-      { type: "event", label: "Baú Extravagante à La Carte", detail: "Escolha x1." },
     ],
   },
   {
@@ -333,7 +317,6 @@ export const MATERIALS: MaterialDefinition[] = [
       { type: "weekly", label: "[Semanal] Caçador de Nineshark da Guilda Lua Minguante", detail: "Escolha de recompensa x2." },
       { type: "barter", label: "Permuta de Mercadoria Marítima [Nível 5]", detail: "Pode aparecer nas rotas marítimas." },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "400 Moedas Corvo por unidade." },
-      { type: "event", label: "Baú Extravagante à La Carte", detail: "Escolha x1." },
     ],
   },
   {
@@ -347,7 +330,6 @@ export const MATERIALS: MaterialDefinition[] = [
     sources: [
       { type: "weekly", label: "Semanais do Olho de Okilua", detail: "Várias semanais oferecem opção de x60." },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "Baús/pacotes semanais conforme a loja atual." },
-      { type: "event", label: "Passe Especial de Navegação", detail: "Pacotes de Pedra Negra da Onda em vários marcos." },
     ],
   },
 ];
@@ -547,53 +529,9 @@ export const QUESTS: QuestDefinition[] = [
   },
 ];
 
-export const PASS_REWARDS = [
-  { points: 10, basic: "Garantia Comercial do Corvo x5", premium: "Baú Extravagante x5" },
-  { points: 40, basic: "Moeda Corvo x500", premium: "Pedra Negra da Onda x500" },
-  { points: 70, basic: "Remédio da Regeneração x2", premium: "Baú Normal x3" },
-  { points: 100, basic: "Pedra Negra da Onda x200", premium: "Moeda Corvo x1.000" },
-  { points: 130, basic: "Moeda Corvo x500", premium: "Baú Normal x3" },
-  { points: 160, basic: "Pedra Negra da Onda x300", premium: "Pedra Negra da Onda x1.000" },
-  { points: 190, basic: "Remédio da Regeneração x3", premium: "Baú Extravagante x6" },
-  { points: 220, basic: "Moeda Corvo x1.000", premium: "Moeda Corvo x2.000" },
-  { points: 250, basic: "Garantia Comercial do Corvo x5", premium: "Baú Normal x4" },
-  { points: 280, basic: "Pedra Negra da Onda x500", premium: "Pedra Negra da Onda x1.500" },
-  { points: 310, basic: "Moeda Corvo x1.000", premium: "Baú Normal x5" },
-  { points: 340, basic: "Garantia Comercial do Corvo x5", premium: "Moeda Corvo x3.000" },
-  { points: 370, basic: "Remédio da Regeneração x5", premium: "Baú Normal x5" },
-  { points: 400, basic: "Moeda Corvo x1.000", premium: "Baú Extravagante x7" },
-];
-
-export const NORMAL_CHEST_STAGE_1: { id: MaterialId; qty: number }[] = [
-  { id: "redSeaGold", qty: 5 },
-  { id: "seaweedStalk", qty: 15 },
-  { id: "moonVeinFlax", qty: 30 },
-  { id: "enhancedPlywood", qty: 30 },
-  { id: "reefPiece", qty: 30 },
-  { id: "moonScalePlywood", qty: 80 },
-];
-
-export const NORMAL_CHEST_STAGE_2: { id: MaterialId; qty: number }[] = [
-  { id: "tideTimber", qty: 25 },
-  { id: "blueMarineTimber", qty: 20 },
-  { id: "purePearl", qty: 7 },
-  { id: "greatOceanIron", qty: 15 },
-  { id: "coxLow", qty: 10 },
-  { id: "coxHigh", qty: 5 },
-];
-
-export const EXTRAVAGANT_CHEST: { id: MaterialId; qty: number }[] = [
-  { id: "coxCombat", qty: 4 },
-  { id: "luminousCobalt", qty: 1 },
-  { id: "saltRock", qty: 1 },
-  { id: "brilliantPearl", qty: 1 },
-  { id: "abyssalEye", qty: 1 },
-];
-
 export const SOURCES = [
   { label: "Pearl Abyss — 4 Carracas (27/08/2026)", href: "https://www.sa.playblackdesert.com/pt-br/News/Detail?countryType=pt-br&groupContentNo=8511" },
   { label: "Guia oficial — Melhorias em Navios", href: "https://www.sa.playblackdesert.com/pt-br/Wiki?wikiNo=291" },
-  { label: "Evento — Passe Especial de Navegação", href: "https://www.sa.playblackdesert.com/pt-br/News/Detail?groupContentNo=8454" },
   { label: "Atualização — Missões do Oceano", href: "https://www.sa.playblackdesert.com/pt-br/News/Detail?groupContentNo=5779" },
   { label: "Atualização — Loja Corvo 21/05/2026", href: "https://www.sa.playblackdesert.com/pt-BR/News/Detail?groupContentNo=7988" },
   { label: "BDO Codex — banco de itens, receitas e missões", href: "https://bdocodex.com/pt/" },

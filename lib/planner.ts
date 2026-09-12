@@ -1,4 +1,4 @@
-import { CARRACKS, EXTRAVAGANT_CHEST, MATERIALS, MATERIAL_BY_ID, NORMAL_CHEST_STAGE_1, NORMAL_CHEST_STAGE_2 } from "@/lib/data";
+import { CARRACKS, MATERIALS, MATERIAL_BY_ID } from "@/lib/data";
 import type { CarrackTarget, MaterialId, PlannerProfile } from "@/types";
 
 export function getRequired(id: MaterialId, target: CarrackTarget) {
@@ -57,35 +57,6 @@ export function purchasePlan(profile: PlannerProfile) {
   return { items, remainingCoins };
 }
 
-function chestChoiceScore(profile: PlannerProfile, id: MaterialId, qty: number) {
-  const material = MATERIAL_BY_ID[id];
-  const required = getRequired(id, profile.target);
-  const missing = getMissing(profile, id);
-  if (!required || !missing) return -1000;
-  const coverage = Math.min(1, qty / missing);
-  const crowEquivalent = (material.crowPrice || 30) * Math.min(qty, missing);
-  return material.difficulty * 100 + coverage * 55 + Math.log10(crowEquivalent + 10) * 18;
-}
-
-export function bestNormalChestChoices(profile: PlannerProfile) {
-  const stage1 = [...NORMAL_CHEST_STAGE_1]
-    .filter((x) => getMissing(profile, x.id) > 0)
-    .map((x) => ({ ...x, score: chestChoiceScore(profile, x.id, x.qty), material: MATERIAL_BY_ID[x.id] }))
-    .sort((a, b) => b.score - a.score);
-  const stage2 = [...NORMAL_CHEST_STAGE_2]
-    .filter((x) => getMissing(profile, x.id) > 0)
-    .map((x) => ({ ...x, score: chestChoiceScore(profile, x.id, x.qty), material: MATERIAL_BY_ID[x.id] }))
-    .sort((a, b) => b.score - a.score);
-  return { stage1, stage2 };
-}
-
-export function bestExtravagantChoices(profile: PlannerProfile) {
-  return [...EXTRAVAGANT_CHEST]
-    .filter((x) => getMissing(profile, x.id) > 0)
-    .map((x) => ({ ...x, score: chestChoiceScore(profile, x.id, x.qty), material: MATERIAL_BY_ID[x.id] }))
-    .sort((a, b) => b.score - a.score);
-}
-
 export function questResetKey(cadence: "daily" | "weekly", now = new Date()) {
   if (cadence === "daily") return now.toISOString().slice(0, 10);
   const copy = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
@@ -106,10 +77,6 @@ export function nextActions(profile: PlannerProfile) {
       tone: index === 0 ? "critical" : index === 1 ? "gold" : "blue",
     });
   });
-
-  if (profile.passOwned && (profile.normalChests > 0 || profile.extravagantChests > 0)) {
-    actions.unshift({ title: "Passe: não abra os baús no automático", detail: "Use a aba Passe; o sistema cruza seu estoque com a Carraca escolhida.", tone: "gold" });
-  }
 
   return actions.slice(0, 5);
 }

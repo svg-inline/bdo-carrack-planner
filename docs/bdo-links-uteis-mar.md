@@ -27,8 +27,7 @@ Para conteúdo exclusivamente de mar, navegação, permuta, barcos e Carraca, eu
    - mudanças de Permuta
    - novos materiais
    - alterações de Carraca
-   - eventos de Navegação
-   - Passe de Navegação.
+   - eventos de Navegação.
 
 3. BDO Codex PT-BR
    [BDO Codex PT-BR](https://bdocodex.com/pt/?utm_source=chatgpt.com)

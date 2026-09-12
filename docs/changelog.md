@@ -20,9 +20,9 @@ Todas as mudanças relevantes para usuários são registradas em `Unreleased`, n
 ### Removed
 
 - Removido o onboarding obrigatório de três etapas.
+- Removidos a área do Passe Especial de Navegação, seus dados salvos, recomendações de baús e fontes de obtenção do evento.
 
 ### Fixed
 
-- Recomendações de baús deixam de sugerir materiais cuja meta já foi concluída.
 - Progresso dos equipamentos ignora aprimoramento azul antes da fabricação da peça.
 - Campos, navegação, foco e indicadores de progresso receberam nomes e estados acessíveis.

@@ -15,6 +15,7 @@ test("creates different and repeated presets with independent persisted progress
   await expect(page.getByRole("heading", { name: "Qual Carraca você quer planejar?" })).toBeVisible();
   await page.getByRole("button", { name: /Bravura/ }).click();
   await expect(page.getByRole("heading", { name: "Rota para sua Carraca" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Passe" })).toHaveCount(0);
 
   await page.getByRole("button", { name: "Inventário" }).click();
   const combatStock = page.getByRole("spinbutton", { name: /Estoque de Artefato dos Piratas Cox.*Combate/ });

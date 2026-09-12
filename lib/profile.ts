@@ -30,7 +30,6 @@ export function createInitialProfile(target: CarrackTarget = "bravura"): Planner
     target, crowCoins: 0,
     materials: Object.fromEntries(MATERIALS.map((m) => [m.id, 0])) as Record<MaterialId, number>,
     gear: { caravel: emptySet(), galleass: emptySet() },
-    passOwned: false, passPoints: 0, normalChests: 0, extravagantChests: 0,
   };
 }
 
@@ -51,8 +50,7 @@ export function normalizeProfile(value: unknown): PlannerProfile {
     target,
     crowCoins: nonNegativeInteger(raw.crowCoins),
     materials: Object.fromEntries(MATERIALS.map((m) => [m.id, nonNegativeInteger(materials[m.id])])) as Record<MaterialId, number>,
-    gear, passOwned: raw.passOwned === true, passPoints: nonNegativeInteger(raw.passPoints, 400),
-    normalChests: nonNegativeInteger(raw.normalChests), extravagantChests: nonNegativeInteger(raw.extravagantChests),
+    gear,
   };
 }
 

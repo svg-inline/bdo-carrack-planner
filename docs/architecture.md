@@ -8,7 +8,7 @@ Os dados de jogo usados nos cálculos ficam em `lib/data.ts`. A aplicação não
 
 ## Presets e persistência
 
-O estado interativo é gerenciado pelo Zustand. O usuário cria um preset escolhendo uma das quatro Carracas e pode manter vários presets, inclusive do mesmo modelo. Inventário, equipamentos, missões e Passe pertencem ao preset, enquanto o seletor lateral define qual plano está ativo.
+O estado interativo é gerenciado pelo Zustand. O usuário cria um preset escolhendo uma das quatro Carracas e pode manter vários presets, inclusive do mesmo modelo. Inventário, equipamentos e missões pertencem ao preset, enquanto o seletor lateral define qual plano está ativo.
 
 Os presets são salvos em `localStorage` com a chave `bdo-carrack-ledger-v1`. Todo estado carregado é normalizado antes de entrar no planner: identificadores desconhecidos são descartados, quantidades são inteiros não negativos e aprimoramentos ficam entre 0 e 10. Planos do formato anterior que já haviam concluído o onboarding são migrados para um preset. Se o armazenamento estiver bloqueado ou exceder a cota, o planner continua durante a sessão e informa que não pode persistir.
 

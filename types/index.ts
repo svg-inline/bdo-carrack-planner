@@ -2,7 +2,7 @@ export type CarrackTarget = "gradual" | "equilibrio" | "ascensao" | "bravura";
 export type ShipBranch = "caravel" | "galleass";
 export type GearKey = "figurehead" | "plating" | "cannon" | "sail";
 export type MaterialCategory = "carrack" | "blue-gear" | "enhancement";
-export type AcquisitionType = "daily" | "weekly" | "barter" | "crow" | "hunt" | "processing" | "event" | "market";
+export type AcquisitionType = "daily" | "weekly" | "barter" | "crow" | "hunt" | "processing" | "market";
 
 export type MaterialId =
   | "redSeaGold"
@@ -74,10 +74,6 @@ export interface PlannerProfile {
   crowCoins: number;
   materials: Record<MaterialId, number>;
   gear: BranchGearState;
-  passOwned: boolean;
-  passPoints: number;
-  normalChests: number;
-  extravagantChests: number;
 }
 
 export interface PlannerPreset {
