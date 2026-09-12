@@ -6,7 +6,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { CARRACK_ORDER, CARRACKS, GEAR_SETS, MATERIALS, MATERIAL_BY_ID, PASS_REWARDS, QUESTS, SOURCES } from "@/lib/data";
 import { bestExtravagantChoices, bestNormalChestChoices, bottlenecks, getMissing, getRequired, materialCompletion, nextActions, overallCompletion, purchasePlan, questResetKey } from "@/lib/planner";
 import { usePlannerStore } from "@/lib/store";
-import type { Acquisition, AcquisitionType, GearKey, MaterialCategory, MaterialId, ShipBranch } from "@/types";
+import type { Acquisition, AcquisitionType, CarrackTarget, GearKey, MaterialCategory, MaterialId, PlannerPreset, ShipBranch } from "@/types";
 
 const tabs = [
   ["overview", "Visão geral"],
@@ -82,88 +82,61 @@ function TextWithItemIcons({ text }: { text: string }) {
   })}</>;
 }
 
-function TargetSelector({ compact = false }: { compact?: boolean }) {
-  const { profile, setProfile } = usePlannerStore();
-  return <div className={`carrack-selector ${compact ? "compact" : ""}`}>
+function useActivePreset(): PlannerPreset {
+  return usePlannerStore((state) => state.presets.find((preset) => preset.id === state.activePresetId))!;
+}
+
+function CarrackChoices({ onSelect }: { onSelect: (target: CarrackTarget) => void }) {
+  return <div className="carrack-selector">
     {CARRACK_ORDER.map((id) => {
       const carrack = CARRACKS[id];
-      const selected = profile.target === id;
-      return <button key={id} aria-pressed={selected} className={selected ? "selected" : ""} onClick={() => setProfile({ target: id })}>
+      return <button key={id} onClick={() => onSelect(id)}>
         <span className="carrack-role">{carrack.role}</span>
         <strong>{carrack.shortName}</strong>
         <small>{carrack.sourceShip}</small>
-        {selected && <em>ATIVA</em>}
       </button>;
     })}
   </div>;
 }
 
-function Onboarding() {
-  const { profile, setProfile, setMaterial, completeOnboarding } = usePlannerStore();
-  const [step, setStep] = useState(1);
-  const focusMaterials: MaterialId[] = ["coxCombat", "luminousCobalt", "moonVeinFlax", "blueMarineTimber", "saltRock", "brilliantPearl", "abyssalEye"];
-
-  return <main id="main-content" tabIndex={-1} className="onboarding-shell">
-    <div className="onboarding-backdrop" />
-    <section className="onboarding-panel wide-onboarding">
-      <div className="crest">☸</div>
-      <p className="eyebrow">REGISTRO DE EXPEDIÇÃO · EPHERIA</p>
-      <h1>Prepare sua Carraca</h1>
-      <p className="lead">Escolha a rota, informe seu estoque e o planner calcula materiais, equipamentos +10 e prioridades.</p>
-      <div className="stepper"><span className={step >= 1 ? "active" : ""}>01</span><i /><span className={step >= 2 ? "active" : ""}>02</span><i /><span className={step >= 3 ? "active" : ""}>03</span></div>
-
-      {step === 1 && <div className="form-block">
-        <p className="field-label">Escolha uma das 4 Carracas</p>
-        <TargetSelector />
-        <label className="field-label" htmlFor="crow">Moedas Corvo atuais</label>
-        <input id="crow" className="large-input" type="number" min={0} value={profile.crowCoins || ""} placeholder="Ex.: 12450" onChange={(e) => setProfile({ crowCoins: Number(e.target.value) })} />
-      </div>}
-
-      {step === 2 && <div className="form-block">
-        <div className="form-heading"><div><span className="eyebrow">ESTOQUE INICIAL</span><h2>Principais gargalos</h2></div><small>O inventário completo fica disponível depois.</small></div>
-        <div className="inventory-grid">{focusMaterials.map((id) => {
-          const m = MATERIAL_BY_ID[id];
-          return <label className="inventory-row" key={id}><span><MaterialLabel id={id} size={18} /><small>Meta para {CARRACKS[profile.target].shortName}: {number(m.required[profile.target])}</small></span><input type="number" min={0} value={profile.materials[id] || ""} placeholder="0" onChange={(e) => setMaterial(id, Number(e.target.value))} /></label>;
-        })}</div>
-      </div>}
-
-      {step === 3 && <div className="form-block">
-        <div className="form-heading"><div><span className="eyebrow">PASSE DE NAVEGAÇÃO</span><h2>Recompensas extras</h2></div></div>
-        <label className="toggle-line"><input type="checkbox" checked={profile.passOwned} onChange={(e) => setProfile({ passOwned: e.target.checked })} /><span><strong>Tenho o Passe Especial</strong><small>Inclui os baús e os marcos no cálculo.</small></span></label>
-        <div className="two-cols">
-          <label><span>Pontos atuais</span><input type="number" min={0} max={400} value={profile.passPoints || ""} placeholder="0" onChange={(e) => setProfile({ passPoints: Number(e.target.value) })} /></label>
-          <label><span>Baús normais fechados</span><input type="number" min={0} value={profile.normalChests || ""} placeholder="0" onChange={(e) => setProfile({ normalChests: Number(e.target.value) })} /></label>
-          <label><span>Baús extravagantes fechados</span><input type="number" min={0} value={profile.extravagantChests || ""} placeholder="0" onChange={(e) => setProfile({ extravagantChests: Number(e.target.value) })} /></label>
-        </div>
-      </div>}
-
-      <div className="wizard-actions">
-        <button className="button ghost" disabled={step === 1} onClick={() => setStep((s) => Math.max(1, s - 1))}>Voltar</button>
-        {step < 3 ? <button className="button primary" onClick={() => setStep((s) => Math.min(3, s + 1))}>Continuar</button> : <button className="button primary" onClick={completeOnboarding}>Montar meu plano</button>}
-      </div>
-      <StorageStatus />
-    </section>
-  </main>;
+function PresetSetup({ canCancel, onClose }: { canCancel: boolean; onClose: () => void }) {
+  const addPreset = usePlannerStore((state) => state.addPreset);
+  function chooseCarrack(target: CarrackTarget) {
+    addPreset(target);
+    onClose();
+  }
+  return <section className="preset-setup" aria-labelledby="preset-setup-title">
+    <div className="preset-setup-heading">
+      <div><p className="eyebrow">NOVO PRESET</p><h1 id="preset-setup-title">Qual Carraca você quer planejar?</h1><p>O preset terá inventário, equipamentos, missões e progresso próprios. Você pode criar Carracas diferentes ou repetir o mesmo modelo.</p></div>
+      {canCancel && <button className="button ghost" onClick={onClose}>Cancelar</button>}
+    </div>
+    <CarrackChoices onSelect={chooseCarrack} />
+    <StorageStatus />
+  </section>;
 }
 
-function Sidebar({ tab, setTab }: { tab: Tab; setTab: (tab: Tab) => void }) {
-  const { profile } = usePlannerStore();
+function Sidebar({ tab, setTab, onAddPreset }: { tab: Tab; setTab: (tab: Tab) => void; onAddPreset: () => void }) {
+  const { presets, activePresetId, selectPreset } = usePlannerStore();
+  const activePreset = useActivePreset();
+  const profile = activePreset.profile;
   const carrack = CARRACKS[profile.target];
   return <aside className="sidebar">
     <div className="brand"><div className="brand-mark">☸</div><div><span>CARRACK</span><strong>LEDGER</strong></div></div>
+    <div className="preset-control"><label htmlFor="active-preset">PRESET ATIVO</label><select id="active-preset" value={activePresetId ?? ""} onChange={(event) => selectPreset(event.target.value)}>{presets.map((preset) => <option value={preset.id} key={preset.id}>{preset.name}</option>)}</select><button onClick={onAddPreset}>＋ Adicionar preset</button></div>
     <div className="ship-route-card"><span>ROTA ATUAL</span><strong>{carrack.sourceShip}</strong><i>↓</i><em>{carrack.name}</em></div>
     <nav aria-label="Seções do planner">{tabs.map(([key, label], idx) => <button key={key} aria-current={tab === key ? "page" : undefined} className={tab === key ? "active" : ""} onClick={() => setTab(key)}><span>0{idx + 1}</span>{label}</button>)}</nav>
-    <div className="sidebar-footer"><span>Objetivo</span><strong>{carrack.shortName}</strong><small>{number(profile.crowCoins)} Moedas Corvo</small></div>
+    <div className="sidebar-footer"><span>{activePreset.name}</span><strong>{carrack.shortName}</strong><small>{number(profile.crowCoins)} Moedas Corvo</small></div>
   </aside>;
 }
 
 function Header({ title, subtitle }: { title: string; subtitle: string }) {
-  const { profile, setProfile } = usePlannerStore();
+  const profile = useActivePreset().profile;
+  const setProfile = usePlannerStore((state) => state.setProfile);
   return <header className="topbar"><div><p className="eyebrow">GRANDE OCEANO · PLANEJAMENTO</p><h1>{title}</h1><p>{subtitle}</p></div><div className="topbar-actions"><div className="coin-box"><Sigil>◉</Sigil><span><small>Moeda Corvo</small><input aria-label="Moedas Corvo" type="number" min={0} value={profile.crowCoins} onChange={(e) => setProfile({ crowCoins: Number(e.target.value) })} /></span></div><StorageStatus /></div></header>;
 }
 
 function Overview() {
-  const { profile } = usePlannerStore();
+  const profile = useActivePreset().profile;
   const carrack = CARRACKS[profile.target];
   const completion = overallCompletion(profile);
   const hard = bottlenecks(profile).slice(0, 5);
@@ -175,8 +148,7 @@ function Overview() {
   const gearSet = GEAR_SETS[carrack.branch];
 
   return <>
-    <Header title="Rota para sua Carraca" subtitle="Troque entre as quatro Carracas sem perder seu inventário ou o progresso das duas linhas de navio." />
-    <TargetSelector compact />
+    <Header title="Rota para sua Carraca" subtitle="Cada preset mantém seu próprio inventário, equipamentos, missões e progresso." />
     <section className={`hero-panel carrack-hero ${carrack.branch}`}>
       <div className="hero-art">{carrack.branch === "galleass" ? <Image src="/assets/epheria-galleass.png" alt="Contratorpedeiro de Epheria" fill sizes="(max-width: 780px) 100vw, 300px" /> : <div className="ship-symbol">⚓</div>}<div className="hero-vignette" /></div>
       <div className="hero-copy"><Badge kind="gold">{carrack.role}</Badge><h2>{carrack.name}</h2><p>{carrack.description}</p><div className="route-line"><span>{carrack.sourceShip}</span><i>→</i><strong>{carrack.shortName}</strong></div><div className="hero-stats"><div><span>Progresso geral</span><strong>{completion}%</strong></div><div><span>Materiais azuis</span><strong>{bluePct}%</strong></div><div><span>Materiais Carraca</span><strong>{carrackPct}%</strong></div></div></div>
@@ -194,14 +166,15 @@ function Overview() {
 }
 
 function Inventory() {
-  const { profile, setMaterial } = usePlannerStore();
+  const profile = useActivePreset().profile;
+  const setMaterial = usePlannerStore((state) => state.setMaterial);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | MaterialCategory>("all");
   const relevantCount = MATERIALS.filter((m) => getRequired(m.id, profile.target) > 0).length;
   const completed = MATERIALS.filter((m) => getRequired(m.id, profile.target) > 0 && getMissing(profile, m.id) === 0).length;
   const rows = MATERIALS.filter((m) => (filter === "all" || m.category === filter) && m.name.toLowerCase().includes(query.trim().toLowerCase()));
 
-  return <><Header title="Inventário de materiais" subtitle="Informe tudo que já possui. O mesmo estoque alimenta as quatro Carracas e todas as recomendações." />
+  return <><Header title="Inventário de materiais" subtitle="Informe tudo que já possui neste preset. O estoque alimenta todas as recomendações deste plano." />
     <div className="inventory-summary"><div><span>Plano atual</span><strong>{CARRACKS[profile.target].shortName}</strong></div><div><span>Materiais do plano</span><strong>{relevantCount}</strong></div><div><span>Concluídos</span><strong>{completed}</strong></div><div><span>Moedas Corvo</span><strong>{number(profile.crowCoins)}</strong></div></div>
     <div className="toolbar inventory-toolbar"><div className="segmented"><button className={filter === "all" ? "active" : ""} onClick={() => setFilter("all")}>Todos</button><button className={filter === "blue-gear" ? "active" : ""} onClick={() => setFilter("blue-gear")}>Equip. azul</button><button className={filter === "carrack" ? "active" : ""} onClick={() => setFilter("carrack")}>Carraca</button><button className={filter === "enhancement" ? "active" : ""} onClick={() => setFilter("enhancement")}>Aprimoramento</button></div><input aria-label="Buscar material" className="inventory-search" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar material..." /></div>
     <section className="inventory-table"><div className="inventory-head"><span>Item</span><span>Uso</span><span>Meta atual</span><span>Tenho</span><span>Falta</span></div>{rows.map((m) => { const required = getRequired(m.id, profile.target); const missing = getMissing(profile, m.id); const pct = required ? materialCompletion(profile, m.id) * 100 : 0; return <article className={`inventory-material-row ${required > 0 && missing === 0 ? "complete" : ""}`} key={m.id}><div className="inventory-item"><MaterialLabel id={m.id} size={38} /><Progress value={pct} /></div><span className="inventory-use"><Badge kind={m.category === "carrack" ? "gold" : m.category === "blue-gear" ? "blue" : "default"}>{categoryLabel[m.category]}</Badge></span><strong>{required ? number(required) : "—"}</strong><input aria-label={`Estoque de ${m.name}`} className="qty-input" type="number" min={0} value={profile.materials[m.id]} onChange={(e) => setMaterial(m.id, Number(e.target.value))} /><strong className={missing === 0 && required > 0 ? "inventory-done" : "inventory-missing"}>{required ? number(missing) : "—"}</strong></article>; })}</section>
@@ -215,7 +188,7 @@ function sourceMatches(source: Acquisition, filter: SourceFilter) {
 }
 
 function AcquisitionCatalog() {
-  const { profile } = usePlannerStore();
+  const profile = useActivePreset().profile;
   const [filter, setFilter] = useState<SourceFilter>("all");
   const carrack = CARRACKS[profile.target];
   const gearSet = GEAR_SETS[carrack.branch];
@@ -236,7 +209,8 @@ function AcquisitionCatalog() {
 }
 
 function Gear() {
-  const { profile, setGear } = usePlannerStore();
+  const profile = useActivePreset().profile;
+  const setGear = usePlannerStore((state) => state.setGear);
   const carrack = CARRACKS[profile.target];
   const branch = carrack.branch;
   const gearSet = GEAR_SETS[branch];
@@ -247,7 +221,10 @@ function Gear() {
 }
 
 function Quests() {
-  const { completedQuests, toggleQuest, profile } = usePlannerStore();
+  const activePreset = useActivePreset();
+  const profile = activePreset.profile;
+  const completedQuests = activePreset.completedQuests;
+  const toggleQuest = usePlannerStore((state) => state.toggleQuest);
   const [cadence, setCadence] = useState<"daily" | "weekly">("daily");
   const hardIds = new Set(bottlenecks(profile).slice(0, 7).map((m) => m.id));
   const quests = QUESTS.filter((q) => q.cadence === cadence).sort((a, b) => { const ar = a.recommendedFor.some((id) => hardIds.has(id)) ? 1 : 0; const br = b.recommendedFor.some((id) => hardIds.has(id)) ? 1 : 0; return br - ar || b.priority - a.priority; });
@@ -256,7 +233,8 @@ function Quests() {
 }
 
 function Pass() {
-  const { profile, setProfile } = usePlannerStore();
+  const profile = useActivePreset().profile;
+  const setProfile = usePlannerStore((state) => state.setProfile);
   const normal = bestNormalChestChoices(profile);
   const extravagant = bestExtravagantChoices(profile);
   const nextReward = PASS_REWARDS.find((r) => r.points > profile.passPoints);
@@ -269,7 +247,7 @@ function Pass() {
 }
 
 function Strategy() {
-  const { profile } = usePlannerStore();
+  const profile = useActivePreset().profile;
   const plan = purchasePlan(profile);
   const hard = bottlenecks(profile);
   return <><Header title="Estratégia de aquisição" subtitle="Use Moedas Corvo apenas depois de comparar missões, processamento, drop e permuta." /><div className="strategy-grid"><section className="panel"><div className="panel-title"><div><span className="eyebrow">MOEDA CORVO</span><h3>Compra sugerida</h3></div><Badge kind="gold">{number(profile.crowCoins)} DISPONÍVEIS</Badge></div><p className="panel-note">O cálculo prioriza gargalo, quantidade faltante e custo. Confira sempre a aba Como obter antes de gastar.</p><div className="purchase-list">{plan.items.length ? plan.items.slice(0, 8).map((x, i) => <div className="purchase" key={x.id}><span>0{i + 1}</span><div><div className="item-heading"><MaterialLabel id={x.id} size={18} /></div><small>{number(x.suggested)} un. × {number(x.unit)} moedas</small></div><em>{number(x.cost)}</em></div>) : <div className="empty-state">Sem compra possível com o saldo atual ou sem materiais pendentes.</div>}</div><div className="purchase-total"><span>Saldo estimado após plano</span><strong>{number(plan.remainingCoins)}</strong></div></section><section className="panel"><div className="panel-title"><div><span className="eyebrow">GARGALOS</span><h3>Por que focar neles</h3></div></div><div className="why-list">{hard.slice(0, 6).map((m) => <div key={m.id}><div className="why-title"><div className="item-heading"><MaterialLabel id={m.id} size={18} /></div><Badge kind={m.difficulty >= 5 ? "red" : "gold"}>DIFICULDADE {m.difficulty}/5</Badge></div><p>Faltam <b>{number(m.missing)}</b> de {number(m.required)}. {m.crowPrice ? `Comprar tudo custaria ${number(m.missing * m.crowPrice)} Moedas Corvo.` : "Priorize fontes recorrentes."}</p><div className="source-chips">{m.sources.slice(0, 4).map((s, i) => <Badge key={i} kind={s.type}>{sourceLabel[s.type]}</Badge>)}</div></div>)}</div></section></div><section className="panel sources-panel"><div className="panel-title"><div><span className="eyebrow">REFERÊNCIAS</span><h3>Dados usados pelo planner</h3></div></div><div className="source-links">{SOURCES.map((s) => <a key={s.href} href={s.href} target="_blank" rel="noreferrer">{s.label}<span>↗</span></a>)}</div><p className="source-disclaimer">Dificuldade e ordem de foco são heurísticas do planner. Nomes, receitas, quantidades e métodos de obtenção são baseados nas fontes listadas.</p></section></>;
@@ -278,7 +256,8 @@ function Strategy() {
 function App({ children }: { children: React.ReactNode }) {
   const [tab, setTab] = useState<Tab>("overview");
   const [mounted, setMounted] = useState(false);
-  const { profile, resetAll } = usePlannerStore();
+  const [creatingPreset, setCreatingPreset] = useState(false);
+  const { presets, activePresetId, removePreset, resetAll } = usePlannerStore();
   const mainRef = useRef<HTMLElement>(null);
   useEffect(() => {
     let active = true;
@@ -287,8 +266,19 @@ function App({ children }: { children: React.ReactNode }) {
   }, []);
   useEffect(() => { mainRef.current?.focus(); }, [tab]);
   if (!mounted) return children;
-  if (!profile.initialized) return <Onboarding />;
-  return <div className="app-shell"><Sidebar tab={tab} setTab={setTab} /><main id="main-content" tabIndex={-1} ref={mainRef} className="content"><div className="content-inner">{tab === "overview" && <Overview />}{tab === "inventory" && <Inventory />}{tab === "materials" && <AcquisitionCatalog />}{tab === "gear" && <Gear />}{tab === "quests" && <Quests />}{tab === "pass" && <Pass />}{tab === "strategy" && <Strategy />}</div><footer><span>Carrack Ledger · dados salvos apenas neste navegador</span><button onClick={() => { if (confirm("Apagar todo o progresso salvo?")) resetAll(); }}>Redefinir progresso</button></footer></main></div>;
+  const activePreset = presets.find((preset) => preset.id === activePresetId);
+  if (!activePreset) return <main id="main-content" tabIndex={-1} ref={mainRef} className="preset-start-shell"><div className="preset-start-brand"><div className="brand-mark">☸</div><div><span>CARRACK</span><strong>LEDGER</strong></div></div><PresetSetup canCancel={false} onClose={() => setCreatingPreset(false)} /></main>;
+
+  function showPresetCreator() {
+    setTab("overview");
+    setCreatingPreset(true);
+  }
+
+  function deleteActivePreset() {
+    if (confirm(`Excluir o preset “${activePreset?.name}” e todo o progresso dele?`)) removePreset(activePresetId!);
+  }
+
+  return <div className="app-shell"><Sidebar tab={tab} setTab={(nextTab) => { setCreatingPreset(false); setTab(nextTab); }} onAddPreset={showPresetCreator} /><main id="main-content" tabIndex={-1} ref={mainRef} className="content"><div className="content-inner">{creatingPreset ? <PresetSetup canCancel onClose={() => setCreatingPreset(false)} /> : <>{tab === "overview" && <Overview />}{tab === "inventory" && <Inventory />}{tab === "materials" && <AcquisitionCatalog />}{tab === "gear" && <Gear />}{tab === "quests" && <Quests />}{tab === "pass" && <Pass />}{tab === "strategy" && <Strategy />}</>}</div><footer><span>Carrack Ledger · {presets.length} {presets.length === 1 ? "preset salvo" : "presets salvos"} neste navegador</span><div><button onClick={deleteActivePreset}>Excluir preset atual</button><button onClick={() => { if (confirm("Apagar todos os presets e progressos salvos?")) resetAll(); }}>Redefinir tudo</button></div></footer></main></div>;
 }
 
 export default App;

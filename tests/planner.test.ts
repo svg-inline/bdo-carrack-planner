@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createInitialProfile, normalizeGear, normalizeProfile } from "@/lib/profile";
+import { createInitialProfile, normalizeGear, normalizePersistedState, normalizeProfile } from "@/lib/profile";
 import { bestExtravagantChoices, bestNormalChestChoices, overallCompletion, questResetKey } from "@/lib/planner";
 import { EXTRAVAGANT_CHEST, NORMAL_CHEST_STAGE_1, NORMAL_CHEST_STAGE_2 } from "@/lib/data";
 
@@ -16,6 +16,21 @@ describe("profile normalization", () => {
     expect(profile.materials.coxCombat).toBe(12);
     expect(profile.materials.redSeaGold).toBe(0);
     expect(profile.gear.galleass.figurehead).toEqual({ baseEnhancement: 10, crafted: false, blueEnhancement: 0 });
+  });
+
+  it("migrates an initialized legacy plan into a preset", () => {
+    const state = normalizePersistedState({
+      profile: { initialized: true, target: "gradual", materials: { coxCombat: 7 } },
+      completedQuests: {},
+    });
+    expect(state.activePresetId).toBe("preset-migrado");
+    expect(state.presets).toHaveLength(1);
+    expect(state.presets[0].name).toBe("Minha Gradual");
+    expect(state.presets[0].profile.materials.coxCombat).toBe(7);
+  });
+
+  it("keeps a fresh legacy session without presets", () => {
+    expect(normalizePersistedState({ profile: { initialized: false } })).toEqual({ presets: [], activePresetId: null });
   });
 
   it("never gives blue enhancement progress before crafting", () => {

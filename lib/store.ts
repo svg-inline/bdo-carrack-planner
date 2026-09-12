@@ -2,27 +2,29 @@
 
 import { create } from "zustand";
 import { persist, type PersistStorage } from "zustand/middleware";
-import { createInitialProfile, normalizeGear, normalizePersistedState, normalizeProfile } from "@/lib/profile";
-import type { GearKey, GearState, MaterialId, PlannerProfile, ShipBranch } from "@/types";
+import { CARRACKS } from "@/lib/data";
+import { createPreset, normalizeGear, normalizePersistedState, normalizeProfile } from "@/lib/profile";
+import type { CarrackTarget, GearKey, GearState, MaterialId, PlannerPreset, PlannerProfile, ShipBranch } from "@/types";
 
 interface PlannerStore {
-  profile: PlannerProfile;
-  completedQuests: Record<string, string>;
+  presets: PlannerPreset[];
+  activePresetId: string | null;
   storageAvailable: boolean;
+  addPreset: (target: CarrackTarget) => void;
+  selectPreset: (id: string) => void;
+  renamePreset: (id: string, name: string) => void;
+  removePreset: (id: string) => void;
   setProfile: (patch: Partial<PlannerProfile>) => void;
   setMaterial: (id: MaterialId, value: number) => void;
   setGear: (branch: ShipBranch, key: GearKey, patch: Partial<GearState>) => void;
-  completeOnboarding: () => void;
   toggleQuest: (id: string, resetKey: string) => void;
   resetAll: () => void;
 }
 
-type SavedState = Pick<PlannerStore, "profile" | "completedQuests">;
+type SavedState = Pick<PlannerStore, "presets" | "activePresetId">;
 
 function storageFailed() {
-  if (usePlannerStore.getState().storageAvailable) {
-    usePlannerStore.setState({ storageAvailable: false });
-  }
+  if (usePlannerStore.getState().storageAvailable) usePlannerStore.setState({ storageAvailable: false });
 }
 
 const safeStorage: PersistStorage<SavedState> = {
@@ -51,35 +53,69 @@ const safeStorage: PersistStorage<SavedState> = {
   },
 };
 
+function createPresetId() {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `preset-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function updateActivePreset(state: PlannerStore, update: (preset: PlannerPreset) => PlannerPreset) {
+  return { presets: state.presets.map((preset) => preset.id === state.activePresetId ? update(preset) : preset) };
+}
+
 export const usePlannerStore = create<PlannerStore>()(
   persist(
     (set) => ({
-      profile: createInitialProfile(), completedQuests: {}, storageAvailable: true,
-      setProfile: (patch) => set((state) => ({ profile: normalizeProfile({ ...state.profile, ...patch }) })),
-      setMaterial: (id, value) => set((state) => ({
-        profile: normalizeProfile({ ...state.profile, materials: { ...state.profile.materials, [id]: value } }),
+      presets: [], activePresetId: null, storageAvailable: true,
+      addPreset: (target) => set((state) => {
+        const baseName = CARRACKS[target].shortName;
+        const usedNames = new Set(state.presets.map((preset) => preset.name));
+        let duplicateNumber = 1;
+        while (usedNames.has(`${baseName} ${duplicateNumber}`)) duplicateNumber += 1;
+        const id = createPresetId();
+        const name = `${baseName} ${duplicateNumber}`;
+        return { presets: [...state.presets, createPreset(id, target, name)], activePresetId: id };
+      }),
+      selectPreset: (id) => set((state) => state.presets.some((preset) => preset.id === id) ? { activePresetId: id } : {}),
+      renamePreset: (id, name) => set((state) => ({
+        presets: state.presets.map((preset) => preset.id === id ? { ...preset, name: name.trim().slice(0, 48) || preset.name } : preset),
       })),
-      setGear: (branch, key, patch) => set((state) => ({
+      removePreset: (id) => set((state) => {
+        const index = state.presets.findIndex((preset) => preset.id === id);
+        if (index < 0) return {};
+        const presets = state.presets.filter((preset) => preset.id !== id);
+        const nextActive = state.activePresetId === id ? presets[Math.min(index, presets.length - 1)]?.id ?? null : state.activePresetId;
+        return { presets, activePresetId: nextActive };
+      }),
+      setProfile: (patch) => set((state) => updateActivePreset(state, (preset) => ({
+        ...preset, profile: normalizeProfile({ ...preset.profile, ...patch }),
+      }))),
+      setMaterial: (id, value) => set((state) => updateActivePreset(state, (preset) => ({
+        ...preset,
+        profile: normalizeProfile({ ...preset.profile, materials: { ...preset.profile.materials, [id]: value } }),
+      }))),
+      setGear: (branch, key, patch) => set((state) => updateActivePreset(state, (preset) => ({
+        ...preset,
         profile: {
-          ...state.profile,
+          ...preset.profile,
           gear: {
-            ...state.profile.gear,
+            ...preset.profile.gear,
             [branch]: {
-              ...state.profile.gear[branch],
-              [key]: normalizeGear({ ...state.profile.gear[branch][key], ...patch }),
+              ...preset.profile.gear[branch],
+              [key]: normalizeGear({ ...preset.profile.gear[branch][key], ...patch }),
             },
           },
         },
-      })),
-      completeOnboarding: () => set((state) => ({ profile: { ...state.profile, initialized: true } })),
-      toggleQuest: (id, resetKey) => set((state) => ({
-        completedQuests: { ...state.completedQuests, [id]: state.completedQuests[id] === resetKey ? "" : resetKey },
-      })),
-      resetAll: () => set({ profile: createInitialProfile(), completedQuests: {} }),
+      }))),
+      toggleQuest: (id, resetKey) => set((state) => updateActivePreset(state, (preset) => ({
+        ...preset,
+        completedQuests: { ...preset.completedQuests, [id]: preset.completedQuests[id] === resetKey ? "" : resetKey },
+      }))),
+      resetAll: () => set({ presets: [], activePresetId: null }),
     }),
     {
-      name: "bdo-carrack-ledger-v1", version: 3, storage: safeStorage, skipHydration: true,
-      partialize: ({ profile, completedQuests }) => ({ profile, completedQuests }),
+      name: "bdo-carrack-ledger-v1", version: 4, storage: safeStorage, skipHydration: true,
+      partialize: ({ presets, activePresetId }) => ({ presets, activePresetId }),
       migrate: normalizePersistedState,
       merge: (saved, current) => ({ ...current, ...normalizePersistedState(saved) }),
     },

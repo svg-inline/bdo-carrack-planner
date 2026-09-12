@@ -11,9 +11,10 @@ Planner web para acompanhar a construção das quatro Carracas de Epheria no Bla
 
 ## Funcionalidades
 
-- seleção entre as quatro Carracas sem apagar o estoque;
-- inventário único de materiais salvo no navegador;
-- metas e faltantes recalculados conforme a Carraca escolhida;
+- criação de vários presets de Carraca, com modelos diferentes ou repetidos;
+- troca rápida entre presets pelo seletor lateral;
+- inventário, equipamentos, missões e Passe independentes em cada preset;
+- metas e faltantes calculados para a Carraca do preset ativo;
 - receitas separadas dos equipamentos azuis +10 do Navio Mercante e do Contratorpedeiro;
 - progresso independente das duas linhas de equipamento;
 - catálogo "Como obter" com filtros para missões, compra com Moeda Corvo, processamento, drop/caça, permuta e evento;
@@ -22,7 +23,7 @@ Planner web para acompanhar a construção das quatro Carracas de Epheria no Bla
 - checklist de missões diárias e semanais;
 - recomendações para os baús do Passe Especial;
 - estratégia de gasto de Moedas Corvo;
-- persistência via localStorage com migração do formato anterior.
+- gerenciamento de estado com Zustand e persistência via localStorage, incluindo migração do formato anterior.
 
 ## Executar
 

@@ -70,7 +70,6 @@ export interface GearState {
 export type BranchGearState = Record<ShipBranch, Record<GearKey, GearState>>;
 
 export interface PlannerProfile {
-  initialized: boolean;
   target: CarrackTarget;
   crowCoins: number;
   materials: Record<MaterialId, number>;
@@ -79,6 +78,13 @@ export interface PlannerProfile {
   passPoints: number;
   normalChests: number;
   extravagantChests: number;
+}
+
+export interface PlannerPreset {
+  id: string;
+  name: string;
+  profile: PlannerProfile;
+  completedQuests: Record<string, string>;
 }
 
 export interface QuestDefinition {

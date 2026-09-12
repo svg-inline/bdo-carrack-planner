@@ -95,7 +95,6 @@ export function questResetKey(cadence: "daily" | "weekly", now = new Date()) {
 }
 
 export function nextActions(profile: PlannerProfile) {
-  if (!profile.initialized) return [];
   const hard = bottlenecks(profile).slice(0, 4);
   const actions: { title: string; detail: string; tone: "critical" | "gold" | "blue" }[] = [];
 
