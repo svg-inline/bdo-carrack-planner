@@ -20,3 +20,18 @@ export function isSameOrigin(request: Request): boolean {
 
 /** Respostas com dado de conta nunca podem ser guardadas por CDN ou proxy. */
 export const PRIVATE_HEADERS = { "Cache-Control": "private, no-store" } as const;
+
+/**
+ * Código de autorização que chegou numa rota que não é o callback.
+ *
+ * O Supabase devolve o código na Site URL quando o retorno pedido não está na lista de
+ * Redirect URLs. Reconhecer isso na raiz evita que o login falhe em silêncio por uma
+ * configuração incompleta — e evita a mesma armadilha ao trocar de domínio.
+ *
+ * Trocar um código forjado por sessão não funciona: a troca exige o verificador PKCE gravado
+ * em cookie no início do login, que só existe no navegador de quem começou o fluxo.
+ */
+export function authCodeFrom(params: Record<string, string | string[] | undefined>): string | null {
+  const code = params.code;
+  return typeof code === "string" && code.trim() ? code : null;
+}
