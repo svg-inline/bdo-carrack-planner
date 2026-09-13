@@ -114,4 +114,6 @@ export interface QuestDefinition {
   recommendedFor: MaterialId[];
   priority: 1 | 2 | 3 | 4 | 5;
   source: string;
+  sourceUrl: string;
+  note?: string;
 }

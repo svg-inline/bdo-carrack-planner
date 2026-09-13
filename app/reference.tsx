@@ -52,9 +52,11 @@ export default function Reference() {
       </details>)}</div>
     </section>
     <section id="guia-missoes" className="panel scroll-mt-4"><h2>Missões do Oceano</h2>
+      <p>27 missões diárias e 11 semanais em Iliya, Velia, Olho da Okilua e Terra do Amanhecer.</p>
       <div className="mt-4 space-y-4">{QUESTS.map((q) => <details key={q.id}>
         <summary className="cursor-pointer">{q.cadence === "daily" ? "Diária" : "Semanal"} · {q.title}</summary>
-        <p>{q.npc} · {q.location}</p><p>{q.objective}</p><ul>{q.rewards.map((r) => <li key={r}>{r}</li>)}</ul>
+        <p>{q.npc} · {q.location}</p><p>{q.objective}</p>{q.note && <p><strong>Atenção:</strong> {q.note}</p>}<ul>{q.rewards.map((r) => <li key={r}>{r}</li>)}</ul>
+        <p><a className="text-gold-bright" href={q.sourceUrl} target="_blank" rel="noreferrer">Fonte: {q.source}</a></p>
       </details>)}</div>
     </section>
     <section id="guia-fontes" className="panel scroll-mt-4"><h2>Fontes de dados</h2>

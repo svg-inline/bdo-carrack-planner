@@ -6,6 +6,8 @@ A rota `/` entrega no HTML um guia completo com Carracas, materiais, receitas, m
 
 Os dados de jogo usados nos cálculos ficam em `lib/data.ts`. A aplicação não consulta WordPress nem outras APIs em tempo de execução; indisponibilidade externa não afeta o conteúdo básico.
 
+O catálogo marítimo mantém 27 missões diárias e 11 semanais de Iliya, Velia, Olho da Okilua e Terra do Amanhecer, conforme o levantamento em `docs/bdo-guia-quests.md`. Cada missão guarda a fonte consultada e o link correspondente. Restrições de aceite, como a exclusividade entre as duas Pequenas Retribuições e a simultaneidade das três missões da Mia, fazem parte dos dados exibidos.
+
 As artes dos navios, equipamentos e materiais ficam em `public/assets` e são entregues pelo componente `next/image`. A imagem do Navio Mercante e do Contratorpedeiro é uma captura oficial do jogo publicada pela Pearl Abyss no [Guia de Melhorias em Navios](https://www.sa.playblackdesert.com/pt-br/Wiki?wikiNo=291); o arquivo local `epheria-caravel.png` mantém a interface ilustrada sem depender do CDN em tempo de execução.
 
 ## Equipamento de navio

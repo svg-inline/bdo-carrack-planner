@@ -7,6 +7,9 @@ test("works as a useful guide without JavaScript", async ({ browser }) => {
   await expect(page.getByRole("heading", { name: "Planejador das Carracas de Epheria" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Carraca de Epheria: Bravura" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Materiais e onde conseguir" })).toBeVisible();
+  await expect(page.getByText("Diária · [Permuta][Diário] Ilha de Iliya Agitada")).toBeVisible();
+  await expect(page.getByText("Semanal · Investigar a ecologia da área de Lyngbakr")).toBeVisible();
+  await expect(page.getByText(/Ilha de Iliya Agitada (I|II|III)$/)).toHaveCount(0);
   await context.close();
 });
 

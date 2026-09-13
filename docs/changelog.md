@@ -18,6 +18,8 @@ Todas as mudanças relevantes para usuários são registradas em `Unreleased`, n
 ### Changed
 
 - Dependências atualizadas para a geração estável mais recente compatível, incluindo Next.js 16.3.5, React 19.3 e Tailwind CSS 4.3.
+- Catálogo marítimo atualizado para 27 missões diárias e 11 semanais, incluindo a missão consolidada da Ilha de Iliya, as semanais atuais do Kario e as missões da Terra do Amanhecer.
+- Fontes de obtenção dos materiais sincronizadas com as frequências, quantidades e alternativas de recompensa atuais das missões marítimas.
 - Estado salvo validado e normalizado antes de ser usado nos cálculos.
 - O planner agora começa pela escolha da Carraca de um novo preset e permite alternar entre todos os planos pelo seletor lateral.
 - Textos, ícones de materiais e imagens de equipamentos foram ampliados em todas as telas para melhorar a leitura.

@@ -15,5 +15,8 @@ describe("static planner guide", () => {
     expect(screen.getByRole("heading", { name: "Carraca de Epheria: Bravura" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Materiais e onde conseguir" })).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Guia de Carracas" })).toBeInTheDocument();
+    expect(screen.getByText("27 missões diárias e 11 semanais em Iliya, Velia, Olho da Okilua e Terra do Amanhecer.")).toBeInTheDocument();
+    expect(screen.getByText("Diária · [Permuta][Diário] Ilha de Iliya Agitada")).toBeInTheDocument();
+    expect(screen.getByText("Semanal · Investigar a ecologia da área de Lyngbakr")).toBeInTheDocument();
   });
 });

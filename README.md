@@ -20,7 +20,7 @@ Planner web para acompanhar a construção das quatro Carracas de Epheria no Bla
 - catálogo "Como obter" com filtros para missões, compra com Moeda Corvo, processamento, drop/caça e permuta;
 - indicação de onde cada material é usado;
 - ranking dinâmico de gargalos;
-- checklist de missões diárias e semanais;
+- checklist das 27 missões diárias e 11 semanais atuais de Iliya, Velia, Olho da Okilua e Terra do Amanhecer, com recompensas, regras de aceite e fontes;
 - estratégia de gasto de Moedas Corvo;
 - gerenciamento de estado com Zustand e persistência via localStorage, incluindo migração do formato anterior.
 
