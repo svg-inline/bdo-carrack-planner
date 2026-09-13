@@ -10,7 +10,7 @@ vi.mock("next/image", () => ({
 
 describe("static planner guide", () => {
   it("renders the critical content without client state", () => {
-    render(<Reference />);
+    render(<Reference account={null} accountEnabled={false} notice={null} />);
     expect(screen.getByRole("heading", { name: "Planejador das Carracas de Epheria" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Carraca de Epheria: Bravura" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Materiais e onde conseguir" })).toBeInTheDocument();
@@ -21,5 +21,24 @@ describe("static planner guide", () => {
     expect(screen.getByText("Semanal · Investigar a ecologia da área de Lyngbakr")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Como o tempo é estimado" })).toBeInTheDocument();
     expect(screen.getAllByText(/Partindo do zero, os materiais da rota levam/)).toHaveLength(4);
+  });
+
+  it("omite a barra de conta quando a sincronização não está configurada", () => {
+    render(<Reference account={null} accountEnabled={false} notice={null} />);
+    expect(screen.queryByRole("button", { name: "Entrar com Discord" })).not.toBeInTheDocument();
+  });
+
+  it("oferece login por formulário, que funciona sem JavaScript", () => {
+    render(<Reference account={null} accountEnabled notice={null} />);
+    const button = screen.getByRole("button", { name: "Entrar com Discord" });
+    const form = button.closest("form");
+    expect(form).toHaveAttribute("method", "post");
+    expect(form).toHaveAttribute("action", "/auth/login");
+  });
+
+  it("mostra a conta e a saída quando há sessão", () => {
+    render(<Reference account={{ id: "u1", name: "Marinheiro" }} accountEnabled notice={null} />);
+    expect(screen.getByText("Marinheiro")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sair" }).closest("form")).toHaveAttribute("action", "/auth/logout");
   });
 });

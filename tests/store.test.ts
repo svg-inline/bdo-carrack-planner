@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { usePlannerStore } from "@/lib/store";
+import { createPreset } from "@/lib/profile";
 
 describe("preset store", () => {
   beforeEach(() => usePlannerStore.getState().resetAll());
@@ -80,5 +81,72 @@ describe("preset store", () => {
 
     expect(usePlannerStore.getState().activePresetId).toBe(gradualId);
     expect(usePlannerStore.getState().presets.find((preset) => preset.id === gradualId)?.profile.target).toBe("gradual");
+  });
+});
+
+describe("fila de envio para a conta", () => {
+  beforeEach(() => {
+    usePlannerStore.setState({ accountId: null, pendingPresetIds: [], pendingRemovals: [], importedFor: [], syncStatus: "off" });
+    usePlannerStore.getState().resetAll();
+  });
+
+  it("não acumula pendência no modo anônimo", () => {
+    usePlannerStore.getState().addPreset("bravura");
+    usePlannerStore.getState().setMaterial("coxCombat", 4);
+
+    expect(usePlannerStore.getState().pendingPresetIds).toEqual([]);
+    expect(usePlannerStore.getState().syncStatus).toBe("off");
+  });
+
+  it("marca o preset editado como pendente quando há conta", () => {
+    usePlannerStore.getState().setAccount("u1");
+    usePlannerStore.getState().addPreset("bravura");
+    const id = usePlannerStore.getState().activePresetId!;
+    usePlannerStore.getState().setMaterial("coxCombat", 4);
+    usePlannerStore.getState().setMaterial("coxCombat", 9);
+
+    expect(usePlannerStore.getState().pendingPresetIds).toEqual([id]);
+    expect(usePlannerStore.getState().syncStatus).toBe("pending");
+
+    usePlannerStore.getState().settlePreset(id);
+    expect(usePlannerStore.getState().pendingPresetIds).toEqual([]);
+  });
+
+  it("enfileira a exclusão e tira o preset da fila de envio", () => {
+    usePlannerStore.getState().setAccount("u1");
+    usePlannerStore.getState().addPreset("bravura");
+    const id = usePlannerStore.getState().activePresetId!;
+    usePlannerStore.getState().removePreset(id);
+
+    expect(usePlannerStore.getState().pendingRemovals).toEqual([id]);
+    expect(usePlannerStore.getState().pendingPresetIds).toEqual([]);
+
+    usePlannerStore.getState().settleRemoval(id);
+    expect(usePlannerStore.getState().pendingRemovals).toEqual([]);
+  });
+
+  it("redefinir limpa só este navegador e não apaga nada na conta", () => {
+    usePlannerStore.getState().setAccount("u1");
+    usePlannerStore.getState().addPreset("bravura");
+    usePlannerStore.getState().addPreset("gradual");
+
+    usePlannerStore.getState().resetAll();
+
+    expect(usePlannerStore.getState().presets).toEqual([]);
+    // A fila de exclusão fica vazia de propósito: limpar o navegador não pode virar exclusão
+    // remota silenciosa. Ver ADR 0001, decisão 7 e a nota sobre `resetAll`.
+    expect(usePlannerStore.getState().pendingRemovals).toEqual([]);
+    expect(usePlannerStore.getState().pendingPresetIds).toEqual([]);
+  });
+
+  it("envia os presets importados e registra a conta que já importou", () => {
+    usePlannerStore.getState().setAccount("u1");
+    const importados = [createPreset("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "bravura", "Importada 1")];
+    usePlannerStore.getState().addImportedPresets(importados);
+    usePlannerStore.getState().markImported("u1");
+
+    expect(usePlannerStore.getState().presets.map((preset) => preset.name)).toEqual(["Importada 1"]);
+    expect(usePlannerStore.getState().pendingPresetIds).toEqual([importados[0].id]);
+    expect(usePlannerStore.getState().importedFor).toEqual(["u1"]);
   });
 });

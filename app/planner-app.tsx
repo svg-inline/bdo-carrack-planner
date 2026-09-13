@@ -7,9 +7,12 @@ import { CADENCE_BY_ID, CARRACK_GEAR_SETS, CARRACK_ORDER, CARRACKS, GEAR_SETS, M
 import { bottlenecks, carrackGearCompletion, getMissing, getRequired, materialCompletion, nextActions, overallCompletion, questResetKey } from "@/lib/planner";
 import { carrackGearEstimate, carrackGearSetEstimate, categoryEstimate, contextWithoutCoins, daysForUnits, estimateContext, formatDuration, formatRate, gearEstimate, materialEstimate, materialRate, questRatePerDay, shipEstimate } from "@/lib/estimate";
 import { groupsOfCadence, isQuestAcquisition, isQuestActive, questCounts, questsOfGroup, tracksOfGroup } from "@/lib/quests";
-import { usePlannerStore } from "@/lib/store";
+import { createPresetId, switchStorageScope, usePlannerStore } from "@/lib/store";
+import { flushPending, loadFromCloud } from "@/lib/cloud-sync";
+import { planImport, shouldOfferImport } from "@/lib/sync";
+import AccountBar from "./account-bar";
 import type { EstimateContext, MaterialEstimate } from "@/lib/estimate";
-import type { Acquisition, AcquisitionType, CarrackTarget, GearKey, MaterialCategory, MaterialDefinition, MaterialId, PlannerPreset, PlannerProfile, QuestCadence, QuestDefinition, QuestGroupDefinition, ShipBranch } from "@/types";
+import type { Account, Acquisition, AcquisitionType, CarrackTarget, GearKey, MaterialCategory, MaterialDefinition, MaterialId, PlannerPreset, PlannerProfile, QuestCadence, QuestDefinition, QuestGroupDefinition, ShipBranch } from "@/types";
 
 const tabs = [
   ["overview", "Visão geral"],
@@ -446,24 +449,123 @@ function Strategy() {
   return <><Header title="Estratégia de aquisição" subtitle="Use Moedas Corvo apenas depois de comparar missões, processamento, drop e permuta." /><div className="strategy-grid"><section className="panel"><div className="panel-title"><div><span className="eyebrow">MOEDA CORVO</span><h3>Compra sugerida</h3></div><Badge kind="gold">{number(profile.crowCoins)} DISPONÍVEIS</Badge></div><p className="panel-note">O plano gasta o saldo onde ele corta mais tempo da rota e é refeito a cada mudança de inventário ou de saldo. Confira sempre a aba Como obter antes de gastar.</p><div className="purchase-list">{plan.items.length ? plan.items.slice(0, 8).map((x, i) => <div className="purchase" key={x.id}><span>0{i + 1}</span><div><div className="item-heading"><MaterialLabel id={x.id} size={18} /></div><small>{number(x.suggested)} un. × {number(x.unit)} moedas · poupa {etaText(x.daysSaved)} de farm</small></div><em>{number(x.cost)}</em></div>) : <div className="empty-state">Sem compra possível com o saldo atual ou sem materiais pendentes.</div>}</div><div className="purchase-total"><span>Saldo estimado após plano</span><strong>{number(plan.remainingCoins)}</strong></div>{plan.items.length > 0 && <p className="purchase-gain">{savedDays > 0 ? <>Com esta compra, a rota até a Carraca cai de <b>{etaText(withoutCoins.days)}</b> para <b>{etaText(ship.days)}</b>.</> : <>A compra adianta materiais, mas o prazo da rota continua em <b>{etaText(ship.days)}</b>, preso a um material que a loja não vende.</>}</p>}</section><section className="panel"><div className="panel-title"><div><span className="eyebrow">GARGALOS</span><h3>Por que focar neles</h3></div></div><div className="why-list">{hard.slice(0, 6).map((m) => <div key={m.id}><div className="why-title"><div className="item-heading"><MaterialLabel id={m.id} size={18} /></div><Badge kind={m.difficulty >= 5 ? "red" : "gold"}>DIFICULDADE {m.difficulty}/5</Badge></div><p>Faltam <b>{number(m.missing)}</b> de {number(m.required)}: <b>{materialEtaLine(profile, m.id, context)}</b>. {m.crowPrice ? `Comprar tudo custaria ${number(m.missing * m.crowPrice)} Moedas Corvo.` : "Priorize fontes recorrentes."}</p><div className="source-chips">{m.sources.slice(0, 4).map((s, i) => <Badge key={i} kind={s.type}>{sourceLabel[s.type]}</Badge>)}</div></div>)}</div></section></div><section className="panel"><div className="panel-title"><div><span className="eyebrow">PRAZOS</span><h3>Como o tempo é estimado</h3></div><Badge kind={etaKind(ship.days)}>CARRACA {etaText(ship.days)}</Badge></div><p className="panel-note">Os prazos partem do que falta no seu inventário e do ritmo de cada fonte. Não são promessa de data: aprimoramento, sorte e tempo de jogo mudam o resultado.</p><ul className="estimate-rules"><li>Só as missões marcadas na aba Missões entram na conta, com a quantidade que a própria recompensa entrega e supondo que você as conclui em dia. Onde o jogo obriga a escolher — as duas Pequenas Retribuições, ou o Rei do Mar Jovem contra as três caçadas do Ravikel — apenas a trilha escolhida rende.</li><li>Recompensa de escolha rende um item por conclusão, então o ritmo é dividido entre as metas que ainda faltam e acelera quando uma delas fecha.</li><li>Permuta, caça, processamento e escavação não têm frequência fixa: valem uma estimativa única por dificuldade do material, para um dia dedicado ao oceano.</li><li>Moeda Corvo é estoque, não renda: o que a compra sugerida acima resolve sai do que falta farmar, mas o saldo não vira ritmo diário.</li><li>O saldo vai primeiro para o material que segura o prazo, até ele empatar com o próximo da fila. Comprar algo que já é mais rápido que o gargalo não anteciparia a Carraca, por isso esses materiais ficam de fora do plano.</li><li>Os materiais são obtidos em paralelo, então o prazo da rota é o do material mais demorado; fabricar e aprimorar as peças fica fora da conta.</li></ul><div className="estimate-totals"><div><span>Materiais da rota até a Carraca</span><strong>{etaText(ship.days)}</strong></div><div><span>Conjunto de Shiro completo</span><strong>{etaText(shiroSet.days)}</strong></div></div></section><section className="panel sources-panel"><div className="panel-title"><div><span className="eyebrow">REFERÊNCIAS</span><h3>Dados usados pelo planner</h3></div></div><div className="source-links">{SOURCES.map((s) => <a key={s.href} href={s.href} target="_blank" rel="noreferrer">{s.label}<span>↗</span></a>)}</div><p className="source-disclaimer">Dificuldade, ordem de foco e tempo estimado são heurísticas do planner. Nomes, receitas, quantidades e métodos de obtenção são baseados nas fontes listadas.</p></section></>;
 }
 
-function App({ children }: { children: React.ReactNode }) {
+function AccountPanel({ account, accountEnabled, notice }: AccountShellProps) {
+  const status = usePlannerStore((state) => state.syncStatus);
+  const pending = usePlannerStore((state) => state.pendingPresetIds.length + state.pendingRemovals.length);
+
+  return <div className="account-shell">
+    <AccountBar account={account} enabled={accountEnabled} notice={notice} />
+    {status === "off" ? null : <p className={`account-status account-status-${status}`} role="status">
+      {status === "loading" && "Carregando o progresso da conta…"}
+      {status === "saving" && "Salvando na conta…"}
+      {status === "saved" && "Progresso salvo na conta."}
+      {status === "pending" && `${pending} ${pending === 1 ? "alteração pendente" : "alterações pendentes"} de envio.`}
+      {status === "error" && "Não foi possível salvar na conta agora. O progresso está guardado neste navegador e será enviado na próxima tentativa."}
+      {status === "outdated" && "Este plano foi salvo por uma versão mais nova do site. Atualize a página para voltar a salvar."}
+    </p>}
+  </div>;
+}
+
+function ImportOffer({ presets, accountId, onClose }: { presets: PlannerPreset[]; accountId: string; onClose: () => void }) {
+  const { addImportedPresets, markImported } = usePlannerStore();
+
+  function importThem() {
+    const existing = usePlannerStore.getState().presets;
+    addImportedPresets(planImport(presets, existing, createPresetId));
+    markImported(accountId);
+    onClose();
+  }
+
+  function keepLocal() {
+    markImported(accountId);
+    onClose();
+  }
+
+  return <section className="panel import-offer">
+    <div className="panel-title"><div><span className="eyebrow">IMPORTAR</span><h3>Presets guardados neste navegador</h3></div></div>
+    <p className="panel-note">Encontramos {presets.length} {presets.length === 1 ? "plano salvo" : "planos salvos"} aqui, fora da conta. A importação cria cópias novas e não substitui nada do que já está na sua conta.</p>
+    <div className="import-actions">
+      <button className="button primary" onClick={importThem}>Importar para a conta</button>
+      <button className="button ghost" onClick={keepLocal}>Não importar</button>
+    </div>
+  </section>;
+}
+
+interface AccountShellProps {
+  account: Account | null;
+  accountEnabled: boolean;
+  notice: string | null;
+}
+
+function App({ children, account, accountEnabled, notice }: { children: React.ReactNode } & AccountShellProps) {
   const [tab, setTab] = useState<Tab>("overview");
   const [mounted, setMounted] = useState(false);
   const [creatingPreset, setCreatingPreset] = useState(false);
+  const [importable, setImportable] = useState<PlannerPreset[]>([]);
   const { presets, activePresetId, removePreset, resetAll } = usePlannerStore();
+  const pendingPresetIds = usePlannerStore((state) => state.pendingPresetIds);
+  const pendingRemovals = usePlannerStore((state) => state.pendingRemovals);
   const mainRef = useRef<HTMLElement>(null);
+  const accountId = account?.id ?? null;
+
   useEffect(() => {
     let active = true;
-    Promise.resolve(usePlannerStore.persist.rehydrate()).finally(() => { if (active) setMounted(true); });
+    async function boot() {
+      // O escopo anônimo é lido primeiro mesmo com sessão: é dele que sai a oferta de
+      // importação, e depois da troca de escopo esses presets não estariam mais em memória.
+      await usePlannerStore.persist.rehydrate();
+      const local = usePlannerStore.getState().presets;
+      if (!active) return;
+
+      if (!accountId) {
+        usePlannerStore.getState().setAccount(null);
+        usePlannerStore.getState().setSyncStatus("off");
+        setMounted(true);
+        return;
+      }
+
+      await switchStorageScope(accountId);
+      if (!active) return;
+      usePlannerStore.getState().setAccount(accountId);
+      setMounted(true);
+
+      await loadFromCloud();
+      if (!active) return;
+      const { importedFor } = usePlannerStore.getState();
+      if (shouldOfferImport(local, accountId, importedFor)) setImportable(local);
+    }
+    void boot();
     return () => { active = false; };
-  }, []);
+  }, [accountId]);
+
+  // A fila muda de identidade a cada edição, então o efeito reinicia a espera: é a pausa na
+  // edição que dispara o envio, e não um relógio fixo.
+  useEffect(() => {
+    if (!mounted || !accountId) return;
+    if (!pendingPresetIds.length && !pendingRemovals.length) return;
+    const timer = setTimeout(() => { void flushPending(); }, 1200);
+    return () => clearTimeout(timer);
+  }, [mounted, accountId, pendingPresetIds, pendingRemovals]);
+
+  useEffect(() => {
+    if (!accountId) return;
+    const retry = () => { void flushPending(); };
+    window.addEventListener("online", retry);
+    return () => window.removeEventListener("online", retry);
+  }, [accountId]);
+
   useEffect(() => {
     mainRef.current?.focus({ preventScroll: true });
     window.scrollTo(0, 0);
   }, [tab]);
+
   if (!mounted) return children;
+  const accountPanel = <AccountPanel account={account} accountEnabled={accountEnabled} notice={notice} />;
+  const offer = importable.length && accountId
+    ? <ImportOffer presets={importable} accountId={accountId} onClose={() => setImportable([])} />
+    : null;
   const activePreset = presets.find((preset) => preset.id === activePresetId);
-  if (!activePreset) return <main id="main-content" tabIndex={-1} ref={mainRef} className="preset-start-shell"><div className="preset-start-brand"><div className="brand-mark">☸</div><div><span>CARRACK</span><strong>LEDGER</strong></div></div><PresetSetup canCancel={false} onClose={() => setCreatingPreset(false)} /></main>;
+  if (!activePreset) return <main id="main-content" tabIndex={-1} ref={mainRef} className="preset-start-shell"><div className="preset-start-brand"><div className="brand-mark">☸</div><div><span>CARRACK</span><strong>LEDGER</strong></div></div>{accountPanel}{offer}<PresetSetup canCancel={false} onClose={() => setCreatingPreset(false)} /></main>;
 
   function showPresetCreator() {
     setTab("overview");
@@ -474,7 +576,7 @@ function App({ children }: { children: React.ReactNode }) {
     if (confirmPresetRemoval(activePreset?.name)) removePreset(activePresetId!);
   }
 
-  return <div className="app-shell"><Sidebar tab={tab} setTab={(nextTab) => { setCreatingPreset(false); setTab(nextTab); }} onAddPreset={showPresetCreator} /><main id="main-content" tabIndex={-1} ref={mainRef} className="content"><div className="content-inner">{creatingPreset ? <PresetSetup canCancel onClose={() => setCreatingPreset(false)} /> : <>{tab === "overview" && <Overview />}{tab === "inventory" && <Inventory />}{tab === "materials" && <AcquisitionCatalog />}{tab === "gear" && <Gear />}{tab === "carrack-gear" && <CarrackGear />}{tab === "quests" && <Quests />}{tab === "strategy" && <Strategy />}</>}</div><footer><span>Carrack Ledger · {presets.length} {presets.length === 1 ? "preset salvo" : "presets salvos"} neste navegador</span><div><button onClick={deleteActivePreset}>Excluir preset atual</button><button onClick={() => { if (confirm("Apagar todos os presets e progressos salvos?")) resetAll(); }}>Redefinir tudo</button></div></footer></main></div>;
+  return <div className="app-shell"><Sidebar tab={tab} setTab={(nextTab) => { setCreatingPreset(false); setTab(nextTab); }} onAddPreset={showPresetCreator} /><main id="main-content" tabIndex={-1} ref={mainRef} className="content"><div className="content-inner">{accountPanel}{offer}{creatingPreset ? <PresetSetup canCancel onClose={() => setCreatingPreset(false)} /> : <>{tab === "overview" && <Overview />}{tab === "inventory" && <Inventory />}{tab === "materials" && <AcquisitionCatalog />}{tab === "gear" && <Gear />}{tab === "carrack-gear" && <CarrackGear />}{tab === "quests" && <Quests />}{tab === "strategy" && <Strategy />}</>}</div><footer><span>Carrack Ledger &middot; {presets.length} {presets.length === 1 ? "preset" : "presets"} {accountId ? "na sua conta" : "neste navegador"}</span><div><button onClick={deleteActivePreset}>Excluir preset atual</button><button onClick={() => { if (confirm(accountId ? "Apagar os planos guardados neste navegador? O que está na conta continua salvo." : "Apagar todos os presets e progressos salvos?")) resetAll(); }}>{accountId ? "Limpar este navegador" : "Redefinir tudo"}</button></div></footer></main></div>;
 }
 
 export default App;

@@ -246,3 +246,16 @@ footer,footer button{font-size:10px}
 @media (max-width:780px){
   .app-shell{display:block}.sidebar{position:sticky;width:100%;padding:10px 12px;display:grid;grid-template-columns:auto minmax(190px,1fr);gap:8px 12px;overflow:visible}.brand{padding:0}.brand-mark{width:36px;height:36px}.sidebar nav{grid-column:1/-1;min-width:0;overflow-x:auto}.sidebar nav button{padding:10px;font-size:12px}.content-inner{padding:20px 14px 52px}.topbar h1{font-size:29px}.topbar p:not(.eyebrow){font-size:13px}.hero-panel{grid-template-columns:1fr}.hero-art{height:190px}.hero-copy{padding:0 20px 22px}.hero-copy h2{font-size:29px}.hero-stats{gap:14px;flex-wrap:wrap}.dashboard-grid,.gear-mini-grid,.gear-grid,.strategy-grid{grid-template-columns:1fr}.panel,.gear-card{padding:18px}.panel-title h3{font-size:22px}.carrack-selector button{grid-template-columns:96px 1fr}.carrack-choice-image{width:96px;height:82px}.preset-control{min-width:0}.action strong{font-size:12px}
 }
+
+.account-shell{margin-bottom:18px}
+.account-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border:1px solid #343c42;background:#0f1418}
+.account-who{color:#96a0a7;font-size:11px}
+.account-who strong{color:#e1c56f;font-weight:700}
+.account-notice{flex:1 0 100%;margin:0;padding:8px 10px;border-left:2px solid #8c7440;background:#171710;color:#c6b889;font-size:10px}
+.account-status{margin:8px 0 0;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#68727a}
+.account-status-pending,.account-status-saving{color:#c6aa62}
+.account-status-error,.account-status-outdated{color:#d49a82}
+.account-status-saved{color:#78ae8d}
+.import-offer{margin-bottom:18px}
+.import-actions{display:flex;flex-wrap:wrap;gap:10px}
+@media (max-width: 780px){.account-bar{flex-direction:column;align-items:flex-start}}

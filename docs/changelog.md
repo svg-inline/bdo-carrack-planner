@@ -6,6 +6,9 @@ Todas as mudanças relevantes para usuários são registradas em `Unreleased`, n
 
 ### Added
 
+- Conta pelo Discord: o progresso passa a ser salvo na nuvem e fica acessível em outro navegador ou aparelho. Entrar e sair funcionam sem JavaScript.
+- Aviso de alterações pendentes quando o salvamento na conta falha, com nova tentativa automática ao voltar a conexão. O progresso continua guardado no navegador enquanto isso.
+- Importação dos planos guardados no navegador para a conta, oferecida ao entrar. A importação cria cópias novas e não substitui nada do que já está na conta.
 - Guia completo de Carracas, materiais, receitas e missões disponível mesmo sem JavaScript.
 - Verificações automatizadas de lint, tipos, regras do planner, interface e fluxos críticos.
 - Aviso quando o navegador não permite salvar o progresso localmente.
@@ -25,6 +28,8 @@ Todas as mudanças relevantes para usuários são registradas em `Unreleased`, n
 
 ### Changed
 
+- Com a conta conectada, "Redefinir tudo" passa a limpar apenas este navegador; o progresso da conta continua salvo.
+- O progresso guardado no navegador passou a ser separado por conta, para que sair num computador compartilhado não deixe os planos para o próximo usuário.
 - Cabeçalho da tabela do inventário com texto maior e seta de ordenação destacada, para deixar claro quais colunas podem ser ordenadas.
 - O tempo estimado no resumo do inventário passou a acompanhar o filtro de categoria: em Todos ele continua sendo o prazo da rota até a Carraca, e em Equip. azul, Carraca, Equip. Carraca ou Aprimoramento mostra apenas o prazo da categoria selecionada.
 - Dependências atualizadas para a geração estável mais recente compatível, incluindo Next.js 16.3.5, React 19.3 e Tailwind CSS 4.3.
@@ -50,3 +55,7 @@ Todas as mudanças relevantes para usuários são registradas em `Unreleased`, n
 - Campos, navegação, foco e indicadores de progresso receberam nomes e estados acessíveis.
 - As rotas do Navio Mercante e do Contratorpedeiro agora exibem uma captura oficial do jogo, e os resumos de equipamento mostram as miniaturas sem o marcador que parecia uma imagem vazia.
 - A troca de abas no celular mantém o título da tela visível abaixo da navegação fixa.
+
+### Security
+
+- Os planos de cada conta ficam isolados no banco por Row Level Security, e um plano salvo por uma versão mais nova do site não pode ser sobrescrito por uma aba antiga, o que apagaria dados sem aviso.

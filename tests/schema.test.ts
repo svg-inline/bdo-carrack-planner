@@ -1,0 +1,71 @@
+import { describe, expect, it } from "vitest";
+import { PRESET_SCHEMA_VERSION, hasNewerSchema, presetToRow, rowToPreset, writeVerdict } from "@/lib/schema";
+import { createPreset } from "@/lib/profile";
+
+describe("formato do preset na nuvem", () => {
+  it("mantém o preset intacto na ida e na volta", () => {
+    const preset = createPreset("11111111-1111-4111-8111-111111111111", "bravura", "Minha Bravura");
+    preset.profile.materials.coxCombat = 12;
+    preset.profile.crowCoins = 500;
+    preset.completedQuests = { "daily-iliya-agitated": "2026-09-13" };
+
+    const row = presetToRow(preset);
+    expect(row.schema_version).toBe(PRESET_SCHEMA_VERSION);
+    expect(rowToPreset(row, 0)).toEqual(preset);
+  });
+
+  it("normaliza o que vem do banco como faria com o armazenamento local", () => {
+    const row = {
+      id: "22222222-2222-4222-8222-222222222222",
+      name: "  ",
+      schema_version: PRESET_SCHEMA_VERSION,
+      data: { profile: { crowCoins: -5, materials: { coxCombat: 7.9, inexistente: 3 } }, completedQuests: { naoExiste: "x" } },
+    };
+
+    const preset = rowToPreset(row, 4)!;
+    expect(preset.name).toBe("Preset 5");
+    expect(preset.profile.crowCoins).toBe(0);
+    expect(preset.profile.materials.coxCombat).toBe(7);
+    expect(preset.profile.materials).not.toHaveProperty("inexistente");
+    expect(preset.completedQuests).toEqual({});
+  });
+
+  it("descarta registro sem identificador", () => {
+    expect(rowToPreset({ name: "Sem id", data: {} }, 0)).toBeNull();
+    expect(rowToPreset(null, 0)).toBeNull();
+  });
+
+  it("grava a versão de quem produziu o dado, não a do servidor", () => {
+    const preset = createPreset("33333333-3333-4333-8333-333333333333", "gradual", "Gradual 1");
+    expect(presetToRow(preset, 4).schema_version).toBe(4);
+  });
+});
+
+describe("regra de versão de formato", () => {
+  it("aceita gravação quando o registro não existe", () => {
+    expect(writeVerdict(null, PRESET_SCHEMA_VERSION)).toBe("ok");
+  });
+
+  it("aceita cliente igual ou mais novo que o registro", () => {
+    expect(writeVerdict(PRESET_SCHEMA_VERSION, PRESET_SCHEMA_VERSION)).toBe("ok");
+    expect(writeVerdict(PRESET_SCHEMA_VERSION - 1, PRESET_SCHEMA_VERSION)).toBe("ok");
+  });
+
+  it("recusa aba antiga gravando por cima de registro mais novo", () => {
+    // É o caso que motiva a coluna: a versão antiga não conhece os campos novos e, ao
+    // normalizar, os apagaria em silêncio.
+    expect(writeVerdict(PRESET_SCHEMA_VERSION, PRESET_SCHEMA_VERSION - 1)).toBe("stale-client");
+  });
+
+  it("recusa versão que o servidor não reconhece", () => {
+    expect(writeVerdict(null, PRESET_SCHEMA_VERSION + 1)).toBe("unknown-version");
+    expect(writeVerdict(null, 0)).toBe("unknown-version");
+    expect(writeVerdict(null, 1.5)).toBe("unknown-version");
+  });
+
+  it("detecta registro gravado por versão mais nova na leitura", () => {
+    expect(hasNewerSchema([{ schema_version: PRESET_SCHEMA_VERSION }])).toBe(false);
+    expect(hasNewerSchema([{ schema_version: PRESET_SCHEMA_VERSION + 1 }])).toBe(true);
+    expect(hasNewerSchema([])).toBe(false);
+  });
+});
