@@ -4,7 +4,7 @@ import { createInitialProfile } from "@/lib/profile";
 import { isCarrackBuildMaterial } from "@/lib/planner";
 import { setQuestActive } from "@/lib/quests";
 import {
-  carrackGearEstimate, carrackGearSetEstimate, choiceCompetitors, coinPlan, contextWithoutCoins, daysForUnits,
+  carrackGearEstimate, carrackGearSetEstimate, categoryEstimate, choiceCompetitors, coinPlan, contextWithoutCoins, daysForUnits,
   estimateContext, FARM_UNITS_PER_DAY, formatDuration, formatRate, gearEstimate, materialEstimate, materialRate,
   questContext, questRatePerDay, shipEstimate,
 } from "@/lib/estimate";
@@ -164,6 +164,26 @@ describe("prazo por peça e por navio", () => {
     const profile = createInitialProfile("bravura");
 
     expect(carrackGearSetEstimate(profile).days).toBeGreaterThan(carrackGearEstimate(profile, "cannon").days);
+  });
+
+  it("a categoria usa só os próprios materiais e nunca passa do prazo da rota inteira", () => {
+    const profile = createInitialProfile("bravura");
+    const carrack = categoryEstimate(profile, "carrack");
+    const group = MATERIALS.filter((material) => material.category === "carrack" && material.required.bravura > 0);
+
+    expect(carrack.days).toBeCloseTo(Math.max(...group.map((material) => materialEstimate(profile, material.id).days)));
+    expect(carrack.pending).toBe(group.length);
+    expect(carrack.days).toBeLessThanOrEqual(shipEstimate(profile).days);
+    // O conjunto de Shiro é exatamente a categoria de equipamento da Carraca.
+    expect(categoryEstimate(profile, "carrack-gear")).toEqual(carrackGearSetEstimate(profile));
+  });
+
+  it("a categoria fica pronta quando os materiais dela já estão no inventário", () => {
+    const profile = createInitialProfile("bravura");
+    for (const material of MATERIALS) if (material.category === "carrack") profile.materials[material.id] = material.required.bravura;
+
+    expect(categoryEstimate(profile, "carrack").days).toBe(0);
+    expect(categoryEstimate(profile, "blue-gear").days).toBeGreaterThan(0);
   });
 
   it("o progresso do inventário encurta o prazo do navio", () => {

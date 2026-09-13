@@ -1,7 +1,7 @@
 import { CADENCE_BY_ID, CARRACK_GEAR_SETS, GEAR_SETS, MATERIALS, MATERIAL_BY_ID } from "@/lib/data";
 import { getMissing, isCarrackBuildMaterial } from "@/lib/planner";
 import { activeQuestIds, isQuestAcquisition } from "@/lib/quests";
-import type { Acquisition, AcquisitionType, FarmAcquisitionType, GearKey, MaterialDefinition, MaterialId, PlannerProfile, QuestAcquisition, ShipBranch } from "@/types";
+import type { Acquisition, AcquisitionType, FarmAcquisitionType, GearKey, MaterialCategory, MaterialDefinition, MaterialId, PlannerProfile, QuestAcquisition, ShipBranch } from "@/types";
 
 // O tempo estimado assume um jogador que conclui em dia as missões que ele mesmo marcou
 // como parte da rotina e ainda dedica o resto do dia às rotas livres do oceano. Missões
@@ -293,12 +293,20 @@ export function shipEstimate(profile: PlannerProfile, context = estimateContext(
 }
 
 /**
+ * Tempo para juntar os materiais de uma categoria do inventário. Como os materiais são
+ * obtidos em paralelo, o prazo da categoria é o do material mais demorado dela.
+ */
+export function categoryEstimate(profile: PlannerProfile, category: MaterialCategory, context = estimateContext(profile)): PartEstimate {
+  const group = MATERIALS.filter((material) => material.category === category && material.required[profile.target] > 0);
+  return slowestOf(group.map((material) => materialEstimate(profile, material.id, context)));
+}
+
+/**
  * Tempo para juntar o conjunto de Shiro inteiro. As quatro peças pedem os mesmos
  * materiais, então o prazo do conjunto usa a meta somada, e não a de uma peça isolada.
  */
 export function carrackGearSetEstimate(profile: PlannerProfile, context = estimateContext(profile)): PartEstimate {
-  const set = MATERIALS.filter((material) => material.category === "carrack-gear" && material.required[profile.target] > 0);
-  return slowestOf(set.map((material) => materialEstimate(profile, material.id, context)));
+  return categoryEstimate(profile, "carrack-gear", context);
 }
 
 const decimal = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });

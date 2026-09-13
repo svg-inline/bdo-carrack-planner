@@ -133,8 +133,13 @@ footer>div{display:flex;gap:14px}
 .inventory-summary span{display:block;color:#697279;font-size:8px;text-transform:uppercase;letter-spacing:.1em}.inventory-summary strong{display:block;margin-top:5px;font:500 18px Georgia,serif;color:#e4dac8}
 .inventory-toolbar{gap:14px}.inventory-search{min-width:250px;background:#0b0f12;border:1px solid #374047;color:#e7dfd1;padding:9px 12px;font-size:10px}.inventory-search:focus{border-color:#846f3d}
 .inventory-table{border:1px solid #343c42;background:#0f1418}
-.inventory-head,.inventory-material-row{display:grid;grid-template-columns:minmax(300px,1.5fr) 120px 84px 96px 74px 96px;align-items:center;gap:12px}
-.inventory-head{padding:10px 14px;border-bottom:1px solid #3a4147;color:#687179;font-size:8px;text-transform:uppercase;letter-spacing:.11em}
+.inventory-head,.inventory-material-row{display:grid;grid-template-columns:minmax(290px,1.5fr) 112px 94px 96px 78px 96px;align-items:center;gap:12px}
+.inventory-head{padding:11px 14px;border-bottom:1px solid #3a4147;color:#78828a;font-size:9px;text-transform:uppercase;letter-spacing:.11em}
+.inventory-sort{display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;padding:0;color:inherit;font:inherit;text-transform:inherit;letter-spacing:inherit;cursor:pointer}
+.inventory-sort:hover{color:#d8c186}.inventory-sort.active{color:#e1c56f}
+.inventory-sort i{font-style:normal;font-size:1.15em;line-height:1;color:#96813f}
+.inventory-sort:hover i,.inventory-sort.active i{color:#e1c56f}
+.inventory-sort:focus-visible{outline:1px solid #846f3d;outline-offset:3px}
 .inventory-material-row{min-height:74px;padding:10px 14px;border-bottom:1px solid #262d32}.inventory-material-row:last-child{border-bottom:0}.inventory-material-row.complete{background:rgba(58,91,70,.07)}
 .inventory-item{min-width:0}.inventory-item>.item-label{font-size:11px;font-weight:700}.inventory-item .progress{width:180px;margin:7px 0 0 46px}
 .inventory-use{justify-self:start}.inventory-material-row>strong{text-align:right;font:500 15px Georgia,serif}
@@ -169,14 +174,14 @@ footer>div{display:flex;gap:14px}
   .carrack-stats-strip{grid-template-columns:repeat(4,1fr)}
   .carrack-stats-strip>div:nth-child(4){border-right:0}
   .acquisition-card{grid-template-columns:1fr 1fr}.acquisition-sources{grid-column:1/3}
-  .inventory-head,.inventory-material-row{grid-template-columns:minmax(230px,1.3fr) 100px 66px 84px 62px 86px}
+  .inventory-head,.inventory-material-row{grid-template-columns:minmax(210px,1.3fr) 92px 88px 84px 70px 86px}
 }
 @media (max-width:780px){
   .carrack-selector{grid-template-columns:1fr}
   .carrack-stats-strip{grid-template-columns:repeat(2,1fr)}
   .inventory-summary{grid-template-columns:1fr 1fr}.inventory-summary>div:nth-child(2){border-right:0}
   .inventory-toolbar{display:block}.inventory-search{width:100%;min-width:0;margin-top:8px}
-  .inventory-head{display:none}.inventory-material-row{grid-template-columns:1fr 90px}.inventory-eta{grid-column:1/3}.inventory-item{grid-column:1/3}.inventory-use{grid-column:1/3}.inventory-material-row>strong:first-of-type{display:none}.inventory-item .progress{margin-left:46px}
+  .inventory-head{display:flex;flex-wrap:wrap;gap:9px 16px}.inventory-head>span{display:none}.inventory-material-row{grid-template-columns:1fr 90px}.inventory-eta{grid-column:1/3}.inventory-item{grid-column:1/3}.inventory-use{grid-column:1/3}.inventory-material-row>strong:first-of-type{display:none}.inventory-item .progress{margin-left:46px}
   .acquisition-card{grid-template-columns:1fr}.acquisition-sources{grid-column:auto;grid-template-columns:1fr}.used-in{border-left:0;border-top:1px solid #293137;padding:10px 0 0}.acquisition-numbers{margin-left:0}
   .branch-banner{align-items:flex-start;flex-wrap:wrap}
 }
@@ -219,7 +224,7 @@ footer>div{display:flex;gap:14px}
 .item-heading{font-size:13px}.item-label{gap:10px}.item-label-text{line-height:1.4}.item-icon{object-fit:contain}
 .progress{height:6px}
 .segmented button,.source-filter-bar button{font-size:12px;padding:10px 14px}.sorter,.legend{font-size:11px}.sorter select,.gear-controls select{font-size:12px;padding-block:10px}
-.material-head,.inventory-head{font-size:10px}.material-row{min-height:84px}.material-name strong{font-size:13px}.material-name>div>span{font-size:11px}.source-chips .badge{font-size:9px}.qty-input{font-size:14px;padding:11px}.num{font-size:18px}
+.material-head{font-size:10px}.inventory-head{font-size:12px}.material-row{min-height:84px}.material-name strong{font-size:13px}.material-name>div>span{font-size:11px}.source-chips .badge{font-size:9px}.qty-input{font-size:14px;padding:11px}.num{font-size:18px}
 .gear-card h3{font-size:24px}.gear-card p{font-size:12px}.gear-controls label>span{font-size:11px}.crafted-check span{font-size:12px}.recipe-title strong{font-size:12px}.recipe-row{grid-template-columns:24px 1fr auto;padding:10px 0}.recipe-row strong{font-size:12px}.recipe-row small{font-size:11px}
 .quest-summary{font-size:12px}.quest-summary strong{font-size:14px}.quest-group{padding:16px}.quest-group-head h3{font-size:21px}.quest-group-note{font-size:12px}.quest-active{font-size:11px}
 .quest-card{grid-template-columns:52px 1fr}.quest-check{font-size:22px}.quest-body{padding:17px}.quest-top h3{font-size:20px}.quest-location span{font-size:11px}.quest-location strong{font-size:12px}.objective,.quest-note{font-size:12px}.rewards span{font-size:11px;padding:7px 9px}.quest-source{font-size:10px}

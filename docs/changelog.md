@@ -20,10 +20,13 @@ Todas as mudanças relevantes para usuários são registradas em `Unreleased`, n
 - A compra sugerida passou a distribuir o saldo onde ele corta mais tempo da rota, em vez de seguir a ordem de gargalo, e mostra de quanto para quanto o prazo cai.
 - Escolha de quais missões entram no cálculo, uma a uma, guardada em cada preset. As que ficam de fora continuam na lista, marcadas, com o ritmo que devolveriam se voltassem.
 - Aba Missões organizada por NPC, com a regra de aceite de cada um e a contagem de quantas missões do NPC estão no cálculo.
+- Ordenação do inventário por material, estoque, falta ou prazo, direto nos cabeçalhos das colunas Item, Tenho, Falta e Tempo, com inversão da direção a cada clique.
 - Regra de trilha única do jogo: aceitar a caçada ao Rei do Mar Jovem bloqueia as três caçadas da Guilda Lua Minguante do Ravikel, e vice-versa; as duas Pequenas Retribuições do Herrad Romson seguem a mesma regra. O planner deixa de somar alternativas que não podem ser aceitas no mesmo dia.
 
 ### Changed
 
+- Cabeçalho da tabela do inventário com texto maior e seta de ordenação destacada, para deixar claro quais colunas podem ser ordenadas.
+- O tempo estimado no resumo do inventário passou a acompanhar o filtro de categoria: em Todos ele continua sendo o prazo da rota até a Carraca, e em Equip. azul, Carraca, Equip. Carraca ou Aprimoramento mostra apenas o prazo da categoria selecionada.
 - Dependências atualizadas para a geração estável mais recente compatível, incluindo Next.js 16.3.5, React 19.3 e Tailwind CSS 4.3.
 - Catálogo marítimo atualizado para 27 missões diárias e 11 semanais, incluindo a missão consolidada da Ilha de Iliya, as semanais atuais do Kario e as missões da Terra do Amanhecer.
 - Fontes de obtenção dos materiais sincronizadas com as frequências, quantidades e alternativas de recompensa atuais das missões marítimas.

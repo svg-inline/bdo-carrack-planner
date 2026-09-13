@@ -5,11 +5,11 @@ import { useEffect, useRef, useState } from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { CADENCE_BY_ID, CARRACK_GEAR_SETS, CARRACK_ORDER, CARRACKS, GEAR_SETS, MATERIALS, MATERIAL_BY_ID, QUESTS, QUEST_BY_ID, QUEST_CADENCES, SOURCES } from "@/lib/data";
 import { bottlenecks, carrackGearCompletion, getMissing, getRequired, materialCompletion, nextActions, overallCompletion, questResetKey } from "@/lib/planner";
-import { carrackGearEstimate, carrackGearSetEstimate, contextWithoutCoins, daysForUnits, estimateContext, formatDuration, formatRate, gearEstimate, materialEstimate, materialRate, questRatePerDay, shipEstimate } from "@/lib/estimate";
+import { carrackGearEstimate, carrackGearSetEstimate, categoryEstimate, contextWithoutCoins, daysForUnits, estimateContext, formatDuration, formatRate, gearEstimate, materialEstimate, materialRate, questRatePerDay, shipEstimate } from "@/lib/estimate";
 import { groupsOfCadence, isQuestAcquisition, isQuestActive, questCounts, questsOfGroup, tracksOfGroup } from "@/lib/quests";
 import { usePlannerStore } from "@/lib/store";
 import type { EstimateContext, MaterialEstimate } from "@/lib/estimate";
-import type { Acquisition, AcquisitionType, CarrackTarget, GearKey, MaterialCategory, MaterialId, PlannerPreset, PlannerProfile, QuestCadence, QuestDefinition, QuestGroupDefinition, ShipBranch } from "@/types";
+import type { Acquisition, AcquisitionType, CarrackTarget, GearKey, MaterialCategory, MaterialDefinition, MaterialId, PlannerPreset, PlannerProfile, QuestCadence, QuestDefinition, QuestGroupDefinition, ShipBranch } from "@/types";
 
 const tabs = [
   ["overview", "Visão geral"],
@@ -23,6 +23,7 @@ const tabs = [
 
 type Tab = (typeof tabs)[number][0];
 type SourceFilter = "all" | "missions" | "crow" | "processing" | "hunt" | "barter";
+type InventorySort = { key: "name" | "stock" | "missing" | "days"; dir: "asc" | "desc" };
 
 const categoryLabel: Record<MaterialCategory, string> = { carrack: "Carraca", "blue-gear": "Equip. azul", "carrack-gear": "Equip. Carraca", enhancement: "Aprimoramento" };
 const sourceLabel: Record<AcquisitionType, string> = { daily: "Missão diária", weekly: "Missão semanal", barter: "Permuta", crow: "Comprar", hunt: "Drop / caça", processing: "Processar", workers: "Trabalhadores", market: "Mercado" };
@@ -210,20 +211,71 @@ function Overview() {
   </>;
 }
 
+const collator = new Intl.Collator("pt-BR");
+// O primeiro clique já ordena do jeito mais útil da coluna: material de A a Z e, nas colunas
+// numéricas, o maior valor primeiro — é o estoque mais alto, a maior falta e o prazo mais longo.
+const sortDefaults: Record<InventorySort["key"], InventorySort["dir"]> = { name: "asc", stock: "desc", missing: "desc", days: "desc" };
+// O rótulo da coluna é curto demais para virar frase: cada uma descreve a própria ordenação.
+const sortHints: Record<InventorySort["key"], string> = { name: "Ordenar por material", stock: "Ordenar pelo estoque", missing: "Ordenar pelo que falta", days: "Ordenar pelo prazo" };
+
+/**
+ * Valor de um material na coluna ordenada. `null` marca o que a coluna não sabe medir: material
+ * sem meta neste plano não tem falta nem prazo, e a própria tabela mostra "—" nas duas colunas.
+ */
+function sortValue(key: InventorySort["key"], id: MaterialId, profile: PlannerProfile, context: EstimateContext) {
+  if (key === "stock") return profile.materials[id] || 0;
+  if (getRequired(id, profile.target) <= 0) return null;
+  return key === "missing" ? getMissing(profile, id) : materialEstimate(profile, id, context).days;
+}
+
+/**
+ * Ordena apenas a lista visível. Sem ordenação escolhida vale a ordem do catálogo, que agrupa
+ * os materiais por uso. O que a coluna não mede cai para o fim da lista em qualquer direção, em
+ * vez de disputar as primeiras posições com um valor que não existe.
+ */
+function sortedInventory(rows: MaterialDefinition[], sort: InventorySort | null, profile: PlannerProfile, context: EstimateContext) {
+  if (!sort) return rows;
+  const direction = sort.dir === "asc" ? 1 : -1;
+  if (sort.key === "name") return [...rows].sort((a, b) => collator.compare(a.name, b.name) * direction);
+  return [...rows].sort((a, b) => {
+    const left = sortValue(sort.key, a.id, profile, context);
+    const right = sortValue(sort.key, b.id, profile, context);
+    if (left === null || right === null) return left === right ? 0 : left === null ? 1 : -1;
+    // Valores iguais — inclusive dois prazos "sem estimativa" — mantêm a ordem do catálogo.
+    return left === right ? 0 : (left - right) * direction;
+  });
+}
+
+function SortHeader({ label, column, sort, onSort }: { label: string; column: InventorySort["key"]; sort: InventorySort | null; onSort: (sort: InventorySort) => void }) {
+  const active = sort?.key === column ? sort : null;
+  const current = active ? ` — atualmente em ordem ${active.dir === "asc" ? "crescente" : "decrescente"}` : "";
+  const hint = `${sortHints[column]}${current}`;
+  return <button type="button" className={`inventory-sort ${active ? "active" : ""}`.trim()} aria-label={hint} title={hint}
+    onClick={() => onSort({ key: column, dir: active ? (active.dir === "asc" ? "desc" : "asc") : sortDefaults[column] })}>
+    {label}<i aria-hidden="true">{active ? (active.dir === "asc" ? "▲" : "▼") : "⇅"}</i>
+  </button>;
+}
+
 function Inventory() {
   const profile = useActivePreset().profile;
   const setMaterial = usePlannerStore((state) => state.setMaterial);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | MaterialCategory>("all");
+  const [sort, setSort] = useState<InventorySort | null>(null);
   const context = estimateContext(profile);
   const relevantCount = MATERIALS.filter((m) => getRequired(m.id, profile.target) > 0).length;
   const completed = MATERIALS.filter((m) => getRequired(m.id, profile.target) > 0 && getMissing(profile, m.id) === 0).length;
-  const rows = MATERIALS.filter((m) => (filter === "all" || m.category === filter) && m.name.toLowerCase().includes(query.trim().toLowerCase()));
+  const matches = MATERIALS.filter((m) => (filter === "all" || m.category === filter) && m.name.toLowerCase().includes(query.trim().toLowerCase()));
+  // Com um filtro ativo, o prazo mostrado é o da categoria escolhida; sem filtro, o da rota inteira.
+  const eta = filter === "all" ? shipEstimate(profile, context) : categoryEstimate(profile, filter, context);
+  // Categoria sem nenhuma meta neste plano não tem prazo: "pronto" faria parecer que já foi concluída.
+  const hasGoal = filter === "all" || MATERIALS.some((m) => m.category === filter && getRequired(m.id, profile.target) > 0);
+  const rows = sortedInventory(matches, sort, profile, context);
 
   return <><Header title="Inventário de materiais" subtitle="Informe tudo que já possui neste preset. O estoque alimenta todas as recomendações deste plano." />
-    <div className="inventory-summary"><div><span>Plano atual</span><strong>{CARRACKS[profile.target].shortName}</strong></div><div><span>Materiais do plano</span><strong>{relevantCount}</strong></div><div><span>Concluídos</span><strong>{completed}</strong></div><div><span>Moedas Corvo</span><strong>{number(profile.crowCoins)}</strong></div><div><span>Tempo até a Carraca</span><strong>{etaText(shipEstimate(profile, context).days)}</strong></div></div>
+    <div className="inventory-summary"><div><span>Plano atual</span><strong>{CARRACKS[profile.target].shortName}</strong></div><div><span>Materiais do plano</span><strong>{relevantCount}</strong></div><div><span>Concluídos</span><strong>{completed}</strong></div><div><span>Moedas Corvo</span><strong>{number(profile.crowCoins)}</strong></div><div><span>{filter === "all" ? "Tempo até a Carraca" : `Tempo · ${categoryLabel[filter]}`}</span><strong>{hasGoal ? etaText(eta.days) : "—"}</strong></div></div>
     <div className="toolbar inventory-toolbar"><div className="segmented"><button className={filter === "all" ? "active" : ""} onClick={() => setFilter("all")}>Todos</button><button className={filter === "blue-gear" ? "active" : ""} onClick={() => setFilter("blue-gear")}>Equip. azul</button><button className={filter === "carrack" ? "active" : ""} onClick={() => setFilter("carrack")}>Carraca</button><button className={filter === "carrack-gear" ? "active" : ""} onClick={() => setFilter("carrack-gear")}>Equip. Carraca</button><button className={filter === "enhancement" ? "active" : ""} onClick={() => setFilter("enhancement")}>Aprimoramento</button></div><input aria-label="Buscar material" className="inventory-search" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar material..." /></div>
-    <section className="inventory-table"><div className="inventory-head"><span>Item</span><span>Uso</span><span>Meta atual</span><span>Tenho</span><span>Falta</span><span>Tempo</span></div>{rows.map((m) => { const required = getRequired(m.id, profile.target); const missing = getMissing(profile, m.id); const pct = required ? materialCompletion(profile, m.id) * 100 : 0; const estimate = materialEstimate(profile, m.id, context); return <article className={`inventory-material-row ${required > 0 && missing === 0 ? "complete" : ""}`} key={m.id}><div className="inventory-item"><MaterialLabel id={m.id} size={38} /><Progress value={pct} /></div><span className="inventory-use"><Badge kind={m.category === "carrack" ? "gold" : m.category === "blue-gear" ? "blue" : m.category === "carrack-gear" ? "shiro" : "default"}>{categoryLabel[m.category]}</Badge></span><strong>{required ? number(required) : "—"}</strong><input aria-label={`Estoque de ${m.name}`} className="qty-input" type="number" min={0} value={profile.materials[m.id]} onChange={(e) => setMaterial(m.id, Number(e.target.value))} /><strong className={missing === 0 && required > 0 ? "inventory-done" : "inventory-missing"}>{required ? number(missing) : "—"}</strong><span className="inventory-eta" title={required ? materialEtaTitle(estimate) : undefined}>{required ? materialEtaText(estimate) : "—"}</span></article>; })}</section>
+    <section className="inventory-table"><div className="inventory-head"><SortHeader label="Item" column="name" sort={sort} onSort={setSort} /><span>Uso</span><span>Meta atual</span><SortHeader label="Tenho" column="stock" sort={sort} onSort={setSort} /><SortHeader label="Falta" column="missing" sort={sort} onSort={setSort} /><SortHeader label="Tempo" column="days" sort={sort} onSort={setSort} /></div>{rows.map((m) => { const required = getRequired(m.id, profile.target); const missing = getMissing(profile, m.id); const pct = required ? materialCompletion(profile, m.id) * 100 : 0; const estimate = materialEstimate(profile, m.id, context); return <article className={`inventory-material-row ${required > 0 && missing === 0 ? "complete" : ""}`} key={m.id}><div className="inventory-item"><MaterialLabel id={m.id} size={38} /><Progress value={pct} /></div><span className="inventory-use"><Badge kind={m.category === "carrack" ? "gold" : m.category === "blue-gear" ? "blue" : m.category === "carrack-gear" ? "shiro" : "default"}>{categoryLabel[m.category]}</Badge></span><strong>{required ? number(required) : "—"}</strong><input aria-label={`Estoque de ${m.name}`} className="qty-input" type="number" min={0} value={profile.materials[m.id]} onChange={(e) => setMaterial(m.id, Number(e.target.value))} /><strong className={missing === 0 && required > 0 ? "inventory-done" : "inventory-missing"}>{required ? number(missing) : "—"}</strong><span className="inventory-eta" title={required ? materialEtaTitle(estimate) : undefined}>{required ? materialEtaText(estimate) : "—"}</span></article>; })}</section>
   </>;
 }
 

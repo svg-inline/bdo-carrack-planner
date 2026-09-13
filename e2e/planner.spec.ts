@@ -94,6 +94,52 @@ test("estimates the remaining time and follows the inventory", async ({ page }) 
   await expect(cobaltRow.locator(".inventory-eta")).toHaveText("com moedas");
 });
 
+test("orders the inventory by material and by time", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /Bravura/ }).click();
+  await page.getByRole("button", { name: "Inventário" }).click();
+
+  const names = page.locator(".inventory-material-row .item-label-text");
+  const etas = page.locator(".inventory-material-row .inventory-eta");
+  const byName = page.getByRole("button", { name: /^Ordenar por material/ });
+  const byStock = page.getByRole("button", { name: /^Ordenar pelo estoque/ });
+  const byMissing = page.getByRole("button", { name: /^Ordenar pelo que falta/ });
+  const byTime = page.getByRole("button", { name: /^Ordenar pelo prazo/ });
+
+  await byName.click();
+  const ascending = await names.allTextContents();
+  expect(ascending).toEqual([...ascending].sort((a, b) => a.localeCompare(b, "pt-BR")));
+
+  await byName.click();
+  expect(await names.allTextContents()).toEqual([...ascending].reverse());
+
+  // O primeiro clique em Tempo traz o prazo mais longo para o topo; o material sem meta no plano fica no fim.
+  await byTime.click();
+  const longestFirst = await etas.allTextContents();
+  expect(longestFirst[0]).toMatch(/semanas|meses/);
+  expect(longestFirst.at(-1)).toBe("—");
+
+  await byTime.click();
+  const shortestFirst = await etas.allTextContents();
+  expect(shortestFirst[0]).toMatch(/\d+ dias?$/);
+  expect(shortestFirst.at(-1)).toBe("—");
+
+  // Estoque e falta reagem ao que o jogador digita, sem depender da ordem anterior.
+  const pearl = page.locator(".inventory-material-row").filter({ hasText: "Cristal de Pérola Pura" });
+  await pearl.getByRole("spinbutton").fill("7");
+  await byStock.click();
+  await expect(names.first()).toHaveText("Cristal de Pérola Pura");
+  await byStock.click();
+  await expect(names.first()).not.toHaveText("Cristal de Pérola Pura");
+
+  await byMissing.click();
+  const missing = page.locator(".inventory-material-row .inventory-missing, .inventory-material-row .inventory-done");
+  const amounts = await missing.allTextContents();
+  expect(amounts.at(-1)).toBe("—");
+  const goals = amounts.slice(0, -1).map((value) => Number(value.replace(/\D/g, "")));
+  expect(goals).toEqual([...goals].sort((a, b) => b - a));
+});
+
 test("removes a preset added by mistake from the sidebar", async ({ page }) => {
   page.on("dialog", (dialog) => dialog.accept());
   await page.goto("/");
