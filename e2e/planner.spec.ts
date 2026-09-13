@@ -194,3 +194,39 @@ test("lets the player choose which quests feed the estimate", async ({ page }) =
   await page.getByRole("button", { name: "Missões" }).click();
   await expect(ravikel.locator(".quest-card").filter({ hasText: "Rei do Mar Jovem" }).getByRole("checkbox")).not.toBeChecked();
 });
+
+test("lets the player choose where the crow coins are spent", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /Bravura/ }).click();
+  await page.getByRole("button", { name: "Estratégia" }).click();
+  await page.getByRole("spinbutton", { name: "Moedas Corvo" }).fill("45000");
+
+  const purchases = page.locator(".purchase");
+  const parts = purchases.filter({ hasText: "Peças verdes da Carraca" });
+  const blueGear = page.getByRole("checkbox", { name: "Acelerar os materiais do equipamento azul" });
+  const carrackMaterials = page.getByRole("checkbox", { name: "Acelerar os materiais de construção da Carraca" });
+
+  // O saldo acelera material desde o início; reservar peça é escolha explícita do jogador.
+  await expect(parts).toHaveCount(0);
+  await expect(blueGear).toBeChecked();
+  const beforeParts = await purchases.count();
+
+  await page.getByRole("checkbox", { name: "Comprar as peças verdes da Carraca" }).check();
+  await expect(parts).toHaveText(/4 un\. × 10\.000 moedas/);
+  await expect(parts.locator("em")).toHaveText("40.000");
+  // As peças saem do topo do saldo, então sobra menos para acelerar material.
+  expect(await purchases.count()).toBeLessThan(beforeParts + 1);
+
+  // Categoria desmarcada some do plano, e sem nenhuma liberada o saldo fica intacto.
+  await blueGear.uncheck();
+  await expect(purchases.filter({ hasText: "Artefato dos Piratas Cox" })).toHaveCount(0);
+  await carrackMaterials.uncheck();
+  await page.getByRole("checkbox", { name: "Comprar as peças verdes da Carraca" }).uncheck();
+  await expect(page.getByText("Nenhum destino liberado")).toBeVisible();
+  await expect(page.locator(".purchase-total strong")).toHaveText("45.000");
+
+  // A escolha pertence ao preset e sobrevive ao recarregamento.
+  await page.reload();
+  await page.getByRole("button", { name: "Estratégia" }).click();
+  await expect(blueGear).not.toBeChecked();
+});

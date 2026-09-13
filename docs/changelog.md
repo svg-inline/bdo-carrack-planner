@@ -6,6 +6,7 @@ Todas as mudanças relevantes para usuários são registradas em `Unreleased`, n
 
 ### Added
 
+- Escolha de onde a Moeda Corvo pode ser gasta, na aba Estratégia: comprar as peças verdes de Toro da Carraca, com a quantidade de peças, e acelerar os materiais do equipamento azul e os da construção da Carraca, cada um com o seu próprio interruptor. A escolha pertence ao preset. As peças reservam o saldo antes de tudo, a 10.000 moedas cada, e o plano avisa quantas o saldo realmente paga.
 - Ícone do Discord no botão de login, tanto no planner quanto no guia sem JavaScript.
 - Conta pelo Discord: o progresso passa a ser salvo na nuvem e fica acessível em outro navegador ou aparelho. Entrar e sair funcionam sem JavaScript.
 - Aviso de alterações pendentes quando o salvamento na conta falha, com nova tentativa automática ao voltar a conexão. O progresso continua guardado no navegador enquanto isso.
@@ -14,7 +15,7 @@ Todas as mudanças relevantes para usuários são registradas em `Unreleased`, n
 - Verificações automatizadas de lint, tipos, regras do planner, interface e fluxos críticos.
 - Aviso quando o navegador não permite salvar o progresso localmente.
 - Presets independentes para planejar várias Carracas, inclusive modelos repetidos.
-- Equipamento azul de Shiro da Carraca: aba própria, receitas, ícones oficiais das quatro peças de cada Carraca e acompanhamento de Toro +10, fabricação e aprimoramento.
+- Equipamento azul de Shiro da Carraca: receitas, ícones oficiais das quatro peças de cada Carraca e progresso de Toro +10, fabricação e aprimoramento resumido na Visão geral.
 - Materiais do conjunto de Shiro no inventário e no catálogo de obtenção: planta de construção de cada peça, madeira compensada de onda violenta, suporte elaborado e cola com traços de onda.
 - Fonte de obtenção por escavação de trabalhadores nos nós das ilhas.
 - Botão para remover o preset ativo direto no seletor lateral, para desfazer uma Carraca adicionada por engano.
@@ -47,6 +48,7 @@ Todas as mudanças relevantes para usuários são registradas em `Unreleased`, n
 
 ### Removed
 
+- Removidas as abas "Azuis +10" e "Shiro da Carraca" do menu lateral. O acompanhamento de fabricação e aprimoramento das peças sai da interface por ora; o resumo de cada peça continua na Visão geral e os materiais continuam no inventário e no catálogo de obtenção.
 - Removido o onboarding obrigatório de três etapas.
 - Removidos a área do Passe Especial de Navegação, seus dados salvos, recomendações de baús e fontes de obtenção do evento.
 

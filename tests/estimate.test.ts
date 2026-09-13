@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { CARRACK_GEAR_SETS, GEAR_SETS, MATERIALS, MATERIAL_BY_ID } from "@/lib/data";
+import { CARRACK_GEAR_SETS, CARRACK_PART_COUNT, CARRACK_PART_CROW_PRICE, GEAR_SETS, MATERIALS, MATERIAL_BY_ID } from "@/lib/data";
 import { createInitialProfile } from "@/lib/profile";
 import { isCarrackBuildMaterial } from "@/lib/planner";
 import { setQuestActive } from "@/lib/quests";
 import {
   carrackGearEstimate, carrackGearSetEstimate, categoryEstimate, choiceCompetitors, coinPlan, contextWithoutCoins, daysForUnits,
   estimateContext, FARM_UNITS_PER_DAY, formatDuration, formatRate, gearEstimate, materialEstimate, materialRate,
-  questContext, questRatePerDay, shipEstimate,
+  partPurchase, questContext, questRatePerDay, shipEstimate,
 } from "@/lib/estimate";
 import type { MaterialId } from "@/types";
 
@@ -297,5 +297,82 @@ describe("texto dos prazos", () => {
   it("descreve o ritmo em unidades por dia", () => {
     expect(formatRate(0)).toBe("sem ritmo estimado");
     expect(formatRate(2.25)).toBe("2,3/dia");
+  });
+});
+
+describe("onde a Moeda Corvo pode ser gasta", () => {
+  it("acelera as duas categorias e não reserva peça nenhuma por padrão", () => {
+    const profile = createInitialProfile("bravura");
+    profile.crowCoins = 60_000;
+    const plano = coinPlan(profile);
+
+    expect(profile.crowSpend).toMatchObject({ blueGear: true, carrackMaterials: true, carrackParts: false });
+    expect(plano.parts.cost).toBe(0);
+    expect(plano.items.length).toBeGreaterThan(0);
+  });
+
+  it("deixa de gastar na categoria que o jogador desmarcou", () => {
+    const profile = createInitialProfile("bravura");
+    profile.crowCoins = 60_000;
+    profile.crowSpend.blueGear = false;
+    const plano = coinPlan(profile);
+
+    expect(plano.items.length).toBeGreaterThan(0);
+    for (const item of plano.items) expect(MATERIAL_BY_ID[item.id].category).toBe("carrack");
+    expect(plano.coverage.coxCombat).toBeUndefined();
+  });
+
+  it("não gasta nada quando nenhuma categoria está liberada", () => {
+    const profile = createInitialProfile("bravura");
+    profile.crowCoins = 60_000;
+    profile.crowSpend.blueGear = false;
+    profile.crowSpend.carrackMaterials = false;
+    const plano = coinPlan(profile);
+
+    expect(plano.items).toEqual([]);
+    expect(plano.remainingCoins).toBe(60_000);
+    expect(materialEstimate(profile, "coxCombat").covered).toBe(0);
+  });
+
+  it("reserva as peças verdes antes de acelerar qualquer material", () => {
+    const profile = createInitialProfile("bravura");
+    profile.crowCoins = 45_000;
+    profile.crowSpend.carrackParts = true;
+    const plano = coinPlan(profile);
+    const gastoEmMaterial = plano.items.reduce((sum, item) => sum + item.cost, 0);
+
+    expect(plano.parts).toMatchObject({ count: CARRACK_PART_COUNT, affordable: CARRACK_PART_COUNT });
+    expect(plano.parts.cost).toBe(CARRACK_PART_COUNT * CARRACK_PART_CROW_PRICE);
+    expect(gastoEmMaterial).toBeLessThanOrEqual(5_000);
+    expect(plano.remainingCoins).toBe(45_000 - plano.parts.cost - gastoEmMaterial);
+  });
+
+  it("compra só as peças que o saldo paga", () => {
+    const profile = createInitialProfile("bravura");
+    profile.crowCoins = 25_000;
+    profile.crowSpend.carrackParts = true;
+
+    expect(partPurchase(profile)).toMatchObject({ count: 4, affordable: 2, cost: 20_000 });
+  });
+
+  it("comprar peça encurta o saldo que sobra para acelerar", () => {
+    const profile = createInitialProfile("bravura");
+    profile.crowCoins = 50_000;
+    const soAcelerando = coinPlan(profile).coverage;
+    profile.crowSpend.carrackParts = true;
+    const comPecas = coinPlan(profile).coverage;
+
+    const antes = Object.values(soAcelerando).reduce((sum, units) => sum + (units ?? 0), 0);
+    const depois = Object.values(comPecas).reduce((sum, units) => sum + (units ?? 0), 0);
+    expect(depois).toBeLessThan(antes);
+  });
+
+  it("limita a quantidade de peças às quatro que a Carraca aceita", () => {
+    const profile = createInitialProfile("bravura");
+    profile.crowCoins = 1_000_000;
+    profile.crowSpend.carrackParts = true;
+    profile.crowSpend.carrackPartCount = 99;
+
+    expect(partPurchase(profile).count).toBe(CARRACK_PART_COUNT);
   });
 });

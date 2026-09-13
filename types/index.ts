@@ -124,9 +124,28 @@ export interface GearState {
 
 export type BranchGearState = Record<ShipBranch, Record<GearKey, GearState>>;
 
+/**
+ * Onde o saldo de Moeda Corvo pode ser gasto neste preset. A moeda é escassa e disputada
+ * por duas decisões diferentes: comprar as peças verdes de Toro, que a loja vende prontas,
+ * ou acelerar materiais que o jogador também consegue farmando. Sem esta escolha o planner
+ * gastaria o saldo inteiro sozinho e prometeria um prazo que o jogador não pretende cumprir.
+ */
+export interface CrowSpendPlan {
+  /** Comprar as peças verdes de Toro da Carraca com moedas. */
+  carrackParts: boolean;
+  /** Quantas das quatro peças de Toro comprar. Vale apenas com `carrackParts` ligado. */
+  carrackPartCount: number;
+  /** Acelerar os materiais do equipamento azul do Navio Mercante e do Contratorpedeiro. */
+  blueGear: boolean;
+  /** Acelerar os materiais de construção da própria Carraca. */
+  carrackMaterials: boolean;
+}
+
 export interface PlannerProfile {
   target: CarrackTarget;
   crowCoins: number;
+  /** Escolha do jogador sobre onde o saldo de Moeda Corvo pode ser gasto. */
+  crowSpend: CrowSpendPlan;
   materials: Record<MaterialId, number>;
   gear: BranchGearState;
   carrackGear: Record<GearKey, GearState>;

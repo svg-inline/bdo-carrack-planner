@@ -7,7 +7,7 @@ import { createPreset, normalizeGear, normalizePersistedState, normalizeProfile 
 import { setQuestActive } from "@/lib/quests";
 import { PRESET_SCHEMA_VERSION } from "@/lib/schema";
 import { LOCAL_STORAGE_KEY, mergePending, storageKeyFor } from "@/lib/sync";
-import type { CarrackTarget, GearKey, GearState, MaterialId, PlannerPreset, PlannerProfile, ShipBranch } from "@/types";
+import type { CarrackTarget, CrowSpendPlan, GearKey, GearState, MaterialId, PlannerPreset, PlannerProfile, ShipBranch } from "@/types";
 
 /**
  * Situação do envio para a conta. `off` é o planner sem conta, que continua sendo o modo
@@ -34,6 +34,7 @@ interface PlannerStore {
   removePreset: (id: string) => void;
   setProfile: (patch: Partial<PlannerProfile>) => void;
   setMaterial: (id: MaterialId, value: number) => void;
+  setCrowSpend: (patch: Partial<CrowSpendPlan>) => void;
   setGear: (branch: ShipBranch, key: GearKey, patch: Partial<GearState>) => void;
   setCarrackGear: (key: GearKey, patch: Partial<GearState>) => void;
   toggleQuest: (id: string, resetKey: string) => void;
@@ -157,6 +158,10 @@ export const usePlannerStore = create<PlannerStore>()(
       setMaterial: (id, value) => set((state) => updateActivePreset(state, (preset) => ({
         ...preset,
         profile: normalizeProfile({ ...preset.profile, materials: { ...preset.profile.materials, [id]: value } }),
+      }))),
+      setCrowSpend: (patch) => set((state) => updateActivePreset(state, (preset) => ({
+        ...preset,
+        profile: normalizeProfile({ ...preset.profile, crowSpend: { ...preset.profile.crowSpend, ...patch } }),
       }))),
       setGear: (branch, key, patch) => set((state) => updateActivePreset(state, (preset) => ({
         ...preset,

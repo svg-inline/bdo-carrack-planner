@@ -1,7 +1,7 @@
-import { CADENCE_BY_ID, CARRACK_GEAR_SETS, GEAR_SETS, MATERIALS, MATERIAL_BY_ID } from "@/lib/data";
+import { CADENCE_BY_ID, CARRACK_GEAR_SETS, CARRACK_PART_COUNT, CARRACK_PART_CROW_PRICE, GEAR_SETS, MATERIALS, MATERIAL_BY_ID } from "@/lib/data";
 import { getMissing, isCarrackBuildMaterial } from "@/lib/planner";
 import { activeQuestIds, isQuestAcquisition } from "@/lib/quests";
-import type { Acquisition, AcquisitionType, FarmAcquisitionType, GearKey, MaterialCategory, MaterialDefinition, MaterialId, PlannerProfile, QuestAcquisition, ShipBranch } from "@/types";
+import type { Acquisition, AcquisitionType, CrowSpendPlan, FarmAcquisitionType, GearKey, MaterialCategory, MaterialDefinition, MaterialId, PlannerProfile, QuestAcquisition, ShipBranch } from "@/types";
 
 // O tempo estimado assume um jogador que conclui em dia as missões que ele mesmo marcou
 // como parte da rotina e ainda dedica o resto do dia às rotas livres do oceano. Missões
@@ -67,10 +67,45 @@ export interface CoinPurchase {
   daysSaved: number;
 }
 
+/** Reserva de saldo para as peças verdes de Toro, decidida antes de acelerar qualquer material. */
+export interface CoinPartPurchase {
+  /** Peças que o jogador pediu. */
+  count: number;
+  /** Peças que o saldo atual realmente paga. */
+  affordable: number;
+  /** Moedas separadas para elas. */
+  cost: number;
+  unit: number;
+}
+
 export interface CoinPlan {
   items: CoinPurchase[];
   coverage: Partial<Record<MaterialId, number>>;
   remainingCoins: number;
+  parts: CoinPartPurchase;
+}
+
+/**
+ * Categoria liberada pelo jogador para a compra que acelera o farm. O conjunto de Shiro e a
+ * Pedra Negra da Onda não têm preço na loja, então nunca disputam o saldo.
+ */
+export function acceleratesCategory(spend: CrowSpendPlan, category: MaterialCategory) {
+  if (category === "blue-gear") return spend.blueGear;
+  if (category === "carrack") return spend.carrackMaterials;
+  return false;
+}
+
+/**
+ * Peças de Toro que o saldo cobre. Elas saem do topo do saldo, e não do que sobra: o jogador
+ * que decide comprá-las está dizendo que aquelas moedas já têm dono, mesmo que acelerar
+ * material rendesse mais dias. Peça é decisão, não otimização.
+ */
+export function partPurchase(profile: PlannerProfile): CoinPartPurchase {
+  const spend = profile.crowSpend;
+  const balance = Math.max(0, Math.floor(profile.crowCoins));
+  const count = spend.carrackParts ? Math.min(CARRACK_PART_COUNT, Math.max(0, Math.floor(spend.carrackPartCount))) : 0;
+  const affordable = Math.min(count, Math.floor(balance / CARRACK_PART_CROW_PRICE));
+  return { count, affordable, cost: affordable * CARRACK_PART_CROW_PRICE, unit: CARRACK_PART_CROW_PRICE };
 }
 
 /**
@@ -80,8 +115,9 @@ export interface CoinPlan {
  * inventário, o saldo ou a Carraca do preset mudam.
  */
 export function coinPlan(profile: PlannerProfile, quests = questContext(profile)): CoinPlan {
+  const parts = partPurchase(profile);
   const candidates = MATERIALS
-    .filter((material) => (material.crowPrice || 0) > 0 && getMissing(profile, material.id) > 0)
+    .filter((material) => (material.crowPrice || 0) > 0 && acceleratesCategory(profile.crowSpend, material.category) && getMissing(profile, material.id) > 0)
     .map((material) => ({
       material,
       price: material.crowPrice || 0,
@@ -92,7 +128,7 @@ export function coinPlan(profile: PlannerProfile, quests = questContext(profile)
     }));
   const daysLeft = (candidate: typeof candidates[number]) => daysForUnits(candidate.missing - candidate.bought, candidate.perDay);
 
-  let remainingCoins = Math.max(0, Math.floor(profile.crowCoins));
+  let remainingCoins = Math.max(0, Math.floor(profile.crowCoins)) - parts.cost;
   let order = 0;
   while (remainingCoins > 0) {
     const reducible = candidates.filter((candidate) => candidate.bought < candidate.missing && candidate.price <= remainingCoins);
@@ -129,7 +165,7 @@ export function coinPlan(profile: PlannerProfile, quests = questContext(profile)
       daysSaved: daysForUnits(candidate.bought, candidate.perDay),
     }));
   const coverage = Object.fromEntries(items.map((item) => [item.id, item.suggested])) as Partial<Record<MaterialId, number>>;
-  return { items, coverage, remainingCoins };
+  return { items, coverage, remainingCoins, parts };
 }
 
 /** Tudo que depende do plano inteiro, calculado uma vez e reaproveitado nas estimativas. */
@@ -147,7 +183,8 @@ export function estimateContext(profile: PlannerProfile): EstimateContext {
 
 /** Mesmo contexto, sem gastar moeda nenhuma: serve para mostrar o prazo antes da compra. */
 export function contextWithoutCoins(context: EstimateContext): EstimateContext {
-  return { quests: context.quests, coverage: {}, plan: { items: [], coverage: {}, remainingCoins: 0 } };
+  const parts = { count: 0, affordable: 0, cost: 0, unit: CARRACK_PART_CROW_PRICE };
+  return { quests: context.quests, coverage: {}, plan: { items: [], coverage: {}, remainingCoins: 0, parts } };
 }
 
 export interface QuestRate {
