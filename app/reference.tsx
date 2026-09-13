@@ -1,6 +1,7 @@
 import Image from "next/image";
-import { CARRACK_GEAR_SETS, CARRACK_ORDER, CARRACKS, GEAR_SETS, MATERIALS, MATERIAL_BY_ID, QUESTS, SOURCES } from "@/lib/data";
+import { CADENCE_BY_ID, CARRACK_GEAR_SETS, CARRACK_ORDER, CARRACKS, GEAR_SETS, MATERIALS, MATERIAL_BY_ID, QUESTS, QUEST_CADENCES, QUEST_GROUPS, SOURCES } from "@/lib/data";
 import { carrackGearSetEstimate, formatDuration, materialEstimate, shipEstimate } from "@/lib/estimate";
+import { questsOfGroup } from "@/lib/quests";
 import { createInitialProfile } from "@/lib/profile";
 import type { CarrackTarget, GearKey, MaterialId } from "@/types";
 
@@ -65,17 +66,27 @@ export default function Reference() {
       </details>)}</div>
     </section>
     <section id="guia-missoes" className="panel scroll-mt-4"><h2>Missões do Oceano</h2>
-      <p>27 missões diárias e 11 semanais em Iliya, Velia, Olho da Okilua e Terra do Amanhecer.</p>
-      <div className="mt-4 space-y-4">{QUESTS.map((q) => <details key={q.id}>
-        <summary className="cursor-pointer">{q.cadence === "daily" ? "Diária" : "Semanal"} · {q.title}</summary>
-        <p>{q.npc} · {q.location}</p><p>{q.objective}</p>{q.note && <p><strong>Atenção:</strong> {q.note}</p>}<ul>{q.rewards.map((r) => <li key={r}>{r}</li>)}</ul>
-        <p><a className="text-gold-bright" href={q.sourceUrl} target="_blank" rel="noreferrer">Fonte: {q.source}</a></p>
-      </details>)}</div>
+      <p>{QUEST_CADENCES.map((cadence) => `${QUESTS.filter((quest) => quest.cadence === cadence.id).length} missões ${cadence.plural.toLowerCase()}`).join(" e ")} em Iliya, Velia, Olho da Okilua e Terra do Amanhecer, organizadas por NPC.</p>
+      <p>Com JavaScript, você escolhe quais delas entram no cálculo do seu preset. Este guia mostra o catálogo completo.</p>
+      <div className="mt-4 space-y-6">{QUEST_GROUPS.map((group) => <article key={group.id}>
+        <h3>{group.npc} · {group.location} · {CADENCE_BY_ID[group.cadence].plural}</h3>
+        <p>{group.selection === "one-track"
+          ? "Trilha única: o jogo não deixa aceitar as alternativas ao mesmo tempo."
+          : "As missões deste NPC podem ficar ativas ao mesmo tempo."}</p>
+        {group.note && <p><strong>Atenção:</strong> {group.note}</p>}
+        <div className="space-y-4">{questsOfGroup(group).map((q) => <details key={q.id}>
+          <summary className="cursor-pointer">{CADENCE_BY_ID[q.cadence].label} · {q.title}</summary>
+          <p>{q.npc} · {q.location}</p>
+          {group.trackLabels?.[q.track] && <p>Trilha: {group.trackLabels[q.track]}</p>}
+          <p>{q.objective}</p>{q.note && <p><strong>Atenção:</strong> {q.note}</p>}<ul>{q.rewards.map((r) => <li key={r}>{r}</li>)}</ul>
+          <p><a className="text-gold-bright" href={q.sourceUrl} target="_blank" rel="noreferrer">Fonte: {q.source}</a></p>
+        </details>)}</div>
+      </article>)}</div>
     </section>
     <section id="guia-tempo" className="panel scroll-mt-4"><h2>Como o tempo é estimado</h2>
       <p>Os prazos partem da quantidade que ainda falta e do ritmo de cada fonte. São estimativas do planner, não uma promessa de data.</p>
       <ul className="my-4 space-y-2">
-        <li>Missões diárias e semanais entram com a quantidade que a recompensa entrega, supondo que você as conclui em dia.</li>
+        <li>Missões entram com a quantidade que a recompensa entrega, supondo que você as conclui em dia. No planner, só as missões que você marca contam, e onde o jogo obriga a escolher entre alternativas do mesmo NPC apenas a trilha escolhida rende.</li>
         <li>Recompensa de escolha rende um item por conclusão, então o ritmo é dividido entre as metas que ainda faltam.</li>
         <li>Permuta, caça, processamento e escavação não têm frequência fixa: valem uma estimativa por dificuldade do material, para um dia dedicado ao oceano.</li>
         <li>O saldo de Moeda Corvo encurta o prazo pelo que a compra sugerida resolve na hora, mas não vira ritmo diário. A compra vai primeiro para o material que segura o prazo, até ele empatar com o próximo da fila. Este guia mostra o prazo sem moedas.</li>

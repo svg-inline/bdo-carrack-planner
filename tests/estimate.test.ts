@@ -2,10 +2,11 @@ import { describe, expect, it } from "vitest";
 import { CARRACK_GEAR_SETS, GEAR_SETS, MATERIALS, MATERIAL_BY_ID } from "@/lib/data";
 import { createInitialProfile } from "@/lib/profile";
 import { isCarrackBuildMaterial } from "@/lib/planner";
+import { setQuestActive } from "@/lib/quests";
 import {
   carrackGearEstimate, carrackGearSetEstimate, choiceCompetitors, coinPlan, contextWithoutCoins, daysForUnits,
   estimateContext, FARM_UNITS_PER_DAY, formatDuration, formatRate, gearEstimate, materialEstimate, materialRate,
-  questRatePerDay, shipEstimate,
+  questContext, questRatePerDay, shipEstimate,
 } from "@/lib/estimate";
 import type { MaterialId } from "@/types";
 
@@ -24,7 +25,7 @@ describe("ritmo de obtenção", () => {
   it("converte missão semanal em ritmo diário", () => {
     const otters = MATERIAL_BY_ID.seaweedStalk.sources.find((source) => source.type === "weekly");
 
-    expect(questRatePerDay(otters!, {})).toBeCloseTo(45 / 7);
+    expect(questRatePerDay(otters!, questContext(createInitialProfile("bravura")))).toBeCloseTo(45 / 7);
   });
 
   it("divide a recompensa de escolha entre as metas que ainda faltam", () => {
@@ -41,6 +42,40 @@ describe("ritmo de obtenção", () => {
       if (material.id !== "redSeaGold") alone.materials[material.id] = material.required.bravura;
     }
     expect(materialRate(alone, "redSeaGold").questPerDay).toBeCloseTo(15 / 7 + 4 + 4 / 7);
+  });
+
+  it("só conta as missões que o preset mantém na rotina", () => {
+    const profile = createInitialProfile("bravura");
+    const comReiDoMar = materialRate(profile, "abyssalEye");
+
+    // A diária do Rei do Mar Jovem entrega Olho Abissal x1 e é a trilha padrão do Ravikel.
+    expect(comReiDoMar.quests.find((quest) => quest.questId === "daily-okilua-young-sea-king")).toMatchObject({ active: true, perDay: 1 });
+
+    profile.activeQuests = setQuestActive(profile.activeQuests, "daily-okilua-kandidum", true);
+    const semReiDoMar = materialRate(profile, "abyssalEye");
+
+    expect(semReiDoMar.quests.find((quest) => quest.questId === "daily-okilua-young-sea-king")).toMatchObject({ active: false, perDay: 0 });
+    expect(semReiDoMar.questPerDay).toBeCloseTo(comReiDoMar.questPerDay - 1);
+    // A troca de trilha devolve ritmo aos materiais das três caçadas da Guilda.
+    expect(materialRate(profile, "waveAdhesive").questPerDay).toBeGreaterThan(materialRate(createInitialProfile("bravura"), "waveAdhesive").questPerDay);
+  });
+
+  it("tira a missão desligada da disputa pela recompensa de escolha", () => {
+    const profile = createInitialProfile("bravura");
+    const disputado = choiceCompetitors(profile)["diario-preciso-proteger-pelo-menos-o-meu-corpo"];
+    profile.activeQuests = setQuestActive(profile.activeQuests, "daily-okilua-protect-body", false);
+
+    expect(disputado).toBeGreaterThan(0);
+    expect(choiceCompetitors(profile)["diario-preciso-proteger-pelo-menos-o-meu-corpo"]).toBeUndefined();
+    expect(questContext(profile).active.has("daily-okilua-protect-body")).toBe(false);
+  });
+
+  it("adia o prazo da rota quando o jogador abre mão de uma missão", () => {
+    const profile = createInitialProfile("bravura");
+    const antes = shipEstimate(profile).days;
+    profile.activeQuests = setQuestActive(profile.activeQuests, "weekly-okilua-population", false);
+
+    expect(shipEstimate(profile).days).toBeGreaterThan(antes);
   });
 
   it("não inventa ritmo para quem só tem Moeda Corvo como fonte", () => {

@@ -18,12 +18,18 @@ Todas as mudanças relevantes para usuários são registradas em `Unreleased`, n
 - Ritmo diário de cada material e de cada missão recorrente no catálogo "Como obter", com a explicação do cálculo na aba Estratégia e no guia sem JavaScript.
 - O saldo de Moeda Corvo entra no tempo estimado: o que a compra sugerida resolve sai do que falta farmar e o prazo cai assim que as moedas ou o inventário mudam.
 - A compra sugerida passou a distribuir o saldo onde ele corta mais tempo da rota, em vez de seguir a ordem de gargalo, e mostra de quanto para quanto o prazo cai.
+- Escolha de quais missões entram no cálculo, uma a uma, guardada em cada preset. As que ficam de fora continuam na lista, marcadas, com o ritmo que devolveriam se voltassem.
+- Aba Missões organizada por NPC, com a regra de aceite de cada um e a contagem de quantas missões do NPC estão no cálculo.
+- Regra de trilha única do jogo: aceitar a caçada ao Rei do Mar Jovem bloqueia as três caçadas da Guilda Lua Minguante do Ravikel, e vice-versa; as duas Pequenas Retribuições do Herrad Romson seguem a mesma regra. O planner deixa de somar alternativas que não podem ser aceitas no mesmo dia.
 
 ### Changed
 
 - Dependências atualizadas para a geração estável mais recente compatível, incluindo Next.js 16.3.5, React 19.3 e Tailwind CSS 4.3.
 - Catálogo marítimo atualizado para 27 missões diárias e 11 semanais, incluindo a missão consolidada da Ilha de Iliya, as semanais atuais do Kario e as missões da Terra do Amanhecer.
 - Fontes de obtenção dos materiais sincronizadas com as frequências, quantidades e alternativas de recompensa atuais das missões marítimas.
+- Catálogo de missões reorganizado por NPC e frequência: o grupo passou a carregar NPC, local, frequência e regra de aceite, de modo que uma missão nova — inclusive de evento — só precisa do próprio conteúdo.
+- Cada fonte de material passou a apontar para a missão que a entrega, o que sincroniza o catálogo de missões com o de obtenção.
+- A opção de Pedra Negra da Onda das semanais do Olho da Okilua deixou de ser uma linha genérica e virou as três semanais do Ravikel que realmente a oferecem.
 - Estado salvo validado e normalizado antes de ser usado nos cálculos.
 - O planner agora começa pela escolha da Carraca de um novo preset e permite alternar entre todos os planos pelo seletor lateral.
 - Textos, ícones de materiais e imagens de equipamentos foram ampliados em todas as telas para melhorar a leitura.
@@ -37,6 +43,7 @@ Todas as mudanças relevantes para usuários são registradas em `Unreleased`, n
 ### Fixed
 
 - Progresso dos equipamentos ignora aprimoramento azul antes da fabricação da peça.
+- O tempo estimado não soma mais missões que o jogo não deixa aceitar juntas, o que deixava os prazos de Olho Abissal, Escama da Lua, Suporte Elaborado e Cola com Traços de Onda otimistas demais.
 - Campos, navegação, foco e indicadores de progresso receberam nomes e estados acessíveis.
 - As rotas do Navio Mercante e do Contratorpedeiro agora exibem uma captura oficial do jogo, e os resumos de equipamento mostram as miniaturas sem o marcador que parecia uma imagem vazia.
 - A troca de abas no celular mantém o título da tela visível abaixo da navegação fixa.

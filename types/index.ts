@@ -2,7 +2,29 @@ export type CarrackTarget = "gradual" | "equilibrio" | "ascensao" | "bravura";
 export type ShipBranch = "caravel" | "galleass";
 export type GearKey = "figurehead" | "plating" | "cannon" | "sail";
 export type MaterialCategory = "carrack" | "blue-gear" | "carrack-gear" | "enhancement";
-export type AcquisitionType = "daily" | "weekly" | "barter" | "crow" | "hunt" | "processing" | "workers" | "market";
+
+/**
+ * Frequência de uma missão recorrente. Para acrescentar missões de evento, some o novo
+ * identificador aqui e descreva-o em `QUEST_CADENCES`: o restante do planner — ritmo,
+ * chave de reinício, abas e filtros — passa a reconhecê-lo por tipagem.
+ */
+export type QuestCadence = "daily" | "weekly";
+
+/** Fontes sem frequência fixa: dependem do tempo de jogo, não de uma missão. */
+export type FarmAcquisitionType = "barter" | "crow" | "hunt" | "processing" | "workers" | "market";
+export type AcquisitionType = QuestCadence | FarmAcquisitionType;
+
+export interface QuestCadenceDefinition {
+  id: QuestCadence;
+  /** Nome no singular, usado em rótulos de missão. */
+  label: string;
+  /** Nome no plural, usado nas abas e contagens. */
+  plural: string;
+  /** Dias entre duas conclusões da missão. */
+  periodDays: number;
+  /** Janela que zera a marcação de concluída. */
+  reset: "day" | "week" | "never";
+}
 
 export type MaterialId =
   | "redSeaGold"
@@ -31,15 +53,26 @@ export type MaterialId =
   | "shiroCannonBlueprint"
   | "shiroSailBlueprint";
 
-export interface Acquisition {
-  type: AcquisitionType;
+/** Recompensa de uma missão do catálogo. O vínculo com `questId` é obrigatório. */
+export interface QuestAcquisition {
+  type: QuestCadence;
   label: string;
   detail?: string;
   /** Unidades entregues por conclusão da missão. */
-  yield?: number;
+  yield: number;
   /** Recompensa de escolha: fontes do mesmo grupo disputam a mesma conclusão. */
   group?: string;
+  /** Missão de `QUESTS` que entrega este material. */
+  questId: string;
 }
+
+export interface FarmAcquisition {
+  type: FarmAcquisitionType;
+  label: string;
+  detail?: string;
+}
+
+export type Acquisition = QuestAcquisition | FarmAcquisition;
 
 export interface MaterialDefinition {
   id: MaterialId;
@@ -97,6 +130,8 @@ export interface PlannerProfile {
   materials: Record<MaterialId, number>;
   gear: BranchGearState;
   carrackGear: Record<GearKey, GearState>;
+  /** Missões que o jogador mantém na rotina e que, por isso, entram no ritmo estimado. */
+  activeQuests: Record<string, boolean>;
 }
 
 export interface PlannerPreset {
@@ -106,12 +141,13 @@ export interface PlannerPreset {
   completedQuests: Record<string, string>;
 }
 
-export interface QuestDefinition {
+/**
+ * Missão como ela é escrita no catálogo. NPC, local e frequência vêm do grupo, então uma
+ * missão nova só precisa do próprio conteúdo.
+ */
+export interface QuestEntry {
   id: string;
-  cadence: "daily" | "weekly";
   title: string;
-  npc: string;
-  location: string;
   objective: string;
   rewards: string[];
   recommendedFor: MaterialId[];
@@ -119,4 +155,41 @@ export interface QuestDefinition {
   source: string;
   sourceUrl: string;
   note?: string;
+  /**
+   * Trilha de aceite dentro do grupo. Missões da mesma trilha convivem no diário; trilhas
+   * diferentes se excluem em grupos `one-track`. Sem valor, a missão é a própria trilha.
+   */
+  track?: string;
+  /** Fora do cálculo até o jogador marcar. Padrão: entra. */
+  defaultActive?: boolean;
+}
+
+/**
+ * Conjunto de missões do mesmo NPC e da mesma frequência. É a unidade de exibição da aba
+ * Missões e o lugar onde ficam as regras de aceite do jogo.
+ */
+export interface QuestGroupDefinition {
+  id: string;
+  npc: string;
+  location: string;
+  cadence: QuestCadence;
+  /** `all`: todas podem ficar ativas juntas. `one-track`: só uma trilha por vez. */
+  selection: "all" | "one-track";
+  /** Regra de aceite em texto, exibida no cabeçalho do grupo. */
+  note?: string;
+  /** Trilha ativa por padrão em grupos `one-track`. Padrão: a trilha da primeira missão. */
+  defaultTrack?: string;
+  /** Nome legível de cada trilha, exibido nas missões de grupos com mais de uma. */
+  trackLabels?: Record<string, string>;
+  quests: QuestEntry[];
+}
+
+/** Missão já resolvida com os dados herdados do grupo. */
+export interface QuestDefinition extends Omit<QuestEntry, "track" | "defaultActive"> {
+  cadence: QuestCadence;
+  npc: string;
+  location: string;
+  group: string;
+  track: string;
+  defaultActive: boolean;
 }

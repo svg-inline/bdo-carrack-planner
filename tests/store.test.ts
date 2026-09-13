@@ -44,6 +44,26 @@ describe("preset store", () => {
     expect(presets[0]?.profile.materials.coxCombat).toBe(12);
   });
 
+  it("guarda a rotina de missões de cada preset separadamente", () => {
+    usePlannerStore.getState().addPreset("bravura");
+    const comReiDoMar = usePlannerStore.getState().activePresetId!;
+    usePlannerStore.getState().addPreset("bravura");
+    const comCacadas = usePlannerStore.getState().activePresetId!;
+    usePlannerStore.getState().setQuestActive("daily-okilua-kandidum", true);
+
+    const presets = usePlannerStore.getState().presets;
+    const rotina = (id: string) => presets.find((preset) => preset.id === id)!.profile.activeQuests;
+
+    // Trilha única do Ravikel: o preset trocado abre mão do Rei do Mar Jovem, o outro não muda.
+    expect(rotina(comCacadas)["daily-okilua-kandidum"]).toBe(true);
+    expect(rotina(comCacadas)["daily-okilua-young-sea-king"]).toBe(false);
+    expect(rotina(comReiDoMar)["daily-okilua-young-sea-king"]).toBe(true);
+    expect(rotina(comReiDoMar)["daily-okilua-kandidum"]).toBe(false);
+
+    usePlannerStore.getState().setQuestActive("daily-iliya-agitated", false);
+    expect(usePlannerStore.getState().presets.find((preset) => preset.id === comCacadas)!.profile.activeQuests["daily-iliya-agitated"]).toBe(false);
+  });
+
   it("returns to the Carraca choice after removing the last preset", () => {
     usePlannerStore.getState().addPreset("gradual");
     usePlannerStore.getState().removePreset(usePlannerStore.getState().activePresetId!);

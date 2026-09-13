@@ -1,20 +1,20 @@
-import { CARRACK_GEAR_SETS, GEAR_SETS, MATERIALS, MATERIAL_BY_ID } from "@/lib/data";
+import { CADENCE_BY_ID, CARRACK_GEAR_SETS, GEAR_SETS, MATERIALS, MATERIAL_BY_ID } from "@/lib/data";
 import { getMissing, isCarrackBuildMaterial } from "@/lib/planner";
-import type { Acquisition, AcquisitionType, GearKey, MaterialDefinition, MaterialId, PlannerProfile, ShipBranch } from "@/types";
+import { activeQuestIds, isQuestAcquisition } from "@/lib/quests";
+import type { Acquisition, AcquisitionType, FarmAcquisitionType, GearKey, MaterialDefinition, MaterialId, PlannerProfile, QuestAcquisition, ShipBranch } from "@/types";
 
-// O tempo estimado assume um jogador que conclui todas as missões diárias e semanais
-// listadas para o material e ainda dedica o resto do dia às rotas livres do oceano.
-// Missões têm quantidade e frequência conhecidas; permuta, caça, processamento e
-// escavação dependem do tempo de jogo, então usam uma estimativa única por dificuldade.
-const DAYS_PER_CADENCE: Record<"daily" | "weekly", number> = { daily: 1, weekly: 7 };
+// O tempo estimado assume um jogador que conclui em dia as missões que ele mesmo marcou
+// como parte da rotina e ainda dedica o resto do dia às rotas livres do oceano. Missões
+// têm quantidade e frequência conhecidas; permuta, caça, processamento e escavação
+// dependem do tempo de jogo, então usam uma estimativa única por dificuldade.
 
 /** Unidades atribuídas a um dia de farm dedicado, por dificuldade do material. */
 export const FARM_UNITS_PER_DAY: Record<MaterialDefinition["difficulty"], number> = { 1: 60, 2: 35, 3: 20, 4: 10, 5: 4 };
 
-const FARM_TYPES: AcquisitionType[] = ["barter", "hunt", "processing", "workers", "market"];
+const FARM_TYPES: AcquisitionType[] = ["barter", "hunt", "processing", "workers", "market"] satisfies FarmAcquisitionType[];
 
-function isQuestSource(source: Acquisition): source is Acquisition & { type: "daily" | "weekly"; yield: number } {
-  return (source.type === "daily" || source.type === "weekly") && typeof source.yield === "number" && source.yield > 0;
+function isQuestSource(source: Acquisition): source is QuestAcquisition {
+  return isQuestAcquisition(source) && source.yield > 0;
 }
 
 function isFarmSource(source: Acquisition) {
@@ -22,19 +22,36 @@ function isFarmSource(source: Acquisition) {
 }
 
 /**
+ * Missões que entram na conta e a disputa por recompensas de escolha. Uma missão fora da
+ * rotina do jogador não rende nada, e por isso também não disputa a escolha.
+ */
+export interface QuestContext {
+  /** Missões marcadas no preset. */
+  active: Set<string>;
+  /** Quantas metas pendentes disputam cada recompensa de escolha. */
+  competitors: Record<string, number>;
+}
+
+/**
  * Quantas metas pendentes disputam cada recompensa de escolha. Uma missão com escolha
  * entrega um item por conclusão, então o ritmo dela é dividido entre os materiais que
  * ainda faltam; conforme as metas são concluídas, os restantes recebem o ritmo cheio.
  */
-export function choiceCompetitors(profile: PlannerProfile): Record<string, number> {
+export function choiceCompetitors(profile: PlannerProfile, active = activeQuestIds(profile)): Record<string, number> {
   const competitors: Record<string, number> = {};
   for (const material of MATERIALS) {
     if (getMissing(profile, material.id) <= 0) continue;
     for (const source of material.sources) {
-      if (source.group && isQuestSource(source)) competitors[source.group] = (competitors[source.group] || 0) + 1;
+      if (!isQuestSource(source) || !source.group || !active.has(source.questId)) continue;
+      competitors[source.group] = (competitors[source.group] || 0) + 1;
     }
   }
   return competitors;
+}
+
+export function questContext(profile: PlannerProfile): QuestContext {
+  const active = activeQuestIds(profile);
+  return { active, competitors: choiceCompetitors(profile, active) };
 }
 
 export interface CoinPurchase {
@@ -62,14 +79,14 @@ export interface CoinPlan {
  * o que sobrar. Como o prazo depende do estoque, o plano é refeito inteiro sempre que o
  * inventário, o saldo ou a Carraca do preset mudam.
  */
-export function coinPlan(profile: PlannerProfile, competitors = choiceCompetitors(profile)): CoinPlan {
+export function coinPlan(profile: PlannerProfile, quests = questContext(profile)): CoinPlan {
   const candidates = MATERIALS
     .filter((material) => (material.crowPrice || 0) > 0 && getMissing(profile, material.id) > 0)
     .map((material) => ({
       material,
       price: material.crowPrice || 0,
       missing: getMissing(profile, material.id),
-      perDay: materialRate(profile, material.id, competitors).perDay,
+      perDay: materialRate(profile, material.id, quests).perDay,
       bought: 0,
       order: 0,
     }));
@@ -117,25 +134,28 @@ export function coinPlan(profile: PlannerProfile, competitors = choiceCompetitor
 
 /** Tudo que depende do plano inteiro, calculado uma vez e reaproveitado nas estimativas. */
 export interface EstimateContext {
-  competitors: Record<string, number>;
+  quests: QuestContext;
   coverage: Partial<Record<MaterialId, number>>;
   plan: CoinPlan;
 }
 
 export function estimateContext(profile: PlannerProfile): EstimateContext {
-  const competitors = choiceCompetitors(profile);
-  const plan = coinPlan(profile, competitors);
-  return { competitors, coverage: plan.coverage, plan };
+  const quests = questContext(profile);
+  const plan = coinPlan(profile, quests);
+  return { quests, coverage: plan.coverage, plan };
 }
 
 /** Mesmo contexto, sem gastar moeda nenhuma: serve para mostrar o prazo antes da compra. */
 export function contextWithoutCoins(context: EstimateContext): EstimateContext {
-  return { competitors: context.competitors, coverage: {}, plan: { items: [], coverage: {}, remainingCoins: 0 } };
+  return { quests: context.quests, coverage: {}, plan: { items: [], coverage: {}, remainingCoins: 0 } };
 }
 
 export interface QuestRate {
   label: string;
   type: AcquisitionType;
+  questId: string;
+  /** A missão está na rotina escolhida pelo preset. */
+  active: boolean;
   perDay: number;
 }
 
@@ -149,24 +169,29 @@ export interface MaterialRate {
   quests: QuestRate[];
 }
 
-/** Ritmo diário de uma missão recorrente, já descontada a disputa por recompensas de escolha. */
-export function questRatePerDay(source: Acquisition, competitors: Record<string, number>) {
-  if (!isQuestSource(source)) return 0;
-  const share = source.group ? 1 / Math.max(1, competitors[source.group] || 1) : 1;
-  return (source.yield * share) / DAYS_PER_CADENCE[source.type];
+/**
+ * Ritmo diário de uma missão recorrente, já descontada a disputa por recompensas de escolha.
+ * Missão fora da rotina escolhida pelo jogador não rende nada.
+ */
+export function questRatePerDay(source: Acquisition, quests: QuestContext) {
+  if (!isQuestSource(source) || !quests.active.has(source.questId)) return 0;
+  const share = source.group ? 1 / Math.max(1, quests.competitors[source.group] || 1) : 1;
+  return (source.yield * share) / CADENCE_BY_ID[source.type].periodDays;
 }
 
-export function materialRate(profile: PlannerProfile, id: MaterialId, competitors = choiceCompetitors(profile)): MaterialRate {
+export function materialRate(profile: PlannerProfile, id: MaterialId, quests = questContext(profile)): MaterialRate {
   const material = MATERIAL_BY_ID[id];
-  const quests = material.sources.filter(isQuestSource).map((source) => ({
+  const sources = material.sources.filter(isQuestSource).map((source) => ({
     label: source.label,
     type: source.type,
-    perDay: questRatePerDay(source, competitors),
+    questId: source.questId,
+    active: quests.active.has(source.questId),
+    perDay: questRatePerDay(source, quests),
   }));
-  const questPerDay = quests.reduce((sum, quest) => sum + quest.perDay, 0);
+  const questPerDay = sources.reduce((sum, quest) => sum + quest.perDay, 0);
   // Permuta, caça e processamento são alternativas do mesmo tempo de jogo: contam uma vez só.
   const farmPerDay = material.sources.some(isFarmSource) ? FARM_UNITS_PER_DAY[material.difficulty] : 0;
-  return { perDay: questPerDay + farmPerDay, questPerDay, farmPerDay, quests };
+  return { perDay: questPerDay + farmPerDay, questPerDay, farmPerDay, quests: sources };
 }
 
 export function daysForUnits(units: number, perDay: number) {
@@ -191,7 +216,7 @@ export function materialEstimate(profile: PlannerProfile, id: MaterialId, contex
   const missing = getMissing(profile, id);
   const covered = Math.min(missing, context.coverage[id] || 0);
   const remaining = missing - covered;
-  const { perDay } = materialRate(profile, id, context.competitors);
+  const { perDay } = materialRate(profile, id, context.quests);
   return { id, missing, covered, remaining, perDay, days: daysForUnits(remaining, perDay) };
 }
 
@@ -218,7 +243,7 @@ export function recipeEstimate(profile: PlannerProfile, materials: Partial<Recor
     pending += 1;
     const bought = Math.min(missing, context.coverage[id] || 0);
     covered += bought;
-    const { perDay } = materialRate(profile, id, context.competitors);
+    const { perDay } = materialRate(profile, id, context.quests);
     const materialDays = daysForUnits(missing - bought, perDay);
     if (materialDays > days) {
       days = materialDays;

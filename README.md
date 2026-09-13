@@ -21,7 +21,8 @@ Planner web para acompanhar a construção das quatro Carracas de Epheria no Bla
 - indicação de onde cada material é usado;
 - ranking dinâmico de gargalos;
 - tempo estimado para cada material, peça, conjunto de Shiro e para a Carraca inteira, a partir do que falta, do ritmo de cada fonte e do saldo de Moedas Corvo;
-- checklist das 27 missões diárias e 11 semanais atuais de Iliya, Velia, Olho da Okilua e Terra do Amanhecer, com recompensas, regras de aceite e fontes;
+- checklist das 27 missões diárias e 11 semanais atuais de Iliya, Velia, Olho da Okilua e Terra do Amanhecer, agrupadas por NPC, com recompensas, regras de aceite e fontes;
+- escolha de quais missões entram no cálculo do ritmo, guardada em cada preset, respeitando as alternativas que o jogo não deixa aceitar juntas;
 - estratégia de gasto de Moedas Corvo que distribui o saldo onde ele mais encurta o prazo, refeita a cada mudança de inventário ou de saldo;
 - gerenciamento de estado com Zustand e persistência via localStorage, incluindo migração do formato anterior.
 

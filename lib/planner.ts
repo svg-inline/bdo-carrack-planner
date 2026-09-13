@@ -1,5 +1,5 @@
-import { CARRACKS, MATERIALS, MATERIAL_BY_ID } from "@/lib/data";
-import type { CarrackTarget, GearState, MaterialDefinition, MaterialId, PlannerProfile } from "@/types";
+import { CADENCE_BY_ID, CARRACKS, MATERIALS, MATERIAL_BY_ID } from "@/lib/data";
+import type { CarrackTarget, GearState, MaterialDefinition, MaterialId, PlannerProfile, QuestCadence } from "@/types";
 
 // Materiais consumidos para chegar até a Carraca. O conjunto de Shiro é equipamento posterior
 // e tem progresso próprio, por isso fica fora dos gargalos e do percentual da rota.
@@ -55,8 +55,14 @@ export function bottlenecks(profile: PlannerProfile) {
     .sort((a, b) => b.score - a.score);
 }
 
-export function questResetKey(cadence: "daily" | "weekly", now = new Date()) {
-  if (cadence === "daily") return now.toISOString().slice(0, 10);
+/**
+ * Janela em que a marcação de "concluída" vale. Frequências novas só precisam declarar o
+ * próprio `reset` em `QUEST_CADENCES`.
+ */
+export function questResetKey(cadence: QuestCadence, now = new Date()) {
+  const { reset } = CADENCE_BY_ID[cadence];
+  if (reset === "never") return "sempre";
+  if (reset === "day") return now.toISOString().slice(0, 10);
   const copy = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
   const day = copy.getUTCDay() || 7;
   copy.setUTCDate(copy.getUTCDate() - day + 1);

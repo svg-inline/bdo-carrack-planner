@@ -7,6 +7,7 @@ test("works as a useful guide without JavaScript", async ({ browser }) => {
   await expect(page.getByRole("heading", { name: "Planejador das Carracas de Epheria" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Carraca de Epheria: Bravura" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Materiais e onde conseguir" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Ravikel · Olho da Okilua · Diárias" })).toBeVisible();
   await expect(page.getByText("Diária · [Permuta][Diário] Ilha de Iliya Agitada")).toBeVisible();
   await expect(page.getByText("Semanal · Investigar a ecologia da área de Lyngbakr")).toBeVisible();
   await expect(page.getByText(/Ilha de Iliya Agitada (I|II|III)$/)).toHaveCount(0);
@@ -110,4 +111,40 @@ test("removes a preset added by mistake from the sidebar", async ({ page }) => {
 
   await page.getByRole("button", { name: /Remover preset ativo/ }).click();
   await expect(page.getByRole("heading", { name: "Qual Carraca você quer planejar?" })).toBeVisible();
+});
+
+test("lets the player choose which quests feed the estimate", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /Bravura/ }).click();
+
+  const heroEta = page.locator(".hero-stats div").filter({ hasText: "Tempo estimado" }).locator("strong");
+  const before = await heroEta.textContent();
+
+  await page.getByRole("button", { name: "Missões" }).click();
+  const ravikel = page.locator(".quest-group").filter({ has: page.getByRole("heading", { name: "Ravikel", exact: true }) });
+  await expect(ravikel.getByText("TRILHA ÚNICA")).toBeVisible();
+  await expect(ravikel.getByText("1/4 NO CÁLCULO")).toBeVisible();
+
+  const youngSeaKing = ravikel.locator(".quest-card").filter({ hasText: "Rei do Mar Jovem" });
+  const kandidum = ravikel.locator(".quest-card").filter({ hasText: "Caçador de Kandidum" });
+  await expect(youngSeaKing.getByRole("checkbox")).toBeChecked();
+  await expect(kandidum.getByRole("checkbox")).not.toBeChecked();
+
+  // Aceitar a trilha das caçadas tira o Rei do Mar Jovem, como acontece no jogo.
+  await kandidum.getByRole("checkbox").check();
+  await expect(youngSeaKing.getByRole("checkbox")).not.toBeChecked();
+  await expect(ravikel.getByText("3/4 NO CÁLCULO")).toBeVisible();
+
+  // O material que só vinha da trilha abandonada passa a aparecer fora do cálculo.
+  await page.getByRole("button", { name: "Como obter" }).click();
+  const abyssalEye = page.locator(".acquisition-card").filter({ hasText: "Olho Abissal" }).first();
+  await expect(abyssalEye.locator(".source-inactive").filter({ hasText: "Rei do Mar Jovem" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Visão geral" }).click();
+  await expect(heroEta).not.toHaveText(before ?? "");
+
+  // A escolha pertence ao preset e sobrevive ao recarregamento.
+  await page.reload();
+  await page.getByRole("button", { name: "Missões" }).click();
+  await expect(ravikel.locator(".quest-card").filter({ hasText: "Rei do Mar Jovem" }).getByRole("checkbox")).not.toBeChecked();
 });

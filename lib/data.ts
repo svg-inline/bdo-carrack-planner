@@ -1,4 +1,4 @@
-import type { CarrackDefinition, CarrackGearDefinition, CarrackTarget, GearDefinition, GearKey, MaterialDefinition, MaterialId, QuestDefinition, ShipBranch } from "@/types";
+import type { CarrackDefinition, CarrackGearDefinition, CarrackTarget, GearDefinition, GearKey, MaterialDefinition, MaterialId, QuestCadence, QuestCadenceDefinition, QuestDefinition, QuestGroupDefinition, ShipBranch } from "@/types";
 
 const req = (gradual: number, equilibrio: number, ascensao: number, bravura: number): Record<CarrackTarget, number> => ({ gradual, equilibrio, ascensao, bravura });
 
@@ -54,9 +54,9 @@ export const MATERIALS: MaterialDefinition[] = [
     difficulty: 4,
     crowPrice: 200,
     sources: [
-      { type: "weekly", label: "[Semanal] Para o bem dos jovens Vendedores Lontras", detail: "Recompensa x15 no Olho de Okilua.", yield: 15 },
-      { type: "daily", label: "[Diário] Pequena Retribuição da Guilda Lua Minguante I", detail: "Escolha de recompensa x4; alternativa à Pequena Retribuição II.", yield: 4, group: "pequena-retribuicao" },
-      { type: "weekly", label: "[Semanal] Caçador de Kandidum", detail: "Escolha de recompensa x4.", yield: 4, group: "semanal-cacador-de-kandidum" },
+      { type: "weekly", label: "[Semanal] Para o bem dos jovens Vendedores Lontras", detail: "Recompensa x15 no Olho de Okilua.", yield: 15, questId: "weekly-okilua-young-otters" },
+      { type: "daily", label: "[Diário] Pequena Retribuição da Guilda Lua Minguante I", detail: "Escolha de recompensa x4; alternativa à Pequena Retribuição II.", yield: 4, group: "pequena-retribuicao", questId: "daily-okilua-retribution-1" },
+      { type: "weekly", label: "[Semanal] Caçador de Kandidum", detail: "Escolha de recompensa x4.", yield: 4, group: "semanal-cacador-de-kandidum", questId: "weekly-okilua-kandidum" },
       { type: "barter", label: "Permuta de Mercadoria Marítima [Nível 4]", detail: "Pode aparecer nas rotas de material de navio." },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "200 Moedas Corvo por unidade." },
     ],
@@ -71,7 +71,7 @@ export const MATERIALS: MaterialDefinition[] = [
     difficulty: 3,
     crowPrice: 40,
     sources: [
-      { type: "daily", label: "[Permuta][Diário] Ilha de Iliya Agitada", detail: "Recompensa x10 ao concluir 15 permutas.", yield: 10 },
+      { type: "daily", label: "[Permuta][Diário] Ilha de Iliya Agitada", detail: "Recompensa x10 ao concluir 15 permutas.", yield: 10, questId: "daily-iliya-agitated" },
       { type: "hunt", label: "Criaturas Marinhas", detail: "Pode ser obtida eliminando criaturas marinhas." },
       { type: "barter", label: "Permuta de Mercadoria Marítima [Nível 4]", detail: "Material de navio em rotas de permuta." },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "40 Moedas Corvo por unidade." },
@@ -87,8 +87,8 @@ export const MATERIALS: MaterialDefinition[] = [
     difficulty: 4,
     crowPrice: 80,
     sources: [
-      { type: "weekly", label: "[Semanal] Para o bem dos jovens Vendedores Lontras", detail: "Recompensa x45 no Olho de Okilua.", yield: 45 },
-      { type: "daily", label: "[Diário] Pequena Retribuição da Guilda Lua Minguante I", detail: "Escolha de recompensa x8; alternativa à Pequena Retribuição II.", yield: 8, group: "pequena-retribuicao" },
+      { type: "weekly", label: "[Semanal] Para o bem dos jovens Vendedores Lontras", detail: "Recompensa x45 no Olho de Okilua.", yield: 45, questId: "weekly-okilua-young-otters" },
+      { type: "daily", label: "[Diário] Pequena Retribuição da Guilda Lua Minguante I", detail: "Escolha de recompensa x8; alternativa à Pequena Retribuição II.", yield: 8, group: "pequena-retribuicao", questId: "daily-okilua-retribution-1" },
       { type: "barter", label: "Permuta de Mercadoria Marítima [Nível 4]", detail: "Pode aparecer nas rotas de material de navio." },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "80 Moedas Corvo por unidade." },
     ],
@@ -118,8 +118,8 @@ export const MATERIALS: MaterialDefinition[] = [
     difficulty: 3,
     crowPrice: 200,
     sources: [
-      { type: "daily", label: "[Permuta][Diário] Ilha de Iliya Agitada", detail: "Recompensa x2 ao concluir 15 permutas.", yield: 2 },
-      { type: "daily", label: "[Diário] Pequena Retribuição da Guilda Lua Minguante I", detail: "Escolha de recompensa x4; alternativa à Pequena Retribuição II.", yield: 4, group: "pequena-retribuicao" },
+      { type: "daily", label: "[Permuta][Diário] Ilha de Iliya Agitada", detail: "Recompensa x2 ao concluir 15 permutas.", yield: 2, questId: "daily-iliya-agitated" },
+      { type: "daily", label: "[Diário] Pequena Retribuição da Guilda Lua Minguante I", detail: "Escolha de recompensa x4; alternativa à Pequena Retribuição II.", yield: 4, group: "pequena-retribuicao", questId: "daily-okilua-retribution-1" },
       { type: "hunt", label: "Criaturas Marinhas", detail: "Pode ser obtido eliminando criaturas marinhas." },
       { type: "barter", label: "Permuta de Mercadoria Marítima [Nível 3]", detail: "Pode aparecer nas rotas marítimas." },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "200 Moedas Corvo por unidade." },
@@ -135,8 +135,8 @@ export const MATERIALS: MaterialDefinition[] = [
     difficulty: 3,
     crowPrice: 120,
     sources: [
-      { type: "daily", label: "[Permuta][Diário] Transporte de Suprimentos (Olho da Okilua)", detail: "Dario entrega x2 na Ilha de Iliya.", yield: 2 },
-      { type: "daily", label: "Transporte de Suprimentos (Ilha de Iliya)", detail: "Croix entrega x1 em Velia.", yield: 1 },
+      { type: "daily", label: "[Permuta][Diário] Transporte de Suprimentos (Olho da Okilua)", detail: "Dario entrega x2 na Ilha de Iliya.", yield: 2, questId: "daily-iliya-supply-okilua" },
+      { type: "daily", label: "Transporte de Suprimentos (Ilha de Iliya)", detail: "Croix entrega x1 em Velia.", yield: 1, questId: "daily-velia-supply-iliya" },
       { type: "barter", label: "Permuta de Mercadoria Marítima [Nível 2]", detail: "Pode aparecer nas rotas marítimas." },
       { type: "hunt", label: "Criaturas Marinhas", detail: "Pode ser obtido eliminando criaturas marinhas." },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "120 Moedas Corvo por unidade." },
@@ -154,10 +154,10 @@ export const MATERIALS: MaterialDefinition[] = [
     sources: [
       { type: "processing", label: "Alquimia Simples — Símbolo de Subjugação dos Piratas Cox", detail: "200 símbolos → 1 Artefato dos Piratas Cox(Combate)." },
       { type: "processing", label: "Alquimia Simples — Canhão Quebrado dos Piratas Cox", detail: "10 canhões quebrados → 1 Artefato dos Piratas Cox(Combate)." },
-      { type: "daily", label: "[Diário] Preciso proteger pelo menos o meu corpo", detail: "Escolha de recompensa x3.", yield: 3, group: "diario-preciso-proteger-pelo-menos-o-meu-corpo" },
-      { type: "daily", label: "[Diário] Pequena Retribuição da Guilda Lua Minguante II", detail: "Escolha de recompensa x6; alternativa à Pequena Retribuição I.", yield: 6, group: "pequena-retribuicao" },
-      { type: "weekly", label: "[Semanal] Relatório de Aumento da População", detail: "Recompensa x2.", yield: 2 },
-      { type: "weekly", label: "[Semanal] Caçador de Dente de Aço Negro", detail: "Escolha de recompensa x6.", yield: 6, group: "semanal-cacador-de-dente-de-aco-negro" },
+      { type: "daily", label: "[Diário] Preciso proteger pelo menos o meu corpo", detail: "Escolha de recompensa x3.", yield: 3, group: "diario-preciso-proteger-pelo-menos-o-meu-corpo", questId: "daily-okilua-protect-body" },
+      { type: "daily", label: "[Diário] Pequena Retribuição da Guilda Lua Minguante II", detail: "Escolha de recompensa x6; alternativa à Pequena Retribuição I.", yield: 6, group: "pequena-retribuicao", questId: "daily-okilua-retribution-2" },
+      { type: "weekly", label: "[Semanal] Relatório de Aumento da População", detail: "Recompensa x2.", yield: 2, questId: "weekly-okilua-population" },
+      { type: "weekly", label: "[Semanal] Caçador de Dente de Aço Negro", detail: "Escolha de recompensa x6.", yield: 6, group: "semanal-cacador-de-dente-de-aco-negro", questId: "weekly-okilua-black-rust" },
       { type: "hunt", label: "Criaturas Marinhas / Piratas Cox", detail: "Drops usados diretamente ou no processamento." },
       { type: "barter", label: "Permuta [Nível 4] e [Nível 5]", detail: "Pode aparecer nas rotas marítimas." },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "120 Moedas Corvo por unidade." },
@@ -175,8 +175,8 @@ export const MATERIALS: MaterialDefinition[] = [
     sources: [
       { type: "processing", label: "Secar — Escama do Khan", detail: "Escama do Khan x1 → 10 unidades." },
       { type: "hunt", label: "Khan, Olho de Okilua", detail: "A Escama do Khan é obtida derrotando Khan." },
-      { type: "daily", label: "[Diário] Caçador de Rei do Mar Jovem da Lua Minguante", detail: "Recompensa x10.", yield: 10 },
-      { type: "daily", label: "[Diário] Pequena Retribuição da Guilda Lua Minguante II", detail: "Escolha de recompensa x20; alternativa à Pequena Retribuição I.", yield: 20, group: "pequena-retribuicao" },
+      { type: "daily", label: "[Diário] Caçador de Rei do Mar Jovem da Lua Minguante", detail: "Recompensa x10.", yield: 10, questId: "daily-okilua-young-sea-king" },
+      { type: "daily", label: "[Diário] Pequena Retribuição da Guilda Lua Minguante II", detail: "Escolha de recompensa x20; alternativa à Pequena Retribuição I.", yield: 20, group: "pequena-retribuicao", questId: "daily-okilua-retribution-2" },
       { type: "barter", label: "Permuta de Mercadoria Marítima [Nível 5]", detail: "Pode aparecer nas rotas marítimas." },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "15 Moedas Corvo por unidade." },
     ],
@@ -192,8 +192,8 @@ export const MATERIALS: MaterialDefinition[] = [
     crowPrice: 80,
     sources: [
       { type: "processing", label: "Corte — Destroço do Navio Fantasma Naufragado", detail: "Processamento de material obtido no oceano." },
-      { type: "daily", label: "[Diário] A guilda não é uma instituição de caridade", detail: "Escolha de recompensa x5.", yield: 5, group: "diario-a-guilda-nao-e-uma-instituicao-de-caridade" },
-      { type: "daily", label: "[Diário] Pequena Retribuição da Guilda Lua Minguante II", detail: "Escolha de recompensa x6; alternativa à Pequena Retribuição I.", yield: 6, group: "pequena-retribuicao" },
+      { type: "daily", label: "[Diário] A guilda não é uma instituição de caridade", detail: "Escolha de recompensa x5.", yield: 5, group: "diario-a-guilda-nao-e-uma-instituicao-de-caridade", questId: "daily-okilua-charity" },
+      { type: "daily", label: "[Diário] Pequena Retribuição da Guilda Lua Minguante II", detail: "Escolha de recompensa x6; alternativa à Pequena Retribuição I.", yield: 6, group: "pequena-retribuicao", questId: "daily-okilua-retribution-2" },
       { type: "barter", label: "Permuta de Mercadoria Marítima [Nível 4]", detail: "Pode aparecer nas rotas marítimas." },
       { type: "hunt", label: "Fantasma dos Piratas Cox / Navio Fantasma Naufragado", detail: "Fonte do material usado no processamento." },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "80 Moedas Corvo por unidade." },
@@ -209,8 +209,8 @@ export const MATERIALS: MaterialDefinition[] = [
     difficulty: 3,
     crowPrice: 30,
     sources: [
-      { type: "daily", label: "[Permuta][Diário] Ilha de Iliya Agitada", detail: "Recompensa x8 ao concluir 15 permutas.", yield: 8 },
-      { type: "daily", label: "[Diário] Pequena Retribuição da Guilda Lua Minguante I", detail: "Escolha de recompensa x16; alternativa à Pequena Retribuição II.", yield: 16, group: "pequena-retribuicao" },
+      { type: "daily", label: "[Permuta][Diário] Ilha de Iliya Agitada", detail: "Recompensa x8 ao concluir 15 permutas.", yield: 8, questId: "daily-iliya-agitated" },
+      { type: "daily", label: "[Diário] Pequena Retribuição da Guilda Lua Minguante I", detail: "Escolha de recompensa x16; alternativa à Pequena Retribuição II.", yield: 16, group: "pequena-retribuicao", questId: "daily-okilua-retribution-1" },
       { type: "hunt", label: "Criaturas Marinhas", detail: "Pode ser obtida eliminando criaturas marinhas." },
       { type: "barter", label: "Permuta de Mercadoria Marítima [Nível 3]", detail: "Pode aparecer nas rotas marítimas." },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "30 Moedas Corvo por unidade." },
@@ -226,8 +226,8 @@ export const MATERIALS: MaterialDefinition[] = [
     difficulty: 4,
     crowPrice: 400,
     sources: [
-      { type: "daily", label: "[Permuta][Diário] Ilha de Iliya Agitada", detail: "Recompensa x1 ao concluir 15 permutas.", yield: 1 },
-      { type: "daily", label: "[Diário] Pequena Retribuição da Guilda Lua Minguante I", detail: "Escolha de recompensa x2; alternativa à Pequena Retribuição II.", yield: 2, group: "pequena-retribuicao" },
+      { type: "daily", label: "[Permuta][Diário] Ilha de Iliya Agitada", detail: "Recompensa x1 ao concluir 15 permutas.", yield: 1, questId: "daily-iliya-agitated" },
+      { type: "daily", label: "[Diário] Pequena Retribuição da Guilda Lua Minguante I", detail: "Escolha de recompensa x2; alternativa à Pequena Retribuição II.", yield: 2, group: "pequena-retribuicao", questId: "daily-okilua-retribution-1" },
       { type: "hunt", label: "Criaturas Marinhas", detail: "Pode ser obtido eliminando criaturas marinhas." },
       { type: "barter", label: "Permuta de Mercadoria Marítima [Nível 4]", detail: "Pode aparecer nas rotas marítimas." },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "400 Moedas Corvo por unidade." },
@@ -259,8 +259,8 @@ export const MATERIALS: MaterialDefinition[] = [
     crowPrice: 40,
     sources: [
       { type: "processing", label: "Secar — Tendão do Khan", detail: "Tendão do Khan x1 → 10 unidades." },
-      { type: "daily", label: "[Diário] Caçador de Rei do Mar Jovem da Lua Minguante", detail: "Recompensa x3.", yield: 3 },
-      { type: "daily", label: "[Diário] Pequena Retribuição da Guilda Lua Minguante II", detail: "Escolha de recompensa x6; alternativa à Pequena Retribuição I.", yield: 6, group: "pequena-retribuicao" },
+      { type: "daily", label: "[Diário] Caçador de Rei do Mar Jovem da Lua Minguante", detail: "Recompensa x3.", yield: 3, questId: "daily-okilua-young-sea-king" },
+      { type: "daily", label: "[Diário] Pequena Retribuição da Guilda Lua Minguante II", detail: "Escolha de recompensa x6; alternativa à Pequena Retribuição I.", yield: 6, group: "pequena-retribuicao", questId: "daily-okilua-retribution-2" },
       { type: "hunt", label: "Khan, Olho de Okilua", detail: "O Tendão do Khan é obtido derrotando Khan." },
       { type: "barter", label: "Permuta de Mercadoria Marítima [Nível 5]", detail: "Pode aparecer nas rotas marítimas." },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "40 Moedas Corvo por unidade." },
@@ -277,8 +277,8 @@ export const MATERIALS: MaterialDefinition[] = [
     crowPrice: 80,
     sources: [
       { type: "processing", label: "Corte — Estilhaço do Navio Pirata Utilizável", detail: "1 estilhaço → 1 unidade." },
-      { type: "daily", label: "[Diário] Bom para você, bom para mim", detail: "Escolha de recompensa x4.", yield: 4, group: "diario-bom-para-voce-bom-para-mim" },
-      { type: "daily", label: "[Diário] Pequena Retribuição da Guilda Lua Minguante II", detail: "Escolha de recompensa x6; alternativa à Pequena Retribuição I.", yield: 6, group: "pequena-retribuicao" },
+      { type: "daily", label: "[Diário] Bom para você, bom para mim", detail: "Escolha de recompensa x4.", yield: 4, group: "diario-bom-para-voce-bom-para-mim", questId: "daily-okilua-good-for-both" },
+      { type: "daily", label: "[Diário] Pequena Retribuição da Guilda Lua Minguante II", detail: "Escolha de recompensa x6; alternativa à Pequena Retribuição I.", yield: 6, group: "pequena-retribuicao", questId: "daily-okilua-retribution-2" },
       { type: "hunt", label: "Navios/Piratas Cox no oceano", detail: "Fonte do Estilhaço do Navio Pirata Utilizável." },
       { type: "barter", label: "Permuta de Mercadoria Marítima [Nível 5]", detail: "Pode aparecer nas rotas marítimas." },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "80 Moedas Corvo por unidade." },
@@ -325,9 +325,9 @@ export const MATERIALS: MaterialDefinition[] = [
     crowPrice: 400,
     sources: [
       { type: "processing", label: "Alquimia Simples — Gema do Mar Profundo", detail: "Gema do Mar Profundo x2 → 1 Olho Abissal." },
-      { type: "daily", label: "[Diário] Caçador de Rei do Mar Jovem da Lua Minguante", detail: "Recompensa x1.", yield: 1 },
-      { type: "weekly", label: "[Semanal] Caçador de Nineshark", detail: "Escolha de recompensa x2.", yield: 2, group: "semanal-cacador-de-nineshark" },
-      { type: "daily", label: "[Diário] Pequena Retribuição da Guilda Lua Minguante II", detail: "Escolha de recompensa x2; alternativa à Pequena Retribuição I.", yield: 2, group: "pequena-retribuicao" },
+      { type: "daily", label: "[Diário] Caçador de Rei do Mar Jovem da Lua Minguante", detail: "Recompensa x1.", yield: 1, questId: "daily-okilua-young-sea-king" },
+      { type: "weekly", label: "[Semanal] Caçador de Nineshark", detail: "Escolha de recompensa x2.", yield: 2, group: "semanal-cacador-de-nineshark", questId: "weekly-okilua-nineshark" },
+      { type: "daily", label: "[Diário] Pequena Retribuição da Guilda Lua Minguante II", detail: "Escolha de recompensa x2; alternativa à Pequena Retribuição I.", yield: 2, group: "pequena-retribuicao", questId: "daily-okilua-retribution-2" },
       { type: "barter", label: "Permuta de Mercadoria Marítima [Nível 5]", detail: "Pode aparecer nas rotas marítimas." },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "400 Moedas Corvo por unidade." },
     ],
@@ -341,7 +341,9 @@ export const MATERIALS: MaterialDefinition[] = [
     required: req(0, 0, 0, 0),
     difficulty: 3,
     sources: [
-      { type: "weekly", label: "Semanais do Olho de Okilua", detail: "Várias semanais oferecem opção de x60.", yield: 60, group: "semanais-do-olho-de-okilua" },
+      { type: "weekly", label: "[Semanal] Caçador de Kandidum", detail: "Escolha de recompensa x60.", yield: 60, group: "semanal-cacador-de-kandidum", questId: "weekly-okilua-kandidum" },
+      { type: "weekly", label: "[Semanal] Caçador de Nineshark", detail: "Escolha de recompensa x60.", yield: 60, group: "semanal-cacador-de-nineshark", questId: "weekly-okilua-nineshark" },
+      { type: "weekly", label: "[Semanal] Caçador de Dente de Aço Negro", detail: "Escolha de recompensa x60.", yield: 60, group: "semanal-cacador-de-dente-de-aco-negro", questId: "weekly-okilua-black-rust" },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "Baús/pacotes semanais conforme a loja atual." },
     ],
   },
@@ -355,9 +357,9 @@ export const MATERIALS: MaterialDefinition[] = [
     difficulty: 4,
     sources: [
       { type: "processing", label: "Fábrica — Escama da Besta Marinha Selvagem", detail: "Escama da Besta Marinha Selvagem x1 ou Escama do Crocodilo do Mar x1 na oficina de Shiro." },
-      { type: "daily", label: "[Diário] A guilda não é uma instituição de caridade", detail: "Escolha de recompensa x1.", yield: 1, group: "diario-a-guilda-nao-e-uma-instituicao-de-caridade" },
-      { type: "daily", label: "[Diário] Caçador de Kandidum da Guilda Lua Minguante", detail: "Escolha de recompensa x1.", yield: 1, group: "diario-cacador-de-kandidum-da-guilda-lua-minguante" },
-      { type: "weekly", label: "[Semanal] Caçador de Kandidum", detail: "Escolha de recompensa x1.", yield: 1, group: "semanal-cacador-de-kandidum" },
+      { type: "daily", label: "[Diário] A guilda não é uma instituição de caridade", detail: "Escolha de recompensa x1.", yield: 1, group: "diario-a-guilda-nao-e-uma-instituicao-de-caridade", questId: "daily-okilua-charity" },
+      { type: "daily", label: "[Diário] Caçador de Kandidum da Guilda Lua Minguante", detail: "Escolha de recompensa x1.", yield: 1, group: "diario-cacador-de-kandidum-da-guilda-lua-minguante", questId: "daily-okilua-kandidum" },
+      { type: "weekly", label: "[Semanal] Caçador de Kandidum", detail: "Escolha de recompensa x1.", yield: 1, group: "semanal-cacador-de-kandidum", questId: "weekly-okilua-kandidum" },
       { type: "hunt", label: "Criaturas Marinhas", detail: "Origem das escamas usadas na fabricação." },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "Comprar com Lavinia, no Ninho do Corvo." },
     ],
@@ -372,9 +374,9 @@ export const MATERIALS: MaterialDefinition[] = [
     difficulty: 4,
     sources: [
       { type: "processing", label: "Fábrica — Osso da Besta Marinha Selvagem", detail: "Osso da Besta Marinha Selvagem x1 ou Endurecedor de Luz Estrelar x1 na oficina de Shiro." },
-      { type: "daily", label: "[Diário] Preciso proteger pelo menos o meu corpo", detail: "Escolha de recompensa x1.", yield: 1, group: "diario-preciso-proteger-pelo-menos-o-meu-corpo" },
-      { type: "daily", label: "[Diário] Caçador de Nineshark da Guilda Lua Minguante", detail: "Escolha de recompensa x1.", yield: 1, group: "diario-cacador-de-nineshark-da-guilda-lua-minguante" },
-      { type: "weekly", label: "[Semanal] Caçador de Nineshark", detail: "Escolha de recompensa x1.", yield: 1, group: "semanal-cacador-de-nineshark" },
+      { type: "daily", label: "[Diário] Preciso proteger pelo menos o meu corpo", detail: "Escolha de recompensa x1.", yield: 1, group: "diario-preciso-proteger-pelo-menos-o-meu-corpo", questId: "daily-okilua-protect-body" },
+      { type: "daily", label: "[Diário] Caçador de Nineshark da Guilda Lua Minguante", detail: "Escolha de recompensa x1.", yield: 1, group: "diario-cacador-de-nineshark-da-guilda-lua-minguante", questId: "daily-okilua-nineshark" },
+      { type: "weekly", label: "[Semanal] Caçador de Nineshark", detail: "Escolha de recompensa x1.", yield: 1, group: "semanal-cacador-de-nineshark", questId: "weekly-okilua-nineshark" },
       { type: "hunt", label: "Criaturas Marinhas", detail: "Origem dos ossos usados na fabricação." },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "Comprar com Lavinia, no Ninho do Corvo." },
     ],
@@ -389,9 +391,9 @@ export const MATERIALS: MaterialDefinition[] = [
     difficulty: 4,
     sources: [
       { type: "processing", label: "Alquimia Simples — Essência de Criatura Marinha Cruel", detail: "Essência de Criatura Marinha Cruel x1 ou Emulsificante Luz Estrelar x1." },
-      { type: "daily", label: "[Diário] Bom para você, bom para mim", detail: "Escolha de recompensa x1.", yield: 1, group: "diario-bom-para-voce-bom-para-mim" },
-      { type: "daily", label: "[Diário] Caçador de Dente de Aço Negro da Guilda Lua Minguante", detail: "Escolha de recompensa x1.", yield: 1, group: "diario-cacador-de-dente-de-aco-negro-da-guilda-lua-minguante" },
-      { type: "weekly", label: "[Semanal] Caçador de Dente de Aço Negro", detail: "Escolha de recompensa x1.", yield: 1, group: "semanal-cacador-de-dente-de-aco-negro" },
+      { type: "daily", label: "[Diário] Bom para você, bom para mim", detail: "Escolha de recompensa x1.", yield: 1, group: "diario-bom-para-voce-bom-para-mim", questId: "daily-okilua-good-for-both" },
+      { type: "daily", label: "[Diário] Caçador de Dente de Aço Negro da Guilda Lua Minguante", detail: "Escolha de recompensa x1.", yield: 1, group: "diario-cacador-de-dente-de-aco-negro-da-guilda-lua-minguante", questId: "daily-okilua-black-rust" },
+      { type: "weekly", label: "[Semanal] Caçador de Dente de Aço Negro", detail: "Escolha de recompensa x1.", yield: 1, group: "semanal-cacador-de-dente-de-aco-negro", questId: "weekly-okilua-black-rust" },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "Comprar com Lavinia, no Ninho do Corvo." },
     ],
   },
@@ -555,6 +557,17 @@ export const CARRACK_GEAR_SETS = Object.fromEntries(
   CARRACK_ORDER.map((target) => [target, carrackGearSet(target)]),
 ) as Record<CarrackTarget, Record<GearKey, CarrackGearDefinition>>;
 
+/**
+ * Frequências reconhecidas pelo planner. Uma missão de evento entra somando o identificador
+ * em `QuestCadence` e uma linha aqui: ritmo, chave de reinício e abas passam a tratá-la.
+ */
+export const QUEST_CADENCES: QuestCadenceDefinition[] = [
+  { id: "daily", label: "Diária", plural: "Diárias", periodDays: 1, reset: "day" },
+  { id: "weekly", label: "Semanal", plural: "Semanais", periodDays: 7, reset: "week" },
+];
+
+export const CADENCE_BY_ID = Object.fromEntries(QUEST_CADENCES.map((cadence) => [cadence.id, cadence])) as Record<QuestCadence, QuestCadenceDefinition>;
+
 const QUEST_SOURCES = {
   ocean2025: {
     source: "Notas da Atualização — 06/02/2025",
@@ -590,223 +603,354 @@ const QUEST_SOURCES = {
   },
 } as const;
 
-export const QUESTS: QuestDefinition[] = [
+/**
+ * Catálogo de missões, agrupado por NPC e frequência. O grupo carrega o que se repete —
+ * NPC, local, frequência e a regra de aceite do jogo — e cada missão descreve apenas o
+ * próprio conteúdo. Para acrescentar uma missão, some uma entrada em `quests` do grupo
+ * correspondente; para um NPC ou um evento novo, some um grupo. Nada mais precisa mudar:
+ * abas, filtros, ritmo e seleção do jogador leem esta lista.
+ */
+export const QUEST_GROUPS: QuestGroupDefinition[] = [
   {
-    id: "daily-iliya-supply-okilua", cadence: "daily", title: "[Permuta][Diário] Transporte de Suprimentos (Olho da Okilua)",
-    npc: "Dario", location: "Ilha de Iliya", objective: "Entregar suprimentos para Ravikel.",
-    rewards: ["Artefato dos Piratas Cox(Negociação de Baixo Nível) x2", "Moeda Corvo x100", "EXP de Navegação e Permuta"],
-    recommendedFor: ["coxLow"], priority: 5, ...QUEST_SOURCES.supplyCodex,
+    id: "iliya-dario-daily", npc: "Dario", location: "Ilha de Iliya", cadence: "daily", selection: "all",
+    quests: [
+      {
+        id: "daily-iliya-supply-okilua", title: "[Permuta][Diário] Transporte de Suprimentos (Olho da Okilua)",
+        objective: "Entregar suprimentos para Ravikel.",
+        rewards: ["Artefato dos Piratas Cox(Negociação de Baixo Nível) x2", "Moeda Corvo x100", "EXP de Navegação e Permuta"],
+        recommendedFor: ["coxLow"], priority: 5, ...QUEST_SOURCES.supplyCodex,
+      },
+      {
+        id: "daily-iliya-new-horizons", title: "[Permuta][Diário] Novas Ilhas, Novos Horizontes",
+        objective: "Fazer 20 permutas.",
+        rewards: ["Moeda Corvo x50", "Caixa de Bens Comerciais Perdida x1", "Parte de Bússola de Explorador x1"],
+        recommendedFor: [], priority: 3, ...QUEST_SOURCES.iliya2025,
+      },
+    ],
   },
   {
-    id: "daily-iliya-trade-supplies-1", cadence: "daily", title: "Suporte de Suprimentos de Comércio I",
-    npc: "Baori", location: "Ilha de Iliya", objective: "Entregar 1 item de Permuta Nv.1.",
-    rewards: ["EXP de Navegação e Permuta"], recommendedFor: [], priority: 2, ...QUEST_SOURCES.iliya2025,
+    id: "iliya-baori-daily", npc: "Baori", location: "Ilha de Iliya", cadence: "daily", selection: "all",
+    quests: [
+      {
+        id: "daily-iliya-trade-supplies-1", title: "Suporte de Suprimentos de Comércio I",
+        objective: "Entregar 1 item de Permuta Nv.1.",
+        rewards: ["EXP de Navegação e Permuta"], recommendedFor: [], priority: 2, ...QUEST_SOURCES.iliya2025,
+      },
+    ],
   },
   {
-    id: "daily-iliya-trade-supplies-2", cadence: "daily", title: "Suporte de Suprimentos de Comércio II",
-    npc: "Maonil", location: "Ilha de Iliya", objective: "Entregar 1 item de Permuta Nv.1.",
-    rewards: ["EXP de Navegação e Permuta"], recommendedFor: [], priority: 2, ...QUEST_SOURCES.iliya2025,
+    id: "iliya-maonil-daily", npc: "Maonil", location: "Ilha de Iliya", cadence: "daily", selection: "all",
+    quests: [
+      {
+        id: "daily-iliya-trade-supplies-2", title: "Suporte de Suprimentos de Comércio II",
+        objective: "Entregar 1 item de Permuta Nv.1.",
+        rewards: ["EXP de Navegação e Permuta"], recommendedFor: [], priority: 2, ...QUEST_SOURCES.iliya2025,
+      },
+    ],
   },
   {
-    id: "daily-iliya-end-world-ancado", cadence: "daily", title: "Para o Fim do Mundo I: Porto Interior de Ancado",
-    npc: "Friko", location: "Ilha de Iliya", objective: "Entregar suprimentos no Porto Interior de Ancado.",
-    rewards: ["Moeda Corvo x50", "Baú Misterioso de Permuta x1"], recommendedFor: [], priority: 3, ...QUEST_SOURCES.iliya2025,
+    id: "iliya-friko-daily", npc: "Friko", location: "Ilha de Iliya", cadence: "daily", selection: "all",
+    quests: [
+      {
+        id: "daily-iliya-end-world-ancado", title: "Para o Fim do Mundo I: Porto Interior de Ancado",
+        objective: "Entregar suprimentos no Porto Interior de Ancado.",
+        rewards: ["Moeda Corvo x50", "Baú Misterioso de Permuta x1"], recommendedFor: [], priority: 3, ...QUEST_SOURCES.iliya2025,
+      },
+      {
+        id: "daily-iliya-end-world-hakoven", title: "Para o Fim do Mundo II: Ilha de Hakoven",
+        objective: "Entregar suprimentos na Ilha de Hakoven.",
+        rewards: ["Moeda Corvo x100", "Baú Misterioso de Permuta x1"], recommendedFor: [], priority: 3, ...QUEST_SOURCES.iliya2025,
+      },
+    ],
   },
   {
-    id: "daily-iliya-end-world-hakoven", cadence: "daily", title: "Para o Fim do Mundo II: Ilha de Hakoven",
-    npc: "Friko", location: "Ilha de Iliya", objective: "Entregar suprimentos na Ilha de Hakoven.",
-    rewards: ["Moeda Corvo x100", "Baú Misterioso de Permuta x1"], recommendedFor: [], priority: 3, ...QUEST_SOURCES.iliya2025,
+    id: "iliya-aldeao-daily", npc: "Aldeão", location: "Ilha de Iliya", cadence: "daily", selection: "all",
+    quests: [
+      {
+        id: "daily-iliya-agitated", title: "[Permuta][Diário] Ilha de Iliya Agitada",
+        objective: "Fazer 15 permutas.",
+        rewards: ["Madeira Compensada Revestida de Rubus Aprimorada x10", "Artefato dos Piratas Cox(Negociação de Alto Nível) x1", "Cristal de Pérola Pura x2", "Cola com Memórias do Mar Profundo x8", "Escultura de Recife Puro x8", "Moeda Corvo x50"],
+        recommendedFor: ["enhancedPlywood", "coxHigh", "purePearl", "reefPiece"], priority: 5, ...QUEST_SOURCES.iliyaCodex,
+      },
+    ],
   },
   {
-    id: "daily-iliya-agitated", cadence: "daily", title: "[Permuta][Diário] Ilha de Iliya Agitada",
-    npc: "Aldeão", location: "Ilha de Iliya", objective: "Fazer 15 permutas.",
-    rewards: ["Madeira Compensada Revestida de Rubus Aprimorada x10", "Artefato dos Piratas Cox(Negociação de Alto Nível) x1", "Cristal de Pérola Pura x2", "Cola com Memórias do Mar Profundo x8", "Escultura de Recife Puro x8", "Moeda Corvo x50"],
-    recommendedFor: ["enhancedPlywood", "coxHigh", "purePearl", "reefPiece"], priority: 5, ...QUEST_SOURCES.iliyaCodex,
+    id: "iliya-friko-weekly", npc: "Friko", location: "Ilha de Iliya", cadence: "weekly", selection: "all",
+    quests: [
+      {
+        id: "weekly-iliya-barter-center", title: "[Permuta][Semanal] Centro de Permuta, Ilha de Iliya",
+        objective: "Fazer 100 permutas.",
+        rewards: ["Moeda Corvo x200", "Baú Misterioso de Permuta x3"], recommendedFor: [], priority: 4, ...QUEST_SOURCES.iliya2025,
+      },
+    ],
   },
   {
-    id: "daily-iliya-new-horizons", cadence: "daily", title: "[Permuta][Diário] Novas Ilhas, Novos Horizontes",
-    npc: "Dario", location: "Ilha de Iliya", objective: "Fazer 20 permutas.",
-    rewards: ["Moeda Corvo x50", "Caixa de Bens Comerciais Perdida x1", "Parte de Bússola de Explorador x1"],
-    recommendedFor: [], priority: 3, ...QUEST_SOURCES.iliya2025,
+    id: "velia-croix-daily", npc: "Croix", location: "Velia", cadence: "daily", selection: "all",
+    quests: [
+      {
+        id: "daily-velia-wanted-sea-monster", title: "Procurado: Hekaru OU Procurado: Perseguidor de Oceano",
+        objective: "Eliminar o monstro marinho indicado.",
+        rewards: ["Origem do Vento x50", "EXP de Navegação dobrada"], recommendedFor: [], priority: 3,
+        note: "As duas versões são alternativas.", ...QUEST_SOURCES.ocean2025,
+      },
+      {
+        id: "daily-velia-imminent-threat", title: "Ameaça Iminente no Oceano",
+        objective: "Destruir o Grande Navio Goldmont.",
+        rewards: ["Origem do Vento x50"], recommendedFor: [], priority: 3, ...QUEST_SOURCES.ocean2025,
+      },
+      {
+        id: "daily-velia-ocean-raiders", title: "Saqueadores de Oceano",
+        objective: "Destruir o Pequeno Navio Goldmont.",
+        rewards: ["Origem do Vento x50"], recommendedFor: [], priority: 3, ...QUEST_SOURCES.ocean2025,
+      },
+      {
+        id: "daily-velia-supply-iliya", title: "Transporte de Suprimentos (Ilha de Iliya)",
+        objective: "Levar suprimentos de Velia até Dario.",
+        rewards: ["Artefato dos Piratas Cox(Negociação de Baixo Nível) x1", "Moeda Corvo x50"],
+        recommendedFor: ["coxLow"], priority: 5, ...QUEST_SOURCES.ocean2025,
+      },
+    ],
   },
   {
-    id: "weekly-iliya-barter-center", cadence: "weekly", title: "[Permuta][Semanal] Centro de Permuta, Ilha de Iliya",
-    npc: "Friko", location: "Ilha de Iliya", objective: "Fazer 100 permutas.",
-    rewards: ["Moeda Corvo x200", "Baú Misterioso de Permuta x3"], recommendedFor: [], priority: 4, ...QUEST_SOURCES.iliya2025,
+    id: "velia-phrawa-daily", npc: "Phrawa", location: "Velia", cadence: "daily", selection: "all",
+    quests: [
+      {
+        id: "daily-velia-hungry-sea-creature", title: "Procurado: Criatura Marinha Faminta",
+        objective: "Eliminar Hekaru Faminto e Perseguidor Faminto.",
+        rewards: ["Moeda Corvo x50"], recommendedFor: [], priority: 3, ...QUEST_SOURCES.ocean2025,
+      },
+      {
+        id: "daily-velia-cox-scout", title: "Procurado: Batedor Cox Infiltrado",
+        objective: "Eliminar 20 Piratas Cox.",
+        rewards: ["Moeda Corvo x50"], recommendedFor: [], priority: 3, ...QUEST_SOURCES.ocean2025,
+      },
+    ],
   },
   {
-    id: "daily-velia-wanted-sea-monster", cadence: "daily", title: "Procurado: Hekaru OU Procurado: Perseguidor de Oceano",
-    npc: "Croix", location: "Velia", objective: "Eliminar o monstro da versão escolhida.",
-    rewards: ["Origem do Vento x50", "EXP de Navegação dobrada"], recommendedFor: [], priority: 3,
-    note: "As duas versões são alternativas.", ...QUEST_SOURCES.ocean2025,
+    id: "velia-mia-daily", npc: "Mia", location: "Velia", cadence: "daily", selection: "all",
+    note: "As três missões da Mia podem ficar ativas ao mesmo tempo.",
+    quests: [
+      {
+        id: "daily-velia-baremi-goods", title: "Obter bens insuficientes: Ilha de Baremi",
+        objective: "Entregar a mercadoria pedida na Ilha de Baremi.",
+        rewards: ["Moeda Corvo x20", "EXP de Permuta"], recommendedFor: [], priority: 3, ...QUEST_SOURCES.ocean2025,
+      },
+      {
+        id: "daily-velia-narvo-goods", title: "Obter bens insuficientes: Ilha de Narvo",
+        objective: "Entregar a mercadoria pedida na Ilha de Narvo.",
+        rewards: ["Moeda Corvo x20", "EXP de Permuta"], recommendedFor: [], priority: 3, ...QUEST_SOURCES.ocean2025,
+      },
+      {
+        id: "daily-velia-tinberra-goods", title: "Obter bens insuficientes: Ilha de Tinberra",
+        objective: "Entregar a mercadoria pedida na Ilha de Tinberra.",
+        rewards: ["Moeda Corvo x20", "EXP de Permuta"], recommendedFor: [], priority: 3, ...QUEST_SOURCES.ocean2025,
+      },
+    ],
   },
   {
-    id: "daily-velia-imminent-threat", cadence: "daily", title: "Ameaça Iminente no Oceano",
-    npc: "Croix", location: "Velia", objective: "Destruir um Grande Navio Goldmont.",
-    rewards: ["Origem do Vento x50"], recommendedFor: [], priority: 3, ...QUEST_SOURCES.ocean2025,
+    id: "velia-lovinia-daily", npc: "Lovinia", location: "Velia", cadence: "daily", selection: "all",
+    quests: [
+      {
+        id: "daily-velia-supply-tinberra", title: "Transporte de Suprimentos (Ilha de Tinberra)",
+        objective: "Levar suprimentos de Velia até Tinberra.",
+        rewards: ["Moeda Corvo x100", "EXP de Permuta"], recommendedFor: [], priority: 3, ...QUEST_SOURCES.ocean2025,
+      },
+    ],
   },
   {
-    id: "daily-velia-ocean-raiders", cadence: "daily", title: "Saqueadores de Oceano",
-    npc: "Croix", location: "Velia", objective: "Destruir um Pequeno Navio Goldmont.",
-    rewards: ["Origem do Vento x50"], recommendedFor: [], priority: 3, ...QUEST_SOURCES.ocean2025,
+    id: "velia-phrawa-weekly", npc: "Phrawa", location: "Velia", cadence: "weekly", selection: "all",
+    quests: [
+      {
+        id: "weekly-velia-sailor-health", title: "Método de Recuperação de Saúde dos Marinheiros",
+        objective: "Entregar Chowder x20.",
+        rewards: ["Moeda Corvo x200", "Refeição Especial de Balenos x10", "Grande EXP de Navegação"],
+        recommendedFor: [], priority: 4, ...QUEST_SOURCES.ocean2025,
+      },
+    ],
   },
   {
-    id: "daily-velia-hungry-sea-creature", cadence: "daily", title: "Procurado: Criatura Marinha Faminta",
-    npc: "Phrawa", location: "Velia", objective: "Eliminar Hekaru Faminto e Perseguidor do Oceano Faminto.",
-    rewards: ["Moeda Corvo x50"], recommendedFor: [], priority: 3, ...QUEST_SOURCES.ocean2025,
+    id: "okilua-soldado-daily", npc: "Soldado", location: "Olho da Okilua", cadence: "daily", selection: "all",
+    quests: [
+      {
+        id: "daily-okilua-charity", title: "A guilda não é uma instituição de caridade",
+        objective: "Concluir a tarefa solicitada pelo Soldado.",
+        rewards: ["Escolha: Madeira de Construção com um brilho de onda x5 / Madeira compensada com gravação de uma onda violenta x1"],
+        recommendedFor: ["tideTimber", "violentWavePlywood"], priority: 5, ...QUEST_SOURCES.ocean2025,
+      },
+      {
+        id: "daily-okilua-protect-body", title: "Preciso proteger pelo menos o meu corpo",
+        objective: "Concluir a tarefa solicitada pelo Soldado.",
+        rewards: ["Escolha: Artefato dos Piratas Cox(Combate) x3 / Suporte com um acabamento elaborado x1"],
+        recommendedFor: ["coxCombat", "polishedSupport"], priority: 5, ...QUEST_SOURCES.ocean2025,
+      },
+      {
+        id: "daily-okilua-good-for-both", title: "Bom para você, bom para mim",
+        objective: "Concluir a tarefa solicitada pelo Soldado.",
+        rewards: ["Escolha: Madeira de Construção Envolto com um Brilho Azul Marinho x4 / Cola com traços de onda x1"],
+        recommendedFor: ["blueMarineTimber", "waveAdhesive"], priority: 5, ...QUEST_SOURCES.ocean2025,
+      },
+    ],
   },
   {
-    id: "daily-velia-cox-scout", cadence: "daily", title: "Procurado: Batedor Cox Infiltrado",
-    npc: "Phrawa", location: "Velia", objective: "Eliminar 20 Piratas Cox.",
-    rewards: ["Moeda Corvo x50"], recommendedFor: [], priority: 3, ...QUEST_SOURCES.ocean2025,
+    id: "okilua-ravikel-daily", npc: "Ravikel", location: "Olho da Okilua", cadence: "daily", selection: "one-track",
+    note: "Ou a caçada ao Rei do Mar Jovem, ou as três caçadas da Guilda Lua Minguante: aceitar uma trilha bloqueia a outra no mesmo dia.",
+    defaultTrack: "rei-do-mar-jovem",
+    trackLabels: { "rei-do-mar-jovem": "Rei do Mar Jovem", "cacadas-da-guilda": "Caçadas da Guilda Lua Minguante" },
+    quests: [
+      {
+        id: "daily-okilua-young-sea-king", title: "Caçador de Rei do Mar Jovem da Lua Minguante", track: "rei-do-mar-jovem",
+        objective: "Eliminar 5 monstros marinhos jovens.",
+        rewards: ["Madeira Compensada Gravada com Escama da Lua x10", "Tecido de Linho com a veia da lua gravada x3", "Olho Abissal x1", "Moeda de Okilua x3"],
+        recommendedFor: ["moonScalePlywood", "moonVeinFlax", "abyssalEye"], priority: 5,
+        note: "Trilha da Carraca: é a única diária do Ravikel que entrega Olho Abissal e Escama da Lua.", ...QUEST_SOURCES.youngKingCodex,
+      },
+      {
+        id: "daily-okilua-kandidum", title: "Caçador de Kandidum da Guilda Lua Minguante", track: "cacadas-da-guilda",
+        objective: "Eliminar Kandidum.",
+        rewards: ["Moeda Corvo x100", "Escolha: Pedra Negra da Onda x14 / Madeira compensada com gravação de uma onda violenta x1"],
+        recommendedFor: ["waveStone", "violentWavePlywood"], priority: 5, ...QUEST_SOURCES.ocean2025,
+      },
+      {
+        id: "daily-okilua-nineshark", title: "Caçador de Nineshark da Guilda Lua Minguante", track: "cacadas-da-guilda",
+        objective: "Eliminar Nineshark.",
+        rewards: ["Moeda Corvo x100", "Escolha: Pedra Negra da Onda x14 / Suporte com um acabamento elaborado x1"],
+        recommendedFor: ["waveStone", "polishedSupport"], priority: 5, ...QUEST_SOURCES.ocean2025,
+      },
+      {
+        id: "daily-okilua-black-rust", title: "Caçador de Dente de Aço Negro da Guilda Lua Minguante", track: "cacadas-da-guilda",
+        objective: "Eliminar Dente de Aço Negro.",
+        rewards: ["Moeda Corvo x100", "Escolha: Pedra Negra da Onda x14 / Cola com traços de onda x1"],
+        recommendedFor: ["waveStone", "waveAdhesive"], priority: 5, ...QUEST_SOURCES.ocean2025,
+      },
+    ],
   },
   {
-    id: "daily-velia-baremi-goods", cadence: "daily", title: "Obter bens insuficientes: Ilha de Baremi",
-    npc: "Mia", location: "Velia", objective: "Entregar a mercadoria solicitada.",
-    rewards: ["Moeda Corvo x20", "EXP de Permuta"], recommendedFor: [], priority: 2,
-    note: "Pode ficar ativa junto das missões da Mia para Narvo e Tinberra.", ...QUEST_SOURCES.ocean2025,
+    id: "okilua-herrad-daily", npc: "Herrad Romson", location: "Olho da Okilua", cadence: "daily", selection: "one-track",
+    note: "Pequena Retribuição I e II são alternativas: as duas não podem ser aceitas ao mesmo tempo.",
+    trackLabels: { "daily-okilua-retribution-1": "Retribuição I", "daily-okilua-retribution-2": "Retribuição II" },
+    quests: [
+      {
+        id: "daily-okilua-retribution-1", title: "Pequena Retribuição da Guilda Lua Minguante I",
+        objective: "Entregar 150 Moedas de Okilua.",
+        rewards: ["Escolha: Caule de Alga Profunda x8 / Barra de Ouro do Mar Vermelho x4 / Cristal de Pérola Pura x4 / Cola com Memórias do Mar Profundo x16 / Escultura de Recife Puro x16 / Madeira Compensada Revestida de Rubus Aprimorada x20 / Artefato dos Piratas Cox(Negociação de Alto Nível) x2"],
+        recommendedFor: ["seaweedStalk", "redSeaGold", "purePearl", "reefPiece", "enhancedPlywood", "coxHigh"], priority: 5,
+        ...QUEST_SOURCES.retributionCodex,
+      },
+      {
+        id: "daily-okilua-retribution-2", title: "Pequena Retribuição da Guilda Lua Minguante II",
+        objective: "Entregar 150 Moedas de Okilua.",
+        rewards: ["Escolha: Madeira de Construção com um brilho de onda x6 / Artefato dos Piratas Cox(Combate) x6 / Madeira de Construção Envolto com um Brilho Azul Marinho x6 / Madeira Compensada Gravada com Escama da Lua x20 / Tecido de Linho com a veia da lua gravada x6 / Olho Abissal x2"],
+        recommendedFor: ["tideTimber", "coxCombat", "blueMarineTimber", "moonScalePlywood", "moonVeinFlax", "abyssalEye"], priority: 5,
+        ...QUEST_SOURCES.retributionCodex,
+      },
+    ],
   },
   {
-    id: "daily-velia-narvo-goods", cadence: "daily", title: "Obter bens insuficientes: Ilha de Narvo",
-    npc: "Mia", location: "Velia", objective: "Entregar a mercadoria solicitada.",
-    rewards: ["Moeda Corvo x20", "EXP de Permuta"], recommendedFor: [], priority: 2,
-    note: "Pode ficar ativa junto das missões da Mia para Baremi e Tinberra.", ...QUEST_SOURCES.ocean2025,
+    id: "okilua-hae-ran-daily", npc: "Hae-Ran", location: "Olho da Okilua", cadence: "daily", selection: "all",
+    quests: [
+      {
+        id: "daily-okilua-route-monsters", title: "Monstros que Bloqueiam a Rota Marítima",
+        objective: "Eliminar Dente de Aço Negro e Nineshark da Onda Negra.",
+        rewards: ["Moeda Corvo x200", "Água de Okilua"], recommendedFor: [], priority: 4, ...QUEST_SOURCES.ocean2025,
+      },
+    ],
   },
   {
-    id: "daily-velia-tinberra-goods", cadence: "daily", title: "Obter bens insuficientes: Ilha de Tinberra",
-    npc: "Mia", location: "Velia", objective: "Entregar a mercadoria solicitada.",
-    rewards: ["Moeda Corvo x20", "EXP de Permuta"], recommendedFor: [], priority: 2,
-    note: "Pode ficar ativa junto das missões da Mia para Baremi e Narvo.", ...QUEST_SOURCES.ocean2025,
+    id: "okilua-kario-weekly", npc: "Kario", location: "Olho da Okilua", cadence: "weekly", selection: "all",
+    quests: [
+      {
+        id: "weekly-okilua-stay", title: "Você quer ficar em Okilua?",
+        objective: "Entregar Peixe-Espada Amarelo x1.",
+        rewards: ["Moeda de Okilua x10"], recommendedFor: [], priority: 3, ...QUEST_SOURCES.ocean2025,
+      },
+      {
+        id: "weekly-okilua-young-otters", title: "Para o bem dos jovens Vendedores Lontras",
+        objective: "Concluir a tarefa semanal solicitada por Kario.",
+        rewards: ["Caule de Alga Profunda x45", "Barra de Ouro do Mar Vermelho x15", "Moeda de Okilua x15"],
+        recommendedFor: ["seaweedStalk", "redSeaGold"], priority: 5, ...QUEST_SOURCES.ocean2025,
+      },
+    ],
   },
   {
-    id: "daily-velia-supply-iliya", cadence: "daily", title: "Transporte de Suprimentos (Ilha de Iliya)",
-    npc: "Croix", location: "Velia", objective: "Levar os suprimentos de Velia até Dario.",
-    rewards: ["Artefato dos Piratas Cox(Negociação de Baixo Nível) x1", "Moeda Corvo x50"],
-    recommendedFor: ["coxLow"], priority: 5, ...QUEST_SOURCES.ocean2025,
+    id: "okilua-ravikel-weekly", npc: "Ravikel", location: "Olho da Okilua", cadence: "weekly", selection: "all",
+    quests: [
+      {
+        id: "weekly-okilua-kandidum", title: "Caçador de Kandidum",
+        objective: "Eliminar Kandidum.",
+        rewards: ["Moeda Corvo x500", "Escolha: Barra de Ouro do Mar Vermelho x4 / Pedra Negra da Onda x60 / Madeira compensada com gravação de uma onda violenta x1"],
+        recommendedFor: ["redSeaGold", "waveStone", "violentWavePlywood"], priority: 5, ...QUEST_SOURCES.ocean2025,
+      },
+      {
+        id: "weekly-okilua-nineshark", title: "Caçador de Nineshark",
+        objective: "Eliminar Nineshark.",
+        rewards: ["Moeda Corvo x500", "Escolha: Olho Abissal x2 / Pedra Negra da Onda x60 / Suporte com um acabamento elaborado x1"],
+        recommendedFor: ["abyssalEye", "waveStone", "polishedSupport"], priority: 5, ...QUEST_SOURCES.ocean2025,
+      },
+      {
+        id: "weekly-okilua-black-rust", title: "Caçador de Dente de Aço Negro",
+        objective: "Eliminar Dente de Aço Negro.",
+        rewards: ["Moeda Corvo x500", "Escolha: Artefato dos Piratas Cox(Combate) x6 / Pedra Negra da Onda x60 / Cola com traços de onda x1"],
+        recommendedFor: ["coxCombat", "waveStone", "waveAdhesive"], priority: 5, ...QUEST_SOURCES.ocean2025,
+      },
+    ],
   },
   {
-    id: "daily-velia-supply-tinberra", cadence: "daily", title: "Transporte de Suprimentos (Ilha de Tinberra)",
-    npc: "Lovinia", location: "Velia", objective: "Levar os suprimentos de Velia até a Ilha de Tinberra.",
-    rewards: ["Moeda Corvo x100", "EXP de Permuta"], recommendedFor: [], priority: 3, ...QUEST_SOURCES.ocean2025,
+    id: "okilua-soldado-weekly", npc: "Soldado", location: "Olho da Okilua", cadence: "weekly", selection: "all",
+    quests: [
+      {
+        id: "weekly-okilua-population", title: "Relatório de Aumento da População",
+        objective: "Concluir o relatório de aumento da população.",
+        rewards: ["Artefato dos Piratas Cox(Combate) x2"], recommendedFor: ["coxCombat"], priority: 5, ...QUEST_SOURCES.ocean2025,
+      },
+    ],
   },
   {
-    id: "weekly-velia-sailor-health", cadence: "weekly", title: "Método de Recuperação de Saúde dos Marinheiros",
-    npc: "Phrawa", location: "Velia", objective: "Entregar Chowder x20.",
-    rewards: ["Moeda Corvo x200", "Refeição Especial de Balenos x10", "Grande EXP de Navegação"],
-    recommendedFor: [], priority: 4, ...QUEST_SOURCES.ocean2025,
+    id: "okilua-hae-ran-weekly", npc: "Hae-Ran", location: "Olho da Okilua", cadence: "weekly", selection: "all",
+    quests: [
+      {
+        id: "weekly-okilua-ruthless-monsters", title: "Monstros Impiedosos",
+        objective: "Eliminar os monstros indicados por Hae-Ran.",
+        rewards: ["Moeda Corvo x500", "Água Fresca de Okilua x3"], recommendedFor: [], priority: 4, ...QUEST_SOURCES.ocean2025,
+      },
+    ],
   },
   {
-    id: "daily-okilua-charity", cadence: "daily", title: "A guilda não é uma instituição de caridade",
-    npc: "Soldado", location: "Olho da Okilua", objective: "Concluir a tarefa solicitada pelo Soldado.",
-    rewards: ["Escolha: Madeira de Construção com um brilho de onda x5 / Madeira compensada com gravação de uma onda violenta x1"],
-    recommendedFor: ["tideTimber", "violentWavePlywood"], priority: 5, ...QUEST_SOURCES.ocean2025,
+    id: "morning-light-yu-an-weekly", npc: "Yu-An", location: "Nam-Po · Terra do Amanhecer", cadence: "weekly", selection: "all",
+    quests: [
+      {
+        id: "weekly-morning-light-panokseon", title: "Piratas do Meio do Caminho",
+        objective: "Destruir 3 Navios Piratas Goldmont e entregar 3 Artefatos Goldmont.",
+        rewards: ["Projeto: Panokseon x2"], recommendedFor: [], priority: 4, ...QUEST_SOURCES.panokseon2023,
+      },
+    ],
   },
   {
-    id: "daily-okilua-protect-body", cadence: "daily", title: "Preciso proteger pelo menos o meu corpo",
-    npc: "Soldado", location: "Olho da Okilua", objective: "Concluir a tarefa solicitada pelo Soldado.",
-    rewards: ["Escolha: Artefato dos Piratas Cox(Combate) x3 / Suporte com um acabamento elaborado x1"],
-    recommendedFor: ["coxCombat", "polishedSupport"], priority: 5, ...QUEST_SOURCES.ocean2025,
-  },
-  {
-    id: "daily-okilua-good-for-both", cadence: "daily", title: "Bom para você, bom para mim",
-    npc: "Soldado", location: "Olho da Okilua", objective: "Concluir a tarefa solicitada pelo Soldado.",
-    rewards: ["Escolha: Madeira de Construção Envolto com um Brilho Azul Marinho x4 / Cola com traços de onda x1"],
-    recommendedFor: ["blueMarineTimber", "waveAdhesive"], priority: 5, ...QUEST_SOURCES.ocean2025,
-  },
-  {
-    id: "daily-okilua-kandidum", cadence: "daily", title: "Caçador de Kandidum da Guilda Lua Minguante",
-    npc: "Ravikel", location: "Olho da Okilua", objective: "Eliminar Kandidum.",
-    rewards: ["Moeda Corvo x100", "Escolha: Pedra Negra da Onda x14 / Madeira compensada com gravação de uma onda violenta x1"],
-    recommendedFor: ["waveStone", "violentWavePlywood"], priority: 5, ...QUEST_SOURCES.ocean2025,
-  },
-  {
-    id: "daily-okilua-nineshark", cadence: "daily", title: "Caçador de Nineshark da Guilda Lua Minguante",
-    npc: "Ravikel", location: "Olho da Okilua", objective: "Eliminar Nineshark.",
-    rewards: ["Moeda Corvo x100", "Escolha: Pedra Negra da Onda x14 / Suporte com um acabamento elaborado x1"],
-    recommendedFor: ["waveStone", "polishedSupport"], priority: 5, ...QUEST_SOURCES.ocean2025,
-  },
-  {
-    id: "daily-okilua-black-rust", cadence: "daily", title: "Caçador de Dente de Aço Negro da Guilda Lua Minguante",
-    npc: "Ravikel", location: "Olho da Okilua", objective: "Eliminar Dente de Aço Negro.",
-    rewards: ["Moeda Corvo x100", "Escolha: Pedra Negra da Onda x14 / Cola com traços de onda x1"],
-    recommendedFor: ["waveStone", "waveAdhesive"], priority: 5, ...QUEST_SOURCES.ocean2025,
-  },
-  {
-    id: "daily-okilua-young-sea-king", cadence: "daily", title: "Caçador de Rei do Mar Jovem da Lua Minguante",
-    npc: "Ravikel", location: "Olho da Okilua", objective: "Eliminar 5 monstros marinhos jovens.",
-    rewards: ["Madeira Compensada Gravada com Escama da Lua x10", "Tecido de Linho com a veia da lua gravada x3", "Olho Abissal x1", "Moeda de Okilua x3"],
-    recommendedFor: ["moonScalePlywood", "moonVeinFlax", "abyssalEye"], priority: 5, ...QUEST_SOURCES.youngKingCodex,
-  },
-  {
-    id: "daily-okilua-retribution-1", cadence: "daily", title: "Pequena Retribuição da Guilda Lua Minguante I",
-    npc: "Herrad Romson", location: "Olho da Okilua", objective: "Entregar 150 Moedas de Okilua.",
-    rewards: ["Escolha: Caule de Alga Profunda x8 / Barra de Ouro do Mar Vermelho x4 / Cristal de Pérola Pura x4 / Cola com Memórias do Mar Profundo x16 / Escultura de Recife Puro x16 / Madeira Compensada Revestida de Rubus Aprimorada x20 / Artefato dos Piratas Cox(Negociação de Alto Nível) x2"],
-    recommendedFor: ["seaweedStalk", "redSeaGold", "purePearl", "reefPiece", "enhancedPlywood", "coxHigh"], priority: 5,
-    note: "Alternativa à Pequena Retribuição II; as duas não podem ser aceitas simultaneamente.", ...QUEST_SOURCES.retributionCodex,
-  },
-  {
-    id: "daily-okilua-retribution-2", cadence: "daily", title: "Pequena Retribuição da Guilda Lua Minguante II",
-    npc: "Herrad Romson", location: "Olho da Okilua", objective: "Entregar 150 Moedas de Okilua.",
-    rewards: ["Escolha: Madeira de Construção com um brilho de onda x6 / Artefato dos Piratas Cox(Combate) x6 / Madeira de Construção Envolto com um Brilho Azul Marinho x6 / Madeira Compensada Gravada com Escama da Lua x20 / Tecido de Linho com a veia da lua gravada x6 / Olho Abissal x2"],
-    recommendedFor: ["tideTimber", "coxCombat", "blueMarineTimber", "moonScalePlywood", "moonVeinFlax", "abyssalEye"], priority: 5,
-    note: "Alternativa à Pequena Retribuição I; as duas não podem ser aceitas simultaneamente.", ...QUEST_SOURCES.retributionCodex,
-  },
-  {
-    id: "daily-okilua-route-monsters", cadence: "daily", title: "Monstros que Bloqueiam a Rota Marítima",
-    npc: "Hae-Ran", location: "Olho da Okilua", objective: "Eliminar Dente de Aço Negro e Nineshark da Onda Negra.",
-    rewards: ["Moeda Corvo x200", "Água de Okilua"], recommendedFor: [], priority: 4, ...QUEST_SOURCES.ocean2025,
-  },
-  {
-    id: "weekly-okilua-stay", cadence: "weekly", title: "Você quer ficar em Okilua?",
-    npc: "Kario", location: "Olho da Okilua", objective: "Entregar Peixe-Espada Amarelo x1.",
-    rewards: ["Moeda de Okilua x10"], recommendedFor: [], priority: 3, ...QUEST_SOURCES.ocean2025,
-  },
-  {
-    id: "weekly-okilua-young-otters", cadence: "weekly", title: "Para o bem dos jovens Vendedores Lontras",
-    npc: "Kario", location: "Olho da Okilua", objective: "Concluir a tarefa semanal solicitada por Kario.",
-    rewards: ["Caule de Alga Profunda x45", "Barra de Ouro do Mar Vermelho x15", "Moeda de Okilua x15"],
-    recommendedFor: ["seaweedStalk", "redSeaGold"], priority: 5, ...QUEST_SOURCES.ocean2025,
-  },
-  {
-    id: "weekly-okilua-kandidum", cadence: "weekly", title: "Caçador de Kandidum",
-    npc: "Ravikel", location: "Olho da Okilua", objective: "Eliminar Kandidum.",
-    rewards: ["Moeda Corvo x500", "Escolha: Barra de Ouro do Mar Vermelho x4 / Pedra Negra da Onda x60 / Madeira compensada com gravação de uma onda violenta x1"],
-    recommendedFor: ["redSeaGold", "waveStone", "violentWavePlywood"], priority: 5, ...QUEST_SOURCES.ocean2025,
-  },
-  {
-    id: "weekly-okilua-nineshark", cadence: "weekly", title: "Caçador de Nineshark",
-    npc: "Ravikel", location: "Olho da Okilua", objective: "Eliminar Nineshark.",
-    rewards: ["Moeda Corvo x500", "Escolha: Olho Abissal x2 / Pedra Negra da Onda x60 / Suporte com um acabamento elaborado x1"],
-    recommendedFor: ["abyssalEye", "waveStone", "polishedSupport"], priority: 5, ...QUEST_SOURCES.ocean2025,
-  },
-  {
-    id: "weekly-okilua-black-rust", cadence: "weekly", title: "Caçador de Dente de Aço Negro",
-    npc: "Ravikel", location: "Olho da Okilua", objective: "Eliminar Dente de Aço Negro.",
-    rewards: ["Moeda Corvo x500", "Escolha: Artefato dos Piratas Cox(Combate) x6 / Pedra Negra da Onda x60 / Cola com traços de onda x1"],
-    recommendedFor: ["coxCombat", "waveStone", "waveAdhesive"], priority: 5, ...QUEST_SOURCES.ocean2025,
-  },
-  {
-    id: "weekly-okilua-population", cadence: "weekly", title: "Relatório de Aumento da População",
-    npc: "Soldado", location: "Olho da Okilua", objective: "Concluir o relatório de aumento da população.",
-    rewards: ["Artefato dos Piratas Cox(Combate) x2"], recommendedFor: ["coxCombat"], priority: 5, ...QUEST_SOURCES.ocean2025,
-  },
-  {
-    id: "weekly-okilua-ruthless-monsters", cadence: "weekly", title: "Monstros Impiedosos",
-    npc: "Hae-Ran", location: "Olho da Okilua", objective: "Eliminar os monstros indicados por Hae-Ran.",
-    rewards: ["Moeda Corvo x500", "Água Fresca de Okilua x3"], recommendedFor: [], priority: 4, ...QUEST_SOURCES.ocean2025,
-  },
-  {
-    id: "weekly-morning-light-panokseon", cadence: "weekly", title: "Piratas do Meio do Caminho",
-    npc: "Yu-An", location: "Nam-Po · Terra do Amanhecer", objective: "Destruir 3 Navios Piratas Goldmont e entregar 3 Artefatos Goldmont.",
-    rewards: ["Projeto: Panokseon x2"], recommendedFor: [], priority: 4, ...QUEST_SOURCES.panokseon2023,
-  },
-  {
-    id: "weekly-azure-silk-lyngbakr", cadence: "weekly", title: "Investigar a ecologia da área de Lyngbakr",
-    npc: "Kangman", location: "Ilha da Seda Azure", objective: "Eliminar Lyngbakr x2.",
-    rewards: ["EXP de Navegação", "Moeda Corvo x500", "Filé de Peixe Vermelho de Monstro Marinho x6", "Essência do Oceano x3"],
-    recommendedFor: [], priority: 4, ...QUEST_SOURCES.lyngbakr2026,
+    id: "azure-silk-kangman-weekly", npc: "Kangman", location: "Ilha da Seda Azure", cadence: "weekly", selection: "all",
+    quests: [
+      {
+        id: "weekly-azure-silk-lyngbakr", title: "Investigar a ecologia da área de Lyngbakr",
+        objective: "Eliminar Lyngbakr x2.",
+        rewards: ["EXP de Navegação", "Moeda Corvo x500", "Filé de Peixe Vermelho de Monstro Marinho x6", "Essência do Oceano x3"],
+        recommendedFor: [], priority: 4, ...QUEST_SOURCES.lyngbakr2026,
+      },
+    ],
   },
 ];
+
+export const QUEST_GROUP_BY_ID = Object.fromEntries(QUEST_GROUPS.map((group) => [group.id, group])) as Record<string, QuestGroupDefinition>;
+
+/** Catálogo achatado: cada missão já com NPC, local, frequência e trilha herdados do grupo. */
+export const QUESTS: QuestDefinition[] = QUEST_GROUPS.flatMap((group) => group.quests.map((quest) => ({
+  ...quest,
+  cadence: group.cadence,
+  npc: group.npc,
+  location: group.location,
+  group: group.id,
+  track: quest.track ?? quest.id,
+  defaultActive: quest.defaultActive ?? true,
+})));
+
+export const QUEST_BY_ID = Object.fromEntries(QUESTS.map((quest) => [quest.id, quest])) as Record<string, QuestDefinition>;
 
 export const SOURCES = [
   { label: "Atualização — Missões marítimas de 2025", href: "https://www.sa.playblackdesert.com/pt-br/News/Detail?groupContentNo=5779" },

@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { persist, type PersistStorage } from "zustand/middleware";
 import { CARRACKS } from "@/lib/data";
 import { createPreset, normalizeGear, normalizePersistedState, normalizeProfile } from "@/lib/profile";
+import { setQuestActive } from "@/lib/quests";
 import type { CarrackTarget, GearKey, GearState, MaterialId, PlannerPreset, PlannerProfile, ShipBranch } from "@/types";
 
 interface PlannerStore {
@@ -19,6 +20,7 @@ interface PlannerStore {
   setGear: (branch: ShipBranch, key: GearKey, patch: Partial<GearState>) => void;
   setCarrackGear: (key: GearKey, patch: Partial<GearState>) => void;
   toggleQuest: (id: string, resetKey: string) => void;
+  setQuestActive: (id: string, active: boolean) => void;
   resetAll: () => void;
 }
 
@@ -122,10 +124,14 @@ export const usePlannerStore = create<PlannerStore>()(
         ...preset,
         completedQuests: { ...preset.completedQuests, [id]: preset.completedQuests[id] === resetKey ? "" : resetKey },
       }))),
+      setQuestActive: (id, active) => set((state) => updateActivePreset(state, (preset) => ({
+        ...preset,
+        profile: { ...preset.profile, activeQuests: setQuestActive(preset.profile.activeQuests, id, active) },
+      }))),
       resetAll: () => set({ presets: [], activePresetId: null }),
     }),
     {
-      name: "bdo-carrack-ledger-v1", version: 5, storage: safeStorage, skipHydration: true,
+      name: "bdo-carrack-ledger-v1", version: 6, storage: safeStorage, skipHydration: true,
       partialize: ({ presets, activePresetId }) => ({ presets, activePresetId }),
       migrate: normalizePersistedState,
       merge: (saved, current) => ({ ...current, ...normalizePersistedState(saved) }),
