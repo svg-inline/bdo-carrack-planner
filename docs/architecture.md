@@ -58,6 +58,8 @@ Com a conta ligada, o progresso deixa de depender de um navegador. A decisão co
 
 O cliente nunca fala com o Supabase direto. A interface chama `/api/presets`, e são as Route Handlers que usam o cliente de servidor com a sessão em cookie. Isso mantém `supabase-js` fora do bundle, deixa a validação do que chega nas mesmas funções de `lib/profile.ts` usadas pelo armazenamento local, e permite que entrar e sair sejam formulários. A renovação do token não passa por `proxy.ts`: esta versão do Next depreciou a convenção `middleware`, renomeada para `proxy`, e desaconselha proxy para gerenciar sessão, então quem grava os cookies renovados são as próprias Route Handlers.
 
+A rota `/` também aceita um código de autorização e o encaminha ao callback. O Supabase devolve o código na Site URL quando o retorno pedido não está na lista de Redirect URLs, e sem esse encaminhamento o login terminaria sem sessão e sem aviso. Um erro devolvido pelo provedor também vira aviso na tela, pelo mesmo motivo.
+
 Cada preset é uma linha de `public.presets`, com o progresso em `JSONB` e proteção por Row Level Security. A migração versionada está em `supabase/migrations/0001_presets.sql` e inclui as políticas e o gatilho que limita a conta a 50 presets.
 
 `PRESET_SCHEMA_VERSION`, em `lib/schema.ts`, é a mesma constante usada pelo `persist` do Zustand e pela coluna `schema_version`. Ela existe porque `normalizeProfile` descarta campos que não conhece: uma aba aberta antes de uma publicação leria um preset gravado no formato novo, a normalização removeria os campos desconhecidos e o salvamento seguinte devolveria o preset mutilado. Por isso o servidor recusa gravar quando o cliente é mais antigo que o registro, e a interface pede que a página seja atualizada.

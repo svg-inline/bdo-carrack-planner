@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { LOCAL_STORAGE_KEY, mergePending, planImport, shouldOfferImport, storageKeyFor } from "@/lib/sync";
+import { authCodeFrom } from "@/lib/supabase/request";
 import { createPreset } from "@/lib/profile";
 
 function preset(id: string, name: string) {
@@ -71,5 +72,21 @@ describe("importação dos presets do navegador", () => {
     expect(shouldOfferImport(local, "u1", ["u2"])).toBe(true);
     expect(shouldOfferImport([], "u1", [])).toBe(false);
     expect(shouldOfferImport(local, null, [])).toBe(false);
+  });
+});
+
+describe("código de autorização fora do callback", () => {
+  it("reconhece o código que o Supabase devolve na Site URL", () => {
+    // Acontece quando o retorno pedido não está na lista de Redirect URLs: o código cai na
+    // raiz, e sem isto o login terminaria sem sessão e sem aviso.
+    expect(authCodeFrom({ code: "72ba46ac-8c34-4951-a98b-7ba2ae37ac0a" })).toBe("72ba46ac-8c34-4951-a98b-7ba2ae37ac0a");
+  });
+
+  it("ignora ausência, vazio e valor repetido", () => {
+    expect(authCodeFrom({})).toBeNull();
+    expect(authCodeFrom({ code: "" })).toBeNull();
+    expect(authCodeFrom({ code: "   " })).toBeNull();
+    expect(authCodeFrom({ code: ["a", "b"] })).toBeNull();
+    expect(authCodeFrom({ conta: "entrou" })).toBeNull();
   });
 });
