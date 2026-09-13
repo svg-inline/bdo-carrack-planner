@@ -102,6 +102,10 @@ function useActivePreset(): PlannerPreset {
   return usePlannerStore((state) => state.presets.find((preset) => preset.id === state.activePresetId))!;
 }
 
+function confirmPresetRemoval(name: string | undefined) {
+  return confirm(`Excluir o preset “${name}” e todo o progresso dele?`);
+}
+
 function CarrackChoices({ onSelect }: { onSelect: (target: CarrackTarget) => void }) {
   return <div className="carrack-selector">
     {CARRACK_ORDER.map((id) => {
@@ -131,13 +135,16 @@ function PresetSetup({ canCancel, onClose }: { canCancel: boolean; onClose: () =
 }
 
 function Sidebar({ tab, setTab, onAddPreset }: { tab: Tab; setTab: (tab: Tab) => void; onAddPreset: () => void }) {
-  const { presets, activePresetId, selectPreset } = usePlannerStore();
+  const { presets, activePresetId, selectPreset, removePreset } = usePlannerStore();
   const activePreset = useActivePreset();
   const profile = activePreset.profile;
   const carrack = CARRACKS[profile.target];
+  function removeActivePreset() {
+    if (activePresetId && confirmPresetRemoval(activePreset.name)) removePreset(activePresetId);
+  }
   return <aside className="sidebar">
     <div className="brand"><div className="brand-mark">☸</div><div><span>CARRACK</span><strong>LEDGER</strong></div></div>
-    <div className="preset-control"><label htmlFor="active-preset">PRESET ATIVO</label><select id="active-preset" value={activePresetId ?? ""} onChange={(event) => selectPreset(event.target.value)}>{presets.map((preset) => <option value={preset.id} key={preset.id}>{preset.name}</option>)}</select><button onClick={onAddPreset}>＋ Adicionar preset</button></div>
+    <div className="preset-control"><label htmlFor="active-preset">PRESET ATIVO</label><select id="active-preset" value={activePresetId ?? ""} onChange={(event) => selectPreset(event.target.value)}>{presets.map((preset) => <option value={preset.id} key={preset.id}>{preset.name}</option>)}</select><div className="preset-actions"><button onClick={onAddPreset}>＋ Adicionar preset</button><button className="preset-remove" onClick={removeActivePreset}>✕ Remover preset ativo</button></div></div>
     <div className="ship-route-card"><ShipImage branch={carrack.branch} className="ship-route-image" decorative /><div><span>ROTA ATUAL</span><strong>{carrack.sourceShip}</strong><i>↓</i><em>{carrack.name}</em></div></div>
     <nav aria-label="Seções do planner">{tabs.map(([key, label], idx) => <button key={key} aria-current={tab === key ? "page" : undefined} className={tab === key ? "active" : ""} onClick={() => setTab(key)}><span>0{idx + 1}</span>{label}</button>)}</nav>
     <div className="sidebar-footer"><span>{activePreset.name}</span><strong>{carrack.shortName}</strong><small>{number(profile.crowCoins)} Moedas Corvo</small></div>
@@ -296,7 +303,7 @@ function App({ children }: { children: React.ReactNode }) {
   }
 
   function deleteActivePreset() {
-    if (confirm(`Excluir o preset “${activePreset?.name}” e todo o progresso dele?`)) removePreset(activePresetId!);
+    if (confirmPresetRemoval(activePreset?.name)) removePreset(activePresetId!);
   }
 
   return <div className="app-shell"><Sidebar tab={tab} setTab={(nextTab) => { setCreatingPreset(false); setTab(nextTab); }} onAddPreset={showPresetCreator} /><main id="main-content" tabIndex={-1} ref={mainRef} className="content"><div className="content-inner">{creatingPreset ? <PresetSetup canCancel onClose={() => setCreatingPreset(false)} /> : <>{tab === "overview" && <Overview />}{tab === "inventory" && <Inventory />}{tab === "materials" && <AcquisitionCatalog />}{tab === "gear" && <Gear />}{tab === "carrack-gear" && <CarrackGear />}{tab === "quests" && <Quests />}{tab === "strategy" && <Strategy />}</>}</div><footer><span>Carrack Ledger · {presets.length} {presets.length === 1 ? "preset salvo" : "presets salvos"} neste navegador</span><div><button onClick={deleteActivePreset}>Excluir preset atual</button><button onClick={() => { if (confirm("Apagar todos os presets e progressos salvos?")) resetAll(); }}>Redefinir tudo</button></div></footer></main></div>;

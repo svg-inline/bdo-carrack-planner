@@ -18,7 +18,7 @@ Nomes de itens, ícones e ilhas das oficinas seguem o banco de dados do jogo. On
 
 ## Presets e persistência
 
-O estado interativo é gerenciado pelo Zustand. O usuário cria um preset escolhendo uma das quatro Carracas e pode manter vários presets, inclusive do mesmo modelo. Inventário, equipamentos e missões pertencem ao preset, enquanto o seletor lateral define qual plano está ativo.
+O estado interativo é gerenciado pelo Zustand. O usuário cria um preset escolhendo uma das quatro Carracas e pode manter vários presets, inclusive do mesmo modelo. Inventário, equipamentos e missões pertencem ao preset, enquanto o seletor lateral define qual plano está ativo. O seletor lateral também permite remover o preset ativo, com confirmação; quando o último é removido, o planner volta à escolha da Carraca.
 
 Os presets são salvos em `localStorage` com a chave `bdo-carrack-ledger-v1`. Planos salvos antes do conjunto de Shiro recebem o estado vazio das quatro peças na normalização. Todo estado carregado é normalizado antes de entrar no planner: identificadores desconhecidos são descartados, quantidades são inteiros não negativos e aprimoramentos ficam entre 0 e 10. Planos do formato anterior que já haviam concluído o onboarding são migrados para um preset. Se o armazenamento estiver bloqueado ou exceder a cota, o planner continua durante a sessão e informa que não pode persistir.
 

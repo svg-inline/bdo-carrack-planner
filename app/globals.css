@@ -162,7 +162,7 @@ footer>div{display:flex;gap:14px}
   .branch-banner{align-items:flex-start;flex-wrap:wrap}
 }
 
-@media (max-width:780px){.preset-start-shell{padding:16px}.preset-start-brand{margin-bottom:16px}.preset-setup{padding:24px 18px}.preset-setup-heading{display:block}.preset-setup-heading .button{margin-top:14px}.preset-control{min-width:180px;margin:0}.preset-control label{display:none}.preset-control button{text-align:center}.sidebar .ship-route-card{display:none}footer{gap:12px;align-items:flex-start}footer>div{flex-direction:column;gap:7px;align-items:flex-end}}
+@media (max-width:780px){.preset-start-shell{padding:16px}.preset-start-brand{margin-bottom:16px}.preset-setup{padding:24px 18px}.preset-setup-heading{display:block}.preset-setup-heading .button{margin-top:14px}.preset-control{min-width:180px;margin:0}.preset-control label{display:none}.preset-control button{text-align:center}.preset-actions{align-items:stretch}.sidebar .ship-route-card{display:none}footer{gap:12px;align-items:flex-start}footer>div{flex-direction:column;gap:7px;align-items:flex-end}}
 .gear-prep{display:flex;flex-direction:column;gap:6px;padding:10px 11px;margin:0 0 10px;border:1px solid #2e363b;background:#0b1013;color:#788188;font-size:8px;line-height:1.45}.gear-prep b{color:#a69d8f}.gear-prep .item-label{font-size:8px;color:#b9b1a5;vertical-align:middle}
 
 /* Escala de leitura e visibilidade dos assets */
@@ -172,6 +172,9 @@ footer>div{display:flex;gap:14px}
 .brand strong,.preset-start-brand strong{font-size:20px}
 .brand-mark{width:44px;height:44px;font-size:22px}
 .preset-control label{font-size:10px}.preset-control select{font-size:13px;padding:10px}.preset-control button{font-size:11px;padding:5px 0}
+.preset-actions{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+.preset-control button.preset-remove{color:#d5967f}
+.preset-control button.preset-remove:hover{color:#e8b09a}
 .ship-route-card{position:relative;height:132px;padding:17px 14px;overflow:hidden;justify-content:flex-end}
 .ship-route-card>div{position:relative;z-index:2;width:68%}
 .ship-route-image{position:absolute;right:-36px;bottom:-7px;width:164px;height:118px;object-fit:cover;opacity:.68;filter:saturate(.72) brightness(.75)}

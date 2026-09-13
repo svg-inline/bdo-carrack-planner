@@ -13,6 +13,7 @@ Todas as mudanças relevantes para usuários são registradas em `Unreleased`, n
 - Equipamento azul de Shiro da Carraca: aba própria, receitas, ícones oficiais das quatro peças de cada Carraca e acompanhamento de Toro +10, fabricação e aprimoramento.
 - Materiais do conjunto de Shiro no inventário e no catálogo de obtenção: planta de construção de cada peça, madeira compensada de onda violenta, suporte elaborado e cola com traços de onda.
 - Fonte de obtenção por escavação de trabalhadores nos nós das ilhas.
+- Botão para remover o preset ativo direto no seletor lateral, para desfazer uma Carraca adicionada por engano.
 
 ### Changed
 

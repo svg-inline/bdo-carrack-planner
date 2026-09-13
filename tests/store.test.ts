@@ -29,6 +29,29 @@ describe("preset store", () => {
     expect(usePlannerStore.getState().presets.at(-1)?.profile.carrackGear.cannon.crafted).toBe(false);
   });
 
+  it("removes a preset added by mistake and keeps the remaining progress", () => {
+    usePlannerStore.getState().addPreset("bravura");
+    const keptId = usePlannerStore.getState().activePresetId!;
+    usePlannerStore.getState().setMaterial("coxCombat", 12);
+
+    usePlannerStore.getState().addPreset("bravura");
+    const mistakeId = usePlannerStore.getState().activePresetId!;
+    usePlannerStore.getState().removePreset(mistakeId);
+
+    const presets = usePlannerStore.getState().presets;
+    expect(presets.map((preset) => preset.id)).toEqual([keptId]);
+    expect(usePlannerStore.getState().activePresetId).toBe(keptId);
+    expect(presets[0]?.profile.materials.coxCombat).toBe(12);
+  });
+
+  it("returns to the Carraca choice after removing the last preset", () => {
+    usePlannerStore.getState().addPreset("gradual");
+    usePlannerStore.getState().removePreset(usePlannerStore.getState().activePresetId!);
+
+    expect(usePlannerStore.getState().presets).toEqual([]);
+    expect(usePlannerStore.getState().activePresetId).toBeNull();
+  });
+
   it("switches between different Carraca presets", () => {
     usePlannerStore.getState().addPreset("gradual");
     const gradualId = usePlannerStore.getState().activePresetId!;

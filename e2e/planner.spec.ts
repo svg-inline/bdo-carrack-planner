@@ -66,3 +66,22 @@ test("creates different and repeated presets with independent persisted progress
   await page.getByRole("button", { name: "Inventário" }).click();
   await expect(combatStock).toHaveValue("12");
 });
+
+test("removes a preset added by mistake from the sidebar", async ({ page }) => {
+  page.on("dialog", (dialog) => dialog.accept());
+  await page.goto("/");
+  await page.getByRole("button", { name: /Bravura/ }).click();
+  await page.getByRole("button", { name: /Adicionar preset/ }).click();
+  await page.getByRole("button", { name: /Bravura/ }).click();
+
+  const selector = page.getByLabel("Preset ativo");
+  await expect(selector.locator("option")).toHaveCount(2);
+  await expect(selector).toHaveValue(/.+/);
+
+  await page.getByRole("button", { name: /Remover preset ativo/ }).click();
+  await expect(selector.locator("option")).toHaveCount(1);
+  await expect(selector.locator("option")).toHaveText(["Bravura 1"]);
+
+  await page.getByRole("button", { name: /Remover preset ativo/ }).click();
+  await expect(page.getByRole("heading", { name: "Qual Carraca você quer planejar?" })).toBeVisible();
+});
