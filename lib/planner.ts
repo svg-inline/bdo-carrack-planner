@@ -55,21 +55,6 @@ export function bottlenecks(profile: PlannerProfile) {
     .sort((a, b) => b.score - a.score);
 }
 
-export function purchasePlan(profile: PlannerProfile) {
-  let remainingCoins = profile.crowCoins;
-  const items = bottlenecks(profile)
-    .filter((m) => m.crowPrice && m.crowPrice > 0)
-    .map((m) => {
-      const maxAffordable = Math.floor(remainingCoins / (m.crowPrice || 1));
-      const suggested = Math.min(m.missing, maxAffordable);
-      const cost = suggested * (m.crowPrice || 0);
-      remainingCoins -= cost;
-      return { id: m.id, name: m.name, suggested, cost, missing: m.missing, unit: m.crowPrice || 0, difficulty: m.difficulty };
-    })
-    .filter((x) => x.suggested > 0);
-  return { items, remainingCoins };
-}
-
 export function questResetKey(cadence: "daily" | "weekly", now = new Date()) {
   if (cadence === "daily") return now.toISOString().slice(0, 10);
   const copy = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));

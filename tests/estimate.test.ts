@@ -3,8 +3,9 @@ import { CARRACK_GEAR_SETS, GEAR_SETS, MATERIALS, MATERIAL_BY_ID } from "@/lib/d
 import { createInitialProfile } from "@/lib/profile";
 import { isCarrackBuildMaterial } from "@/lib/planner";
 import {
-  carrackGearEstimate, carrackGearSetEstimate, choiceCompetitors, coinCoverage, daysForUnits, FARM_UNITS_PER_DAY,
-  formatDuration, formatRate, gearEstimate, materialEstimate, materialRate, questRatePerDay, shipEstimate,
+  carrackGearEstimate, carrackGearSetEstimate, choiceCompetitors, coinPlan, contextWithoutCoins, daysForUnits,
+  estimateContext, FARM_UNITS_PER_DAY, formatDuration, formatRate, gearEstimate, materialEstimate, materialRate,
+  questRatePerDay, shipEstimate,
 } from "@/lib/estimate";
 import type { MaterialId } from "@/types";
 
@@ -147,29 +148,61 @@ describe("prazo por peça e por navio", () => {
 });
 
 describe("Moeda Corvo no prazo", () => {
-  it("desconta do farm o que o saldo compra agora", () => {
+  it("gasta primeiro no material que segura o prazo da rota", () => {
     const profile = createInitialProfile("bravura");
-    const semMoedas = materialEstimate(profile, "luminousCobalt");
-    profile.crowCoins = 12_000; // 30 unidades a 400 moedas cada.
-    const comMoedas = materialEstimate(profile, "luminousCobalt");
+    const semMoedas = shipEstimate(profile);
+    profile.crowCoins = 1_200; // 10 unidades do Artefato Cox(Combate).
+    const plano = coinPlan(profile);
 
-    expect(semMoedas.covered).toBe(0);
-    expect(semMoedas.days).toBeCloseTo(30 / FARM_UNITS_PER_DAY[5]);
-    expect(coinCoverage(profile).luminousCobalt).toBe(30);
-    expect(comMoedas.covered).toBe(30);
-    expect(comMoedas.remaining).toBe(0);
-    expect(comMoedas.days).toBe(0);
-    expect(comMoedas.missing).toBe(30);
+    // O Artefato Cox(Combate) é o material mais demorado da Bravura, então leva o saldo inteiro.
+    expect(semMoedas.slowest).toBe("coxCombat");
+    expect(plano.items).toHaveLength(1);
+    expect(plano.items[0]).toMatchObject({ id: "coxCombat", suggested: 10, cost: 1_200 });
+    expect(plano.remainingCoins).toBe(0);
+    expect(materialEstimate(profile, "coxCombat").remaining).toBe(240);
   });
 
-  it("cobre só parte da meta quando o saldo não dá para tudo", () => {
+  it("para de comprar quando o material alcança o próximo da fila", () => {
     const profile = createInitialProfile("bravura");
-    profile.crowCoins = 4_000;
-    const estimate = materialEstimate(profile, "luminousCobalt");
+    profile.crowCoins = 60_000;
+    const plano = coinPlan(profile);
+    const context = estimateContext(profile);
+    const comprado = plano.coverage.coxCombat ?? 0;
 
-    expect(estimate.covered).toBe(10);
-    expect(estimate.remaining).toBe(20);
-    expect(estimate.days).toBeCloseTo(20 / FARM_UNITS_PER_DAY[5]);
+    expect(comprado).toBeGreaterThan(0);
+    expect(comprado).toBeLessThan(materialEstimate(profile, "coxCombat").missing);
+    expect(plano.items.length).toBeGreaterThan(1);
+    // Nenhum material comprado fica mais rápido do que o prazo geral que sobrou.
+    for (const item of plano.items) {
+      expect(materialEstimate(profile, item.id, context).days).toBeLessThanOrEqual(shipEstimate(profile, context).days + 1e-9);
+    }
+  });
+
+  it("refaz o plano inteiro quando o estoque muda", () => {
+    const profile = createInitialProfile("bravura");
+    profile.crowCoins = 1_200;
+    expect(coinPlan(profile).items[0].id).toBe("coxCombat");
+
+    profile.materials.coxCombat = 250;
+    const depois = coinPlan(profile);
+
+    expect(depois.coverage.coxCombat).toBeUndefined();
+    expect(depois.items[0].id).toBe(shipEstimate(profile).slowest);
+  });
+
+  it("nunca compra mais do que falta nem gasta mais do que o saldo", () => {
+    const profile = createInitialProfile("bravura");
+    profile.materials.coxCombat = 200;
+    profile.crowCoins = 25_000;
+    const plano = coinPlan(profile);
+    const total = plano.items.reduce((sum, item) => sum + item.cost, 0);
+
+    expect(total).toBeLessThanOrEqual(profile.crowCoins);
+    expect(plano.remainingCoins).toBe(profile.crowCoins - total);
+    for (const item of plano.items) {
+      expect(item.suggested).toBeLessThanOrEqual(item.missing);
+      expect(item.cost).toBe(item.suggested * item.unit);
+    }
   });
 
   it("ignora o saldo para quem não está na loja de Moeda Corvo", () => {
@@ -177,20 +210,22 @@ describe("Moeda Corvo no prazo", () => {
     profile.crowCoins = 1_000_000;
 
     expect(materialEstimate(profile, "violentWavePlywood").covered).toBe(0);
-    expect(coinCoverage(profile).shiroCannonBlueprint).toBeUndefined();
+    expect(coinPlan(profile).coverage.shiroCannonBlueprint).toBeUndefined();
   });
 
-  it("encurta o prazo do navio e da peça conforme o saldo cresce", () => {
+  it("encurta o prazo do navio conforme o saldo cresce", () => {
     const profile = createInitialProfile("bravura");
     const semMoedas = shipEstimate(profile);
-    const velaSemMoedas = gearEstimate(profile, "galleass", "sail");
+    profile.crowCoins = 29_438;
+    const parcial = shipEstimate(profile);
     profile.crowCoins = 300_000;
-    const comMoedas = shipEstimate(profile);
-    const velaComMoedas = gearEstimate(profile, "galleass", "sail");
+    const context = estimateContext(profile);
 
-    expect(comMoedas.covered).toBeGreaterThan(0);
-    expect(comMoedas.days).toBeLessThan(semMoedas.days);
-    expect(velaComMoedas.days).toBeLessThan(velaSemMoedas.days);
+    expect(parcial.days).toBeLessThan(semMoedas.days);
+    expect(parcial.covered).toBeGreaterThan(0);
+    expect(shipEstimate(profile, context).days).toBe(0);
+    expect(gearEstimate(profile, "galleass", "sail", context).days).toBe(0);
+    expect(shipEstimate(profile, contextWithoutCoins(context)).days).toBeCloseTo(semMoedas.days);
   });
 });
 

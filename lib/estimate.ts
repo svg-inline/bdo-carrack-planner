@@ -1,5 +1,5 @@
 import { CARRACK_GEAR_SETS, GEAR_SETS, MATERIALS, MATERIAL_BY_ID } from "@/lib/data";
-import { getMissing, isCarrackBuildMaterial, purchasePlan } from "@/lib/planner";
+import { getMissing, isCarrackBuildMaterial } from "@/lib/planner";
 import type { Acquisition, AcquisitionType, GearKey, MaterialDefinition, MaterialId, PlannerProfile, ShipBranch } from "@/types";
 
 // O tempo estimado assume um jogador que conclui todas as missões diárias e semanais
@@ -37,24 +37,100 @@ export function choiceCompetitors(profile: PlannerProfile): Record<string, numbe
   return competitors;
 }
 
+export interface CoinPurchase {
+  id: MaterialId;
+  name: string;
+  /** Preço em Moeda Corvo por unidade. */
+  unit: number;
+  suggested: number;
+  cost: number;
+  missing: number;
+  difficulty: MaterialDefinition["difficulty"];
+  /** Dias de farm que a compra economiza neste material. */
+  daysSaved: number;
+}
+
+export interface CoinPlan {
+  items: CoinPurchase[];
+  coverage: Partial<Record<MaterialId, number>>;
+  remainingCoins: number;
+}
+
 /**
- * Unidades que o saldo atual de Moeda Corvo já resolve, seguindo a mesma compra sugerida
- * da aba Estratégia. Elas saem do que ainda precisa ser farmado e encurtam o prazo.
+ * Distribui o saldo de Moeda Corvo onde ele corta mais tempo. A cada passo compra o
+ * material que hoje define o prazo, só até ele alcançar o próximo da fila, e repete com
+ * o que sobrar. Como o prazo depende do estoque, o plano é refeito inteiro sempre que o
+ * inventário, o saldo ou a Carraca do preset mudam.
  */
-export function coinCoverage(profile: PlannerProfile): Partial<Record<MaterialId, number>> {
-  const coverage: Partial<Record<MaterialId, number>> = {};
-  for (const item of purchasePlan(profile).items) coverage[item.id] = item.suggested;
-  return coverage;
+export function coinPlan(profile: PlannerProfile, competitors = choiceCompetitors(profile)): CoinPlan {
+  const candidates = MATERIALS
+    .filter((material) => (material.crowPrice || 0) > 0 && getMissing(profile, material.id) > 0)
+    .map((material) => ({
+      material,
+      price: material.crowPrice || 0,
+      missing: getMissing(profile, material.id),
+      perDay: materialRate(profile, material.id, competitors).perDay,
+      bought: 0,
+      order: 0,
+    }));
+  const daysLeft = (candidate: typeof candidates[number]) => daysForUnits(candidate.missing - candidate.bought, candidate.perDay);
+
+  let remainingCoins = Math.max(0, Math.floor(profile.crowCoins));
+  let order = 0;
+  while (remainingCoins > 0) {
+    const reducible = candidates.filter((candidate) => candidate.bought < candidate.missing && candidate.price <= remainingCoins);
+    if (!reducible.length) break;
+
+    const target = reducible.reduce((slowest, candidate) => (daysLeft(candidate) > daysLeft(slowest) ? candidate : slowest));
+    const targetDays = daysLeft(target);
+    // Comprar além do próximo prazo da fila não adianta: o gargalo passaria a ser o outro material.
+    const nextDays = candidates.reduce((longest, candidate) => {
+      const days = daysLeft(candidate);
+      return candidate !== target && days < targetDays && days > longest ? days : longest;
+    }, 0);
+    const left = target.missing - target.bought;
+    const toNextLevel = Number.isFinite(targetDays) && target.perDay > 0 ? Math.ceil((targetDays - nextDays) * target.perDay) : left;
+    const affordable = Math.floor(remainingCoins / target.price);
+    const units = Math.max(1, Math.min(left, affordable, Math.max(1, toNextLevel)));
+
+    target.bought += units;
+    remainingCoins -= units * target.price;
+    if (!target.order) target.order = ++order;
+  }
+
+  const items = candidates
+    .filter((candidate) => candidate.bought > 0)
+    .sort((a, b) => a.order - b.order)
+    .map((candidate) => ({
+      id: candidate.material.id,
+      name: candidate.material.name,
+      unit: candidate.price,
+      suggested: candidate.bought,
+      cost: candidate.bought * candidate.price,
+      missing: candidate.missing,
+      difficulty: candidate.material.difficulty,
+      daysSaved: daysForUnits(candidate.bought, candidate.perDay),
+    }));
+  const coverage = Object.fromEntries(items.map((item) => [item.id, item.suggested])) as Partial<Record<MaterialId, number>>;
+  return { items, coverage, remainingCoins };
 }
 
 /** Tudo que depende do plano inteiro, calculado uma vez e reaproveitado nas estimativas. */
 export interface EstimateContext {
   competitors: Record<string, number>;
   coverage: Partial<Record<MaterialId, number>>;
+  plan: CoinPlan;
 }
 
 export function estimateContext(profile: PlannerProfile): EstimateContext {
-  return { competitors: choiceCompetitors(profile), coverage: coinCoverage(profile) };
+  const competitors = choiceCompetitors(profile);
+  const plan = coinPlan(profile, competitors);
+  return { competitors, coverage: plan.coverage, plan };
+}
+
+/** Mesmo contexto, sem gastar moeda nenhuma: serve para mostrar o prazo antes da compra. */
+export function contextWithoutCoins(context: EstimateContext): EstimateContext {
+  return { competitors: context.competitors, coverage: {}, plan: { items: [], coverage: {}, remainingCoins: 0 } };
 }
 
 export interface QuestRate {
@@ -80,12 +156,12 @@ export function questRatePerDay(source: Acquisition, competitors: Record<string,
   return (source.yield * share) / DAYS_PER_CADENCE[source.type];
 }
 
-export function materialRate(profile: PlannerProfile, id: MaterialId, context = estimateContext(profile)): MaterialRate {
+export function materialRate(profile: PlannerProfile, id: MaterialId, competitors = choiceCompetitors(profile)): MaterialRate {
   const material = MATERIAL_BY_ID[id];
   const quests = material.sources.filter(isQuestSource).map((source) => ({
     label: source.label,
     type: source.type,
-    perDay: questRatePerDay(source, context.competitors),
+    perDay: questRatePerDay(source, competitors),
   }));
   const questPerDay = quests.reduce((sum, quest) => sum + quest.perDay, 0);
   // Permuta, caça e processamento são alternativas do mesmo tempo de jogo: contam uma vez só.
@@ -115,7 +191,7 @@ export function materialEstimate(profile: PlannerProfile, id: MaterialId, contex
   const missing = getMissing(profile, id);
   const covered = Math.min(missing, context.coverage[id] || 0);
   const remaining = missing - covered;
-  const { perDay } = materialRate(profile, id, context);
+  const { perDay } = materialRate(profile, id, context.competitors);
   return { id, missing, covered, remaining, perDay, days: daysForUnits(remaining, perDay) };
 }
 
@@ -142,7 +218,7 @@ export function recipeEstimate(profile: PlannerProfile, materials: Partial<Recor
     pending += 1;
     const bought = Math.min(missing, context.coverage[id] || 0);
     covered += bought;
-    const { perDay } = materialRate(profile, id, context);
+    const { perDay } = materialRate(profile, id, context.competitors);
     const materialDays = daysForUnits(missing - bought, perDay);
     if (materialDays > days) {
       days = materialDays;

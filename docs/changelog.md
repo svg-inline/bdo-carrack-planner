@@ -17,6 +17,7 @@ Todas as mudanças relevantes para usuários são registradas em `Unreleased`, n
 - Tempo estimado para concluir cada material, cada peça de equipamento, o conjunto de Shiro e a Carraca inteira, calculado a partir do que falta no inventário e do ritmo das missões, permuta, caça e processamento.
 - Ritmo diário de cada material e de cada missão recorrente no catálogo "Como obter", com a explicação do cálculo na aba Estratégia e no guia sem JavaScript.
 - O saldo de Moeda Corvo entra no tempo estimado: o que a compra sugerida resolve sai do que falta farmar e o prazo cai assim que as moedas ou o inventário mudam.
+- A compra sugerida passou a distribuir o saldo onde ele corta mais tempo da rota, em vez de seguir a ordem de gargalo, e mostra de quanto para quanto o prazo cai.
 
 ### Changed
 
