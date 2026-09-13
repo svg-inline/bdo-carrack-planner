@@ -4,7 +4,11 @@
 
 A rota `/` entrega no HTML um guia completo com Carracas, materiais, receitas, missões e fontes. Esse conteúdo é independente de JavaScript, `localStorage` e APIs externas. Após a hidratação no navegador, o componente interativo substitui o guia e carrega o progresso local.
 
-Os dados de jogo usados nos cálculos ficam em `lib/data.ts`. A aplicação não consulta WordPress nem outras APIs em tempo de execução; indisponibilidade externa não afeta o conteúdo básico.
+Os dados de jogo usados nos cálculos ficam em `lib/data.ts` e não dependem de serviço externo nenhum. O único serviço externo em tempo de execução é o Supabase, e só para conta e sincronização do progresso: guia, cálculos e o planner sobre a cópia local continuam funcionando com ele fora do ar. Entrar e sair da conta são formulários `POST`, então também funcionam sem JavaScript. As decisões estão em `docs/adr/0001-contas-e-persistencia-na-nuvem.md`.
+
+O botão de login compartilhado em `app/account-bar.tsx` exibe o símbolo oficial do Discord, obtido nos [assets da marca](https://discord.com/branding) e servido localmente por `next/image` a partir de `public/assets/discord.svg`. O ícone é decorativo; o texto “Entrar com Discord” mantém o nome acessível da ação.
+
+Ler a sessão torna a rota `/` dinâmica: o guia continua entregue inteiro no HTML, mas montado a cada requisição em vez de na compilação.
 
 O catálogo marítimo mantém 27 missões diárias e 11 semanais de Iliya, Velia, Olho da Okilua e Terra do Amanhecer, conforme o levantamento em `docs/bdo-guia-quests.md`. Cada missão guarda a fonte consultada e o link correspondente.
 
@@ -46,8 +50,28 @@ Os prazos são heurísticas, como a dificuldade e a ordem de foco. Quantidades e
 
 O estado interativo é gerenciado pelo Zustand. O usuário cria um preset escolhendo uma das quatro Carracas e pode manter vários presets, inclusive do mesmo modelo. Inventário, equipamentos e missões pertencem ao preset, enquanto o seletor lateral define qual plano está ativo. O seletor lateral também permite remover o preset ativo, com confirmação; quando o último é removido, o planner volta à escolha da Carraca.
 
-Os presets são salvos em `localStorage` com a chave `bdo-carrack-ledger-v1`. Planos salvos antes do conjunto de Shiro recebem o estado vazio das quatro peças na normalização, e planos salvos antes da escolha de missões recebem a seleção padrão do catálogo. Todo estado carregado é normalizado antes de entrar no planner: identificadores desconhecidos são descartados, quantidades são inteiros não negativos e aprimoramentos ficam entre 0 e 10. Planos do formato anterior que já haviam concluído o onboarding são migrados para um preset. Se o armazenamento estiver bloqueado ou exceder a cota, o planner continua durante a sessão e informa que não pode persistir.
+Os presets são salvos em `localStorage`. A chave é `bdo-carrack-ledger-v1` no modo anônimo e `bdo-carrack-ledger-v1:<id da conta>` com sessão, para que sair da conta num computador compartilhado não deixe o progresso no cache do próximo e entrar com outra conta não misture dois jogadores. Planos salvos antes do conjunto de Shiro recebem o estado vazio das quatro peças na normalização, e planos salvos antes da escolha de missões recebem a seleção padrão do catálogo. Todo estado carregado é normalizado antes de entrar no planner: identificadores desconhecidos são descartados, quantidades são inteiros não negativos e aprimoramentos ficam entre 0 e 10. Planos do formato anterior que já haviam concluído o onboarding são migrados para um preset. Se o armazenamento estiver bloqueado ou exceder a cota, o planner continua durante a sessão e informa que não pode persistir.
+
+## Contas e sincronização
+
+Com a conta ligada, o progresso deixa de depender de um navegador. A decisão completa está no ADR 0001; o resumo do funcionamento é este.
+
+O cliente nunca fala com o Supabase direto. A interface chama `/api/presets`, e são as Route Handlers que usam o cliente de servidor com a sessão em cookie. Isso mantém `supabase-js` fora do bundle, deixa a validação do que chega nas mesmas funções de `lib/profile.ts` usadas pelo armazenamento local, e permite que entrar e sair sejam formulários. A renovação do token não passa por `proxy.ts`: esta versão do Next depreciou a convenção `middleware`, renomeada para `proxy`, e desaconselha proxy para gerenciar sessão, então quem grava os cookies renovados são as próprias Route Handlers.
+
+Cada preset é uma linha de `public.presets`, com o progresso em `JSONB` e proteção por Row Level Security. A migração versionada está em `supabase/migrations/0001_presets.sql` e inclui as políticas e o gatilho que limita a conta a 50 presets.
+
+`PRESET_SCHEMA_VERSION`, em `lib/schema.ts`, é a mesma constante usada pelo `persist` do Zustand e pela coluna `schema_version`. Ela existe porque `normalizeProfile` descarta campos que não conhece: uma aba aberta antes de uma publicação leria um preset gravado no formato novo, a normalização removeria os campos desconhecidos e o salvamento seguinte devolveria o preset mutilado. Por isso o servidor recusa gravar quando o cliente é mais antigo que o registro, e a interface pede que a página seja atualizada.
+
+Toda alteração entra na fila de envio no mesmo ponto em que altera o estado, nas ações do store, e não por comparação posterior de listas — comparar não distinguiria uma edição do jogador de uma carga vinda do servidor. A fila também é salva no navegador, de modo que fechar a aba dentro da pausa que antecede o salvamento não perde o envio. Uma falha mantém o aviso de pendência e a próxima tentativa recomeça de onde parou; ao carregar a conta, o que estiver pendente sobe antes, e se esse envio falhar a carga é abortada em vez de substituir o estado local por uma versão mais velha.
+
+Com dois aparelhos editando o mesmo preset, vale a última gravação aceita pelo servidor. Não há combinação por campo nem tela de conflito: a premissa desta versão é um aparelho em uso por vez.
+
+O preset selecionado é preferência de cada aparelho e não sincroniza. Ao entrar com presets guardados no navegador, o planner oferece importá-los; a importação cria identificadores novos e nunca substitui o que já está na conta. O botão de redefinir passa a limpar apenas o navegador quando há sessão — apagar o que está na conta seria uma ação separada e explicitamente pedida.
+
+`/api/health` é o alvo da tarefa diária declarada em `vercel.json`. O plano gratuito do Supabase pausa projetos sem uso, e um projeto pausado não derruba só os dados: derruba o login.
 
 ## Verificação
 
 Use `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` e `npm run test:e2e`. O fluxo E2E crítico valida o guia sem JavaScript, o carregamento das artes principais, a criação de presets diferentes e repetidos, o isolamento do progresso, a persistência após recarregar a página, o tempo estimado acompanhando o inventário e a escolha das missões que alimentam o cálculo, incluindo a troca de trilha do Ravikel.
+
+O fluxo completo de login pelo Discord fica fora do E2E: automatizá-lo exigiria um projeto Supabase dedicado a testes com sessão semeada, ou uma autenticação falsa acionada por variável de ambiente, que é o tipo de atalho que escapa para produção. A lacuna é assumida no ADR 0001. As partes puras — formato do preset, regra de versão, fila de envio e plano de importação — são cobertas por testes unitários em `tests/schema.test.ts`, `tests/sync.test.ts` e `tests/store.test.ts`, e o caminho logado é conferido à mão: entrar, criar um preset, recarregar, abrir em outro navegador, editar sem rede e confirmar o aviso de pendência, e sair verificando que o progresso da conta não fica no cache local.

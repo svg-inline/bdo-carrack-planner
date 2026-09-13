@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ### REGRA DE OURO
 
-O site deve funcionar de forma básica, sem JavaScript. E o site deve funcionar caso as APIs do WordPress caiam.
+O site deve funcionar de forma básica, sem JavaScript.
 SEMPRE QUE POSSÍVEL USE IMAGENS REAIS DO JOGO, EM VEZ DE ILUSTRAÇÕES OU PLACEHOLDERS, NA PASTA DOCS TEM VARIOS LINKS PARA REFERÊNCIA. QUANDO NÃO FOR POSSÍVEL, JUSTIFIQUE O USO DE PLACEHOLDERS OU IMAGENS GENÉRICAS.
 
 ## Qualidade obrigatória
@@ -36,12 +36,11 @@ Toda alteração relevante no projeto deve atualizar a documentação correspond
 
 Antes de modificar uma funcionalidade, consulte os documentos relacionados em `docs/`.
 
-Se a implementação alterar qualquer regra documentada, atualize o override
-responsável. Se a mudança for arquitetural, atualize também o ADR existente ou
+Se a implementação alterar qualquer regra documentada;
+Se a mudança for arquitetural, atualize também o ADR existente ou
 crie um novo.
 
-Não duplicar a mesma regra em vários documentos. Atualize o override
-responsável e, quando necessário, apenas referencie-o nos demais documentos.
+Não duplicar a mesma regra em vários documentos.
 
 Usar a seção:
 

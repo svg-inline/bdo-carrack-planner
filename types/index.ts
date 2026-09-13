@@ -193,3 +193,9 @@ export interface QuestDefinition extends Omit<QuestEntry, "track" | "defaultActi
   track: string;
   defaultActive: boolean;
 }
+
+/** Conta do jogador, vinda do Discord pelo Supabase Auth. Guardamos o mínimo para identificar. */
+export interface Account {
+  id: string;
+  name: string;
+}

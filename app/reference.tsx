@@ -1,4 +1,5 @@
 import Image from "next/image";
+import AccountBar, { type AccountBarProps } from "./account-bar";
 import { CADENCE_BY_ID, CARRACK_GEAR_SETS, CARRACK_ORDER, CARRACKS, GEAR_SETS, MATERIALS, MATERIAL_BY_ID, QUESTS, QUEST_CADENCES, QUEST_GROUPS, SOURCES } from "@/lib/data";
 import { carrackGearSetEstimate, formatDuration, materialEstimate, shipEstimate } from "@/lib/estimate";
 import { questsOfGroup } from "@/lib/quests";
@@ -17,12 +18,13 @@ function Item({ id }: { id: MaterialId }) {
   return <span className="item-label"><Image className="item-icon" src={material.icon} alt="" width={28} height={28} /><span>{material.name}</span></span>;
 }
 
-export default function Reference() {
+export default function Reference({ account, accountEnabled, notice }: { account: AccountBarProps["account"]; accountEnabled: boolean; notice: string | null }) {
   return <main id="main-content" tabIndex={-1} className="mx-auto max-w-6xl space-y-6 p-4 sm:p-8">
     <header className="panel">
       <p className="eyebrow">CARRACK LEDGER · EPHERIA</p>
       <h1>Planejador das Carracas de Epheria</h1>
       <p>Consulte os materiais, receitas e missões das quatro Carracas. Com JavaScript, você também pode registrar seu estoque e acompanhar seu progresso neste navegador.</p>
+      <AccountBar account={account} enabled={accountEnabled} notice={notice} />
       <nav aria-label="Guia de Carracas" className="flex flex-wrap gap-4 text-gold-bright">
         {CARRACK_ORDER.map((id) => <a key={id} href={`#guia-${id}`}>{CARRACKS[id].shortName}</a>)}
         <a href="#guia-materiais">Como obter</a><a href="#guia-missoes">Missões</a><a href="#guia-tempo">Tempo estimado</a><a href="#guia-fontes">Fontes</a>
