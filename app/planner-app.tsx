@@ -524,7 +524,7 @@ function App({ children, account, accountEnabled, notice }: { children: React.Re
         return;
       }
 
-      await switchStorageScope(accountId);
+      switchStorageScope(accountId);
       if (!active) return;
       usePlannerStore.getState().setAccount(accountId);
       setMounted(true);

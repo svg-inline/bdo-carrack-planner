@@ -6,6 +6,8 @@ A rota `/` entrega no HTML um guia completo com Carracas, materiais, receitas, m
 
 Os dados de jogo usados nos cálculos ficam em `lib/data.ts` e não dependem de serviço externo nenhum. O único serviço externo em tempo de execução é o Supabase, e só para conta e sincronização do progresso: guia, cálculos e o planner sobre a cópia local continuam funcionando com ele fora do ar. Entrar e sair da conta são formulários `POST`, então também funcionam sem JavaScript. As decisões estão em `docs/adr/0001-contas-e-persistencia-na-nuvem.md`.
 
+O botão de login compartilhado em `app/account-bar.tsx` exibe o símbolo oficial do Discord, obtido nos [assets da marca](https://discord.com/branding) e servido localmente por `next/image` a partir de `public/assets/discord.svg`. O ícone é decorativo; o texto “Entrar com Discord” mantém o nome acessível da ação.
+
 Ler a sessão torna a rota `/` dinâmica: o guia continua entregue inteiro no HTML, mas montado a cada requisição em vez de na compilação.
 
 O catálogo marítimo mantém 27 missões diárias e 11 semanais de Iliya, Velia, Olho da Okilua e Terra do Amanhecer, conforme o levantamento em `docs/bdo-guia-quests.md`. Cada missão guarda a fonte consultada e o link correspondente.

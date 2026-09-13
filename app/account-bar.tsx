@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { Account } from "@/types";
 
 export interface AccountBarProps {
@@ -21,7 +22,12 @@ export default function AccountBar({ account, enabled, notice = null }: AccountB
         </>
       : <>
           <span className="account-who">Entre para guardar o progresso na sua conta e continuar em outro aparelho.</span>
-          <form method="post" action="/auth/login"><button className="button" type="submit">Entrar com Discord</button></form>
+          <form method="post" action="/auth/login">
+            <button className="button inline-flex items-center gap-2" type="submit">
+              <Image src="/assets/discord.svg" alt="" aria-hidden="true" width={65} height={48} className="h-auto w-6 shrink-0" />
+              Entrar com Discord
+            </button>
+          </form>
         </>}
     {notice ? <p className="account-notice" role="status">{notice}</p> : null}
   </div>;

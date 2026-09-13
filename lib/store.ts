@@ -221,15 +221,36 @@ export const usePlannerStore = create<PlannerStore>()(
   ),
 );
 
+/** Conteúdo de um escopo, lido direto do armazenamento, sem passar pelo estado em memória. */
+function readScope(name: string): unknown {
+  try {
+    const raw = window.localStorage.getItem(name);
+    return raw ? (JSON.parse(raw) as { state?: unknown }).state ?? null : null;
+  } catch {
+    storageFailed();
+    return null;
+  }
+}
+
+const EMPTY_SCOPE = { presets: [], activePresetId: null, pendingPresetIds: [], pendingRemovals: [], importedFor: [] };
+
 /**
  * Troca o espaço de armazenamento ao entrar ou sair da conta. Sem isso, sair num computador
  * compartilhado deixaria o progresso no cache para o próximo, e entrar com outra conta
  * misturaria dois jogadores no mesmo estado local. Ver ADR 0001, decisão 7.
+ *
+ * O destino é lido antes da troca e aplicado numa única escrita, de propósito. O `persist`
+ * grava em `options.name` a cada `setState`, então trocar o nome e só depois esvaziar o estado
+ * gravaria o vazio por cima do escopo de destino — apagando a marca de importação já feita e,
+ * pior, a fila de envio que tivesse sobrado de uma sessão fechada antes de salvar.
  */
-export async function switchStorageScope(accountId: string | null) {
-  usePlannerStore.persist.setOptions({ name: storageKeyFor(accountId) });
-  // Zustand não chama `merge` quando a chave nova está vazia, então o estado é esvaziado
-  // antes de hidratar: o que era do escopo anterior não pode sobrar em memória.
-  usePlannerStore.setState({ presets: [], activePresetId: null, pendingPresetIds: [], pendingRemovals: [], importedFor: [] });
-  await usePlannerStore.persist.rehydrate();
+export function switchStorageScope(accountId: string | null) {
+  const name = storageKeyFor(accountId);
+  const saved = readScope(name);
+  usePlannerStore.persist.setOptions({ name });
+  usePlannerStore.setState({
+    ...EMPTY_SCOPE,
+    ...normalizePersistedState(saved),
+    ...normalizeSyncQueues(saved),
+  });
 }

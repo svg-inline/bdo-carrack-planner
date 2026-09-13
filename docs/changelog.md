@@ -6,6 +6,7 @@ Todas as mudanças relevantes para usuários são registradas em `Unreleased`, n
 
 ### Added
 
+- Ícone do Discord no botão de login, tanto no planner quanto no guia sem JavaScript.
 - Conta pelo Discord: o progresso passa a ser salvo na nuvem e fica acessível em outro navegador ou aparelho. Entrar e sair funcionam sem JavaScript.
 - Aviso de alterações pendentes quando o salvamento na conta falha, com nova tentativa automática ao voltar a conexão. O progresso continua guardado no navegador enquanto isso.
 - Importação dos planos guardados no navegador para a conta, oferecida ao entrar. A importação cria cópias novas e não substitui nada do que já está na conta.
