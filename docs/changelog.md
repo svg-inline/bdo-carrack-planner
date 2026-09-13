@@ -14,6 +14,9 @@ Todas as mudanças relevantes para usuários são registradas em `Unreleased`, n
 - Materiais do conjunto de Shiro no inventário e no catálogo de obtenção: planta de construção de cada peça, madeira compensada de onda violenta, suporte elaborado e cola com traços de onda.
 - Fonte de obtenção por escavação de trabalhadores nos nós das ilhas.
 - Botão para remover o preset ativo direto no seletor lateral, para desfazer uma Carraca adicionada por engano.
+- Tempo estimado para concluir cada material, cada peça de equipamento, o conjunto de Shiro e a Carraca inteira, calculado a partir do que falta no inventário e do ritmo das missões, permuta, caça e processamento.
+- Ritmo diário de cada material e de cada missão recorrente no catálogo "Como obter", com a explicação do cálculo na aba Estratégia e no guia sem JavaScript.
+- O saldo de Moeda Corvo entra no tempo estimado: o que a compra sugerida resolve sai do que falta farmar e o prazo cai assim que as moedas ou o inventário mudam.
 
 ### Changed
 

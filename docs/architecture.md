@@ -18,6 +18,14 @@ Os materiais do conjunto de Shiro usam a categoria `carrack-gear`. Eles aparecem
 
 Nomes de itens, ícones e ilhas das oficinas seguem o banco de dados do jogo. Onde o [Guia de Melhorias em Navios](https://www.sa.playblackdesert.com/pt-br/Wiki?wikiNo=291) diverge — a planta da Proa de Shiro e o nome da peça de casco — a divergência está registrada no texto exibido ao usuário.
 
+## Tempo estimado
+
+`lib/estimate.ts` transforma o que falta no inventário em prazo. Cada fonte de material vira um ritmo diário: missões diárias e semanais usam a quantidade declarada na própria recompensa, convertida para unidades por dia; recompensas de escolha compartilham as conclusões da missão entre as metas ainda pendentes, através do campo `group` das fontes, e voltam a render o valor cheio quando as concorrentes são concluídas. Permuta, caça, processamento e escavação não têm frequência fixa e usam `FARM_UNITS_PER_DAY`, uma estimativa única por dificuldade do material, contada uma vez por material porque disputam o mesmo tempo de jogo. Moeda Corvo não vira ritmo diário, porque é estoque: o que a compra sugerida por `purchasePlan` resolve com o saldo atual sai do que falta farmar, por `coinCoverage`, e encurta o prazo assim que o jogador informa as moedas.
+
+O prazo de um material é o que falta, menos o que o saldo de Moeda Corvo já compra, dividido pelo ritmo. Estoque, saldo e metas vêm do preset ativo, então qualquer alteração no inventário, nas moedas ou na Carraca escolhida recalcula os prazos na hora. O prazo de uma peça é o do material mais demorado da receita dela, comparado com o estoque atual, e cai para zero quando a peça já foi fabricada. O prazo da Carraca e o do conjunto de Shiro usam as metas somadas das categorias correspondentes, e não o maior prazo entre as peças, porque as quatro peças dividem os mesmos materiais. Fabricação e aprimoramento dependem de tentativas e ficam fora da conta; a interface declara isso na aba Estratégia e no guia sem JavaScript.
+
+Os prazos são heurísticas, como a dificuldade e a ordem de foco. Quantidades e frequências das missões seguem as fontes listadas em `lib/data.ts`.
+
 ## Presets e persistência
 
 O estado interativo é gerenciado pelo Zustand. O usuário cria um preset escolhendo uma das quatro Carracas e pode manter vários presets, inclusive do mesmo modelo. Inventário, equipamentos e missões pertencem ao preset, enquanto o seletor lateral define qual plano está ativo. O seletor lateral também permite remover o preset ativo, com confirmação; quando o último é removido, o planner volta à escolha da Carraca.
@@ -26,4 +34,4 @@ Os presets são salvos em `localStorage` com a chave `bdo-carrack-ledger-v1`. Pl
 
 ## Verificação
 
-Use `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` e `npm run test:e2e`. O fluxo E2E crítico valida o guia sem JavaScript, o carregamento das artes principais, a criação de presets diferentes e repetidos, o isolamento do progresso e a persistência após recarregar a página.
+Use `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` e `npm run test:e2e`. O fluxo E2E crítico valida o guia sem JavaScript, o carregamento das artes principais, a criação de presets diferentes e repetidos, o isolamento do progresso, a persistência após recarregar a página e o tempo estimado acompanhando o inventário.

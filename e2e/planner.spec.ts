@@ -70,6 +70,29 @@ test("creates different and repeated presets with independent persisted progress
   await expect(combatStock).toHaveValue("12");
 });
 
+test("estimates the remaining time and follows the inventory", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /Bravura/ }).click();
+
+  const heroEta = page.locator(".hero-stats div").filter({ hasText: "Tempo estimado" }).locator("strong");
+  await expect(heroEta).toHaveText(/≈ \d+ (dia|dias|semanas|meses)/);
+
+  await page.getByRole("button", { name: "Inventário" }).click();
+  const summaryEta = page.locator(".inventory-summary > div").filter({ hasText: "Tempo até a Carraca" }).locator("strong");
+  const before = await summaryEta.textContent();
+  const combatRow = page.locator(".inventory-material-row").filter({ hasText: "Artefato dos Piratas Cox(Combate)" });
+  await expect(combatRow.locator(".inventory-eta")).toHaveText(/≈/);
+
+  await combatRow.getByRole("spinbutton").fill("250");
+  await expect(combatRow.locator(".inventory-eta")).toHaveText("pronto");
+  await expect(summaryEta).not.toHaveText(before ?? "");
+
+  const cobaltRow = page.locator(".inventory-material-row").filter({ hasText: "Barra de Cobalto Brilhante" });
+  await expect(cobaltRow.locator(".inventory-eta")).toHaveText(/≈/);
+  await page.getByRole("spinbutton", { name: "Moedas Corvo" }).fill("300000");
+  await expect(cobaltRow.locator(".inventory-eta")).toHaveText("com moedas");
+});
+
 test("removes a preset added by mistake from the sidebar", async ({ page }) => {
   page.on("dialog", (dialog) => dialog.accept());
   await page.goto("/");

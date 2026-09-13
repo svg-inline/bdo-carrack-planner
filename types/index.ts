@@ -35,7 +35,10 @@ export interface Acquisition {
   type: AcquisitionType;
   label: string;
   detail?: string;
+  /** Unidades entregues por conclusão da missão. */
   yield?: number;
+  /** Recompensa de escolha: fontes do mesmo grupo disputam a mesma conclusão. */
+  group?: string;
 }
 
 export interface MaterialDefinition {

@@ -123,17 +123,30 @@ footer>div{display:flex;gap:14px}
 .carrack-stats-strip>div{padding:11px 12px;border-right:1px solid #283037}.carrack-stats-strip>div:last-child{border-right:0}
 .carrack-stats-strip span{display:block;color:#667078;font-size:7px;letter-spacing:.1em;text-transform:uppercase}.carrack-stats-strip strong{display:block;margin-top:4px;font:500 13px Georgia,serif;color:#d6ccbc}
 
-.inventory-summary{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid #373f45;background:#0f1418;margin-bottom:14px}
+.inventory-summary{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid #373f45;background:#0f1418;margin-bottom:14px}
 .inventory-summary>div{padding:14px 16px;border-right:1px solid #2b3237}.inventory-summary>div:last-child{border-right:0}
 .inventory-summary span{display:block;color:#697279;font-size:8px;text-transform:uppercase;letter-spacing:.1em}.inventory-summary strong{display:block;margin-top:5px;font:500 18px Georgia,serif;color:#e4dac8}
 .inventory-toolbar{gap:14px}.inventory-search{min-width:250px;background:#0b0f12;border:1px solid #374047;color:#e7dfd1;padding:9px 12px;font-size:10px}.inventory-search:focus{border-color:#846f3d}
 .inventory-table{border:1px solid #343c42;background:#0f1418}
-.inventory-head,.inventory-material-row{display:grid;grid-template-columns:minmax(320px,1.55fr) 130px 90px 100px 80px;align-items:center;gap:12px}
+.inventory-head,.inventory-material-row{display:grid;grid-template-columns:minmax(300px,1.5fr) 120px 84px 96px 74px 96px;align-items:center;gap:12px}
 .inventory-head{padding:10px 14px;border-bottom:1px solid #3a4147;color:#687179;font-size:8px;text-transform:uppercase;letter-spacing:.11em}
 .inventory-material-row{min-height:74px;padding:10px 14px;border-bottom:1px solid #262d32}.inventory-material-row:last-child{border-bottom:0}.inventory-material-row.complete{background:rgba(58,91,70,.07)}
 .inventory-item{min-width:0}.inventory-item>.item-label{font-size:11px;font-weight:700}.inventory-item .progress{width:180px;margin:7px 0 0 46px}
 .inventory-use{justify-self:start}.inventory-material-row>strong{text-align:right;font:500 15px Georgia,serif}
 .inventory-missing{color:#d5967f}.inventory-done{color:#79ae8e}
+.inventory-eta{text-align:right;font-size:9px;color:#a79a80}
+
+/* Prazos estimados */
+.hero-eta-note{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin:14px 0 0;color:#868f96;font-size:9px;line-height:1.5}
+.hero-eta-note .item-label{gap:7px;color:#c9ae65;font-size:9px}
+.panel-title-badges,.recipe-title-badges{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px}
+.gear-mini span.gear-mini-eta{color:#a38c55}
+.source-rate{display:block;margin-top:7px;color:#a38c55;font-size:8px;line-height:1.4}
+.estimate-rules{margin:0;padding-left:17px;color:#7f888f;font-size:9px;line-height:1.55}.estimate-rules li{margin:6px 0}
+.estimate-totals{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:15px}
+.estimate-totals>div{border:1px solid #30383e;background:#0d1216;padding:11px 12px}
+.estimate-totals span{display:block;color:#697279;font-size:8px;text-transform:uppercase;letter-spacing:.1em}
+.estimate-totals strong{display:block;margin-top:5px;font:500 16px Georgia,serif;color:#e1c56f}
 
 .source-filter-bar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;padding:8px;border:1px solid #30383e;background:#0d1216}
 .source-filter-bar button{border:1px solid transparent;background:transparent;color:#7c858c;padding:8px 11px;font-size:9px;cursor:pointer;text-transform:uppercase;letter-spacing:.06em}
@@ -150,14 +163,14 @@ footer>div{display:flex;gap:14px}
   .carrack-stats-strip{grid-template-columns:repeat(4,1fr)}
   .carrack-stats-strip>div:nth-child(4){border-right:0}
   .acquisition-card{grid-template-columns:1fr 1fr}.acquisition-sources{grid-column:1/3}
-  .inventory-head,.inventory-material-row{grid-template-columns:minmax(250px,1.4fr) 110px 70px 90px 70px}
+  .inventory-head,.inventory-material-row{grid-template-columns:minmax(230px,1.3fr) 100px 66px 84px 62px 86px}
 }
 @media (max-width:780px){
   .carrack-selector{grid-template-columns:1fr}
   .carrack-stats-strip{grid-template-columns:repeat(2,1fr)}
   .inventory-summary{grid-template-columns:1fr 1fr}.inventory-summary>div:nth-child(2){border-right:0}
   .inventory-toolbar{display:block}.inventory-search{width:100%;min-width:0;margin-top:8px}
-  .inventory-head{display:none}.inventory-material-row{grid-template-columns:1fr 90px}.inventory-item{grid-column:1/3}.inventory-use{grid-column:1/3}.inventory-material-row>strong:first-of-type{display:none}.inventory-item .progress{margin-left:46px}
+  .inventory-head{display:none}.inventory-material-row{grid-template-columns:1fr 90px}.inventory-eta{grid-column:1/3}.inventory-item{grid-column:1/3}.inventory-use{grid-column:1/3}.inventory-material-row>strong:first-of-type{display:none}.inventory-item .progress{margin-left:46px}
   .acquisition-card{grid-template-columns:1fr}.acquisition-sources{grid-column:auto;grid-template-columns:1fr}.used-in{border-left:0;border-top:1px solid #293137;padding:10px 0 0}.acquisition-numbers{margin-left:0}
   .branch-banner{align-items:flex-start;flex-wrap:wrap}
 }
@@ -209,7 +222,7 @@ footer,footer button{font-size:10px}
 .carrack-choice-image{width:112px;height:96px;object-fit:cover;filter:saturate(.75) brightness(.72)}
 .carrack-choice-copy{position:relative;z-index:1}.carrack-selector button .carrack-role{font-size:10px}.carrack-selector button strong{font-size:24px}.carrack-selector button small{font-size:11px}
 .carrack-stats-strip span{font-size:9px}.carrack-stats-strip strong{font-size:15px}
-.inventory-summary span{font-size:10px}.inventory-summary strong{font-size:21px}.inventory-search{font-size:12px;padding:11px 13px}.inventory-material-row{min-height:86px}.inventory-item>.item-label{font-size:13px}.inventory-material-row>strong{font-size:17px}
+.inventory-summary span{font-size:10px}.inventory-summary strong{font-size:18px}.inventory-eta{font-size:11px}.hero-eta-note,.hero-eta-note .item-label{font-size:11px}.source-rate{font-size:10px}.estimate-rules{font-size:12px}.estimate-totals span{font-size:10px}.estimate-totals strong{font-size:19px}.inventory-search{font-size:12px;padding:11px 13px}.inventory-material-row{min-height:86px}.inventory-item>.item-label{font-size:13px}.inventory-material-row>strong{font-size:17px}
 .acquisition-item>.item-label{font-size:16px}.acquisition-numbers span{font-size:10px}.acquisition-numbers strong{font-size:12px}.used-in>span{font-size:9px}.used-in small{font-size:11px}.source-card strong{font-size:11px}.source-card p{font-size:10px}.branch-banner span{font-size:10px}.branch-banner strong,.branch-banner em{font-size:13px}
 .gear-prep{font-size:11px;padding:12px 13px}.gear-prep .item-label{font-size:11px}
 .preset-setup-heading p:not(.eyebrow),.panel>p,.panel li,.panel summary{font-size:14px}

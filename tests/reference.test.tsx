@@ -18,5 +18,7 @@ describe("static planner guide", () => {
     expect(screen.getByText("27 missões diárias e 11 semanais em Iliya, Velia, Olho da Okilua e Terra do Amanhecer.")).toBeInTheDocument();
     expect(screen.getByText("Diária · [Permuta][Diário] Ilha de Iliya Agitada")).toBeInTheDocument();
     expect(screen.getByText("Semanal · Investigar a ecologia da área de Lyngbakr")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Como o tempo é estimado" })).toBeInTheDocument();
+    expect(screen.getAllByText(/Partindo do zero, os materiais da rota levam/)).toHaveLength(4);
   });
 });
