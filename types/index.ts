@@ -1,8 +1,8 @@
 export type CarrackTarget = "gradual" | "equilibrio" | "ascensao" | "bravura";
 export type ShipBranch = "caravel" | "galleass";
 export type GearKey = "figurehead" | "plating" | "cannon" | "sail";
-export type MaterialCategory = "carrack" | "blue-gear" | "enhancement";
-export type AcquisitionType = "daily" | "weekly" | "barter" | "crow" | "hunt" | "processing" | "market";
+export type MaterialCategory = "carrack" | "blue-gear" | "carrack-gear" | "enhancement";
+export type AcquisitionType = "daily" | "weekly" | "barter" | "crow" | "hunt" | "processing" | "workers" | "market";
 
 export type MaterialId =
   | "redSeaGold"
@@ -22,7 +22,14 @@ export type MaterialId =
   | "saltRock"
   | "brilliantPearl"
   | "abyssalEye"
-  | "waveStone";
+  | "waveStone"
+  | "violentWavePlywood"
+  | "polishedSupport"
+  | "waveAdhesive"
+  | "shiroFigureheadBlueprint"
+  | "shiroPlatingBlueprint"
+  | "shiroCannonBlueprint"
+  | "shiroSailBlueprint";
 
 export interface Acquisition {
   type: AcquisitionType;
@@ -51,6 +58,18 @@ export interface GearDefinition {
   materials: Partial<Record<MaterialId, number>>;
 }
 
+export interface CarrackGearDefinition {
+  name: string;
+  icon: string;
+  base: string;
+  baseIcon: string;
+  workshop: string;
+  blueprint: MaterialId;
+  blueprintSource: string;
+  permit: string;
+  materials: Partial<Record<MaterialId, number>>;
+}
+
 export interface CarrackDefinition {
   id: CarrackTarget;
   name: string;
@@ -74,6 +93,7 @@ export interface PlannerProfile {
   crowCoins: number;
   materials: Record<MaterialId, number>;
   gear: BranchGearState;
+  carrackGear: Record<GearKey, GearState>;
 }
 
 export interface PlannerPreset {

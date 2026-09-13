@@ -17,6 +17,7 @@ interface PlannerStore {
   setProfile: (patch: Partial<PlannerProfile>) => void;
   setMaterial: (id: MaterialId, value: number) => void;
   setGear: (branch: ShipBranch, key: GearKey, patch: Partial<GearState>) => void;
+  setCarrackGear: (key: GearKey, patch: Partial<GearState>) => void;
   toggleQuest: (id: string, resetKey: string) => void;
   resetAll: () => void;
 }
@@ -107,6 +108,16 @@ export const usePlannerStore = create<PlannerStore>()(
           },
         },
       }))),
+      setCarrackGear: (key, patch) => set((state) => updateActivePreset(state, (preset) => ({
+        ...preset,
+        profile: {
+          ...preset.profile,
+          carrackGear: {
+            ...preset.profile.carrackGear,
+            [key]: normalizeGear({ ...preset.profile.carrackGear[key], ...patch }),
+          },
+        },
+      }))),
       toggleQuest: (id, resetKey) => set((state) => updateActivePreset(state, (preset) => ({
         ...preset,
         completedQuests: { ...preset.completedQuests, [id]: preset.completedQuests[id] === resetKey ? "" : resetKey },
@@ -114,7 +125,7 @@ export const usePlannerStore = create<PlannerStore>()(
       resetAll: () => set({ presets: [], activePresetId: null }),
     }),
     {
-      name: "bdo-carrack-ledger-v1", version: 4, storage: safeStorage, skipHydration: true,
+      name: "bdo-carrack-ledger-v1", version: 5, storage: safeStorage, skipHydration: true,
       partialize: ({ presets, activePresetId }) => ({ presets, activePresetId }),
       migrate: normalizePersistedState,
       merge: (saved, current) => ({ ...current, ...normalizePersistedState(saved) }),

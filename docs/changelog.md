@@ -10,6 +10,9 @@ Todas as mudanças relevantes para usuários são registradas em `Unreleased`, n
 - Verificações automatizadas de lint, tipos, regras do planner, interface e fluxos críticos.
 - Aviso quando o navegador não permite salvar o progresso localmente.
 - Presets independentes para planejar várias Carracas, inclusive modelos repetidos.
+- Equipamento azul de Shiro da Carraca: aba própria, receitas, ícones oficiais das quatro peças de cada Carraca e acompanhamento de Toro +10, fabricação e aprimoramento.
+- Materiais do conjunto de Shiro no inventário e no catálogo de obtenção: planta de construção de cada peça, madeira compensada de onda violenta, suporte elaborado e cola com traços de onda.
+- Fonte de obtenção por escavação de trabalhadores nos nós das ilhas.
 
 ### Changed
 
@@ -17,6 +20,7 @@ Todas as mudanças relevantes para usuários são registradas em `Unreleased`, n
 - Estado salvo validado e normalizado antes de ser usado nos cálculos.
 - O planner agora começa pela escolha da Carraca de um novo preset e permite alternar entre todos os planos pelo seletor lateral.
 - Textos, ícones de materiais e imagens de equipamentos foram ampliados em todas as telas para melhorar a leitura.
+- O progresso da rota até a Carraca considera apenas os materiais da própria construção; o conjunto de Shiro tem progresso separado, por ser equipamento posterior.
 
 ### Removed
 

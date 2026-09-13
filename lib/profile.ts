@@ -30,6 +30,7 @@ export function createInitialProfile(target: CarrackTarget = "bravura"): Planner
     target, crowCoins: 0,
     materials: Object.fromEntries(MATERIALS.map((m) => [m.id, 0])) as Record<MaterialId, number>,
     gear: { caravel: emptySet(), galleass: emptySet() },
+    carrackGear: emptySet(),
   };
 }
 
@@ -46,11 +47,15 @@ export function normalizeProfile(value: unknown): PlannerProfile {
     const set = record(oldGear[branch] ?? (branch === "galleass" ? oldGear : null));
     for (const key of Object.keys(gear[branch]) as GearKey[]) gear[branch][key] = normalizeGear(set[key]);
   }
+  const rawCarrackGear = record(raw.carrackGear);
+  const carrackGear = initial.carrackGear;
+  for (const key of Object.keys(carrackGear) as GearKey[]) carrackGear[key] = normalizeGear(rawCarrackGear[key]);
   return {
     target,
     crowCoins: nonNegativeInteger(raw.crowCoins),
     materials: Object.fromEntries(MATERIALS.map((m) => [m.id, nonNegativeInteger(materials[m.id])])) as Record<MaterialId, number>,
     gear,
+    carrackGear,
   };
 }
 

@@ -3,8 +3,8 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { cva, type VariantProps } from "class-variance-authority";
-import { CARRACK_ORDER, CARRACKS, GEAR_SETS, MATERIALS, MATERIAL_BY_ID, QUESTS, SOURCES } from "@/lib/data";
-import { bottlenecks, getMissing, getRequired, materialCompletion, nextActions, overallCompletion, purchasePlan, questResetKey } from "@/lib/planner";
+import { CARRACK_GEAR_SETS, CARRACK_ORDER, CARRACKS, GEAR_SETS, MATERIALS, MATERIAL_BY_ID, QUESTS, SOURCES } from "@/lib/data";
+import { bottlenecks, carrackGearCompletion, getMissing, getRequired, materialCompletion, nextActions, overallCompletion, purchasePlan, questResetKey } from "@/lib/planner";
 import { usePlannerStore } from "@/lib/store";
 import type { Acquisition, AcquisitionType, CarrackTarget, GearKey, MaterialCategory, MaterialId, PlannerPreset, ShipBranch } from "@/types";
 
@@ -13,6 +13,7 @@ const tabs = [
   ["inventory", "Inventário"],
   ["materials", "Como obter"],
   ["gear", "Azuis +10"],
+  ["carrack-gear", "Shiro da Carraca"],
   ["quests", "Missões"],
   ["strategy", "Estratégia"],
 ] as const;
@@ -20,8 +21,8 @@ const tabs = [
 type Tab = (typeof tabs)[number][0];
 type SourceFilter = "all" | "missions" | "crow" | "processing" | "hunt" | "barter";
 
-const categoryLabel: Record<MaterialCategory, string> = { carrack: "Carraca", "blue-gear": "Equip. azul", enhancement: "Aprimoramento" };
-const sourceLabel: Record<AcquisitionType, string> = { daily: "Missão diária", weekly: "Missão semanal", barter: "Permuta", crow: "Comprar", hunt: "Drop / caça", processing: "Processar", market: "Mercado" };
+const categoryLabel: Record<MaterialCategory, string> = { carrack: "Carraca", "blue-gear": "Equip. azul", "carrack-gear": "Equip. Carraca", enhancement: "Aprimoramento" };
+const sourceLabel: Record<AcquisitionType, string> = { daily: "Missão diária", weekly: "Missão semanal", barter: "Permuta", crow: "Comprar", hunt: "Drop / caça", processing: "Processar", workers: "Trabalhadores", market: "Mercado" };
 const shipArt: Record<ShipBranch, { src: string; alt: string }> = {
   caravel: { src: "/assets/epheria-caravel.png", alt: "Navio Mercante de Epheria" },
   galleass: { src: "/assets/epheria-caravel.png", alt: "Contratorpedeiro de Epheria" },
@@ -47,9 +48,9 @@ function Progress({ value, className = "" }: { value: number; className?: string
 }
 const badgeVariants = cva("badge", {
   variants: { kind: {
-    default: "badge-default", gold: "badge-gold", red: "badge-red", blue: "badge-blue", done: "badge-done",
+    default: "badge-default", gold: "badge-gold", red: "badge-red", blue: "badge-blue", done: "badge-done", shiro: "badge-shiro",
     daily: "badge-daily", weekly: "badge-weekly", barter: "badge-barter", crow: "badge-crow",
-    hunt: "badge-hunt", processing: "badge-processing", market: "badge-market",
+    hunt: "badge-hunt", processing: "badge-processing", workers: "badge-workers", market: "badge-market",
   } }, defaultVariants: { kind: "default" },
 });
 function Badge({ children, kind }: { children: React.ReactNode } & VariantProps<typeof badgeVariants>) { return <span className={badgeVariants({ kind })}>{children}</span>; }
@@ -76,6 +77,13 @@ function MaterialLabel({ id, size = 28, className = "" }: { id: MaterialId; size
 
 function GearLabel({ branch, gearKey, base = false, size = 30, className = "" }: { branch: ShipBranch; gearKey: GearKey; base?: boolean; size?: number; className?: string }) {
   const gear = GEAR_SETS[branch][gearKey];
+  const label = base ? gear.base : gear.name;
+  const icon = base ? gear.baseIcon : gear.icon;
+  return <span className={`item-label ${className}`.trim()}><ItemIcon src={icon} alt={label} size={size} /><span className="item-label-text">{label}</span></span>;
+}
+
+function CarrackGearLabel({ target, gearKey, base = false, size = 30, className = "" }: { target: CarrackTarget; gearKey: GearKey; base?: boolean; size?: number; className?: string }) {
+  const gear = CARRACK_GEAR_SETS[target][gearKey];
   const label = base ? gear.base : gear.name;
   const icon = base ? gear.baseIcon : gear.icon;
   return <span className={`item-label ${className}`.trim()}><ItemIcon src={icon} alt={label} size={size} /><span className="item-label-text">{label}</span></span>;
@@ -153,6 +161,7 @@ function Overview() {
   const bluePct = Math.round(blue.reduce((s, m) => s + materialCompletion(profile, m.id), 0) / blue.length * 100);
   const carrackPct = Math.round(direct.reduce((s, m) => s + materialCompletion(profile, m.id), 0) / direct.length * 100);
   const gearSet = GEAR_SETS[carrack.branch];
+  const carrackGearSet = CARRACK_GEAR_SETS[profile.target];
 
   return <>
     <Header title="Rota para sua Carraca" subtitle="Cada preset mantém seu próprio inventário, equipamentos, missões e progresso." />
@@ -169,6 +178,8 @@ function Overview() {
     </div>
 
     <section className="panel gear-overview"><div className="panel-title"><div><span className="eyebrow">{carrack.sourceShip.toUpperCase()}</span><h3>Quatro equipamentos azuis obrigatórios</h3></div><Badge kind="blue">TODOS +10</Badge></div><div className="gear-mini-grid">{(Object.keys(gearSet) as GearKey[]).map((key) => { const state = profile.gear[carrack.branch][key]; const done = state.crafted && state.blueEnhancement >= 10; return <div className={`gear-mini ${done ? "done" : ""}`} key={key}><div><div className="item-heading"><GearLabel branch={carrack.branch} gearKey={key} size={34} /></div><span>{state.crafted ? `Azul +${state.blueEnhancement}` : `Base +${state.baseEnhancement} · não fabricada`}</span></div><em>{done ? "✓ PRONTA" : "PENDENTE"}</em></div>; })}</div></section>
+
+    <section className="panel gear-overview"><div className="panel-title"><div><span className="eyebrow">DEPOIS DA {carrack.shortName.toUpperCase()}</span><h3>Equipamento azul de Shiro</h3></div><Badge kind="shiro">{carrackGearCompletion(profile)}%</Badge></div><div className="gear-mini-grid">{(Object.keys(carrackGearSet) as GearKey[]).map((key) => { const state = profile.carrackGear[key]; const done = state.crafted && state.blueEnhancement >= 10; return <div className={`gear-mini ${done ? "done" : ""}`} key={key}><div><div className="item-heading"><CarrackGearLabel target={profile.target} gearKey={key} size={34} /></div><span>{state.crafted ? `Shiro +${state.blueEnhancement}` : `Toro +${state.baseEnhancement} · não fabricada`}</span></div><em>{done ? "✓ PRONTA" : "PENDENTE"}</em></div>; })}</div></section>
   </>;
 }
 
@@ -183,8 +194,8 @@ function Inventory() {
 
   return <><Header title="Inventário de materiais" subtitle="Informe tudo que já possui neste preset. O estoque alimenta todas as recomendações deste plano." />
     <div className="inventory-summary"><div><span>Plano atual</span><strong>{CARRACKS[profile.target].shortName}</strong></div><div><span>Materiais do plano</span><strong>{relevantCount}</strong></div><div><span>Concluídos</span><strong>{completed}</strong></div><div><span>Moedas Corvo</span><strong>{number(profile.crowCoins)}</strong></div></div>
-    <div className="toolbar inventory-toolbar"><div className="segmented"><button className={filter === "all" ? "active" : ""} onClick={() => setFilter("all")}>Todos</button><button className={filter === "blue-gear" ? "active" : ""} onClick={() => setFilter("blue-gear")}>Equip. azul</button><button className={filter === "carrack" ? "active" : ""} onClick={() => setFilter("carrack")}>Carraca</button><button className={filter === "enhancement" ? "active" : ""} onClick={() => setFilter("enhancement")}>Aprimoramento</button></div><input aria-label="Buscar material" className="inventory-search" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar material..." /></div>
-    <section className="inventory-table"><div className="inventory-head"><span>Item</span><span>Uso</span><span>Meta atual</span><span>Tenho</span><span>Falta</span></div>{rows.map((m) => { const required = getRequired(m.id, profile.target); const missing = getMissing(profile, m.id); const pct = required ? materialCompletion(profile, m.id) * 100 : 0; return <article className={`inventory-material-row ${required > 0 && missing === 0 ? "complete" : ""}`} key={m.id}><div className="inventory-item"><MaterialLabel id={m.id} size={38} /><Progress value={pct} /></div><span className="inventory-use"><Badge kind={m.category === "carrack" ? "gold" : m.category === "blue-gear" ? "blue" : "default"}>{categoryLabel[m.category]}</Badge></span><strong>{required ? number(required) : "—"}</strong><input aria-label={`Estoque de ${m.name}`} className="qty-input" type="number" min={0} value={profile.materials[m.id]} onChange={(e) => setMaterial(m.id, Number(e.target.value))} /><strong className={missing === 0 && required > 0 ? "inventory-done" : "inventory-missing"}>{required ? number(missing) : "—"}</strong></article>; })}</section>
+    <div className="toolbar inventory-toolbar"><div className="segmented"><button className={filter === "all" ? "active" : ""} onClick={() => setFilter("all")}>Todos</button><button className={filter === "blue-gear" ? "active" : ""} onClick={() => setFilter("blue-gear")}>Equip. azul</button><button className={filter === "carrack" ? "active" : ""} onClick={() => setFilter("carrack")}>Carraca</button><button className={filter === "carrack-gear" ? "active" : ""} onClick={() => setFilter("carrack-gear")}>Equip. Carraca</button><button className={filter === "enhancement" ? "active" : ""} onClick={() => setFilter("enhancement")}>Aprimoramento</button></div><input aria-label="Buscar material" className="inventory-search" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar material..." /></div>
+    <section className="inventory-table"><div className="inventory-head"><span>Item</span><span>Uso</span><span>Meta atual</span><span>Tenho</span><span>Falta</span></div>{rows.map((m) => { const required = getRequired(m.id, profile.target); const missing = getMissing(profile, m.id); const pct = required ? materialCompletion(profile, m.id) * 100 : 0; return <article className={`inventory-material-row ${required > 0 && missing === 0 ? "complete" : ""}`} key={m.id}><div className="inventory-item"><MaterialLabel id={m.id} size={38} /><Progress value={pct} /></div><span className="inventory-use"><Badge kind={m.category === "carrack" ? "gold" : m.category === "blue-gear" ? "blue" : m.category === "carrack-gear" ? "shiro" : "default"}>{categoryLabel[m.category]}</Badge></span><strong>{required ? number(required) : "—"}</strong><input aria-label={`Estoque de ${m.name}`} className="qty-input" type="number" min={0} value={profile.materials[m.id]} onChange={(e) => setMaterial(m.id, Number(e.target.value))} /><strong className={missing === 0 && required > 0 ? "inventory-done" : "inventory-missing"}>{required ? number(missing) : "—"}</strong></article>; })}</section>
   </>;
 }
 
@@ -201,11 +212,13 @@ function AcquisitionCatalog() {
   const gearSet = GEAR_SETS[carrack.branch];
   const materials = MATERIALS.filter((m) => m.category === "enhancement" || getRequired(m.id, profile.target) > 0).filter((m) => filter === "all" || m.sources.some((s) => sourceMatches(s, filter)));
 
+  const carrackGearSet = CARRACK_GEAR_SETS[profile.target];
   const usedIn = (id: MaterialId) => {
     const labels: string[] = [];
     if (MATERIAL_BY_ID[id].category === "carrack") labels.push(carrack.name);
     if (MATERIAL_BY_ID[id].category === "enhancement") labels.push("Aprimoramento dos equipamentos de navio");
     (Object.keys(gearSet) as GearKey[]).forEach((key) => { if (gearSet[key].materials[id]) labels.push(gearSet[key].name); });
+    (Object.keys(carrackGearSet) as GearKey[]).forEach((key) => { if (carrackGearSet[key].materials[id]) labels.push(carrackGearSet[key].name); });
     return labels;
   };
 
@@ -224,6 +237,18 @@ function Gear() {
   return <><Header title="Equipamentos azuis +10" subtitle={`${carrack.sourceShip} precisa das quatro peças azuis fabricadas e em +10 para chegar à ${carrack.shortName}.`} />
     <div className="branch-banner"><span>LINHA DE EXPANSÃO</span><strong>{carrack.sourceShip}</strong><i>→</i><em>{carrack.name}</em></div>
     <div className="gear-grid">{(Object.entries(gearSet) as [GearKey, typeof gearSet[GearKey]][]).map(([key, gear], idx) => { const state = profile.gear[branch][key]; const mats = Object.entries(gear.materials) as [MaterialId, number][]; const matsReady = mats.every(([id, qty]) => profile.materials[id] >= qty); return <section className="gear-card" key={key}><div className="gear-card-head"><div className="gear-ordinal">0{idx + 1}</div><div><span className="eyebrow">EQUIPAMENTO AZUL</span><h3><GearLabel branch={branch} gearKey={key} size={24} /></h3><p><GearLabel branch={branch} gearKey={key} base size={18} /></p></div><Badge kind={state.crafted && state.blueEnhancement >= 10 ? "done" : "default"}>{state.crafted && state.blueEnhancement >= 10 ? "PRONTA" : "EM PROGRESSO"}</Badge></div><div className="gear-controls"><label><span>Peça base</span><select value={state.baseEnhancement} onChange={(e) => setGear(branch, key, { baseEnhancement: Number(e.target.value) })}>{Array.from({ length: 11 }, (_, n) => <option value={n} key={n}>+{n}</option>)}</select></label><label className="crafted-check"><input type="checkbox" checked={state.crafted} onChange={(e) => setGear(branch, key, { crafted: e.target.checked })} /><span>Peça azul fabricada</span></label><label><span>Aprimoramento azul</span><select disabled={!state.crafted} value={state.blueEnhancement} onChange={(e) => setGear(branch, key, { blueEnhancement: Number(e.target.value) })}>{Array.from({ length: 11 }, (_, n) => <option value={n} key={n}>+{n}</option>)}</select></label></div><div className="gear-prep"><span><b>Peça base:</b> comprar com Philaberto Falasi no Porto de Epheria.</span><span><b>Aprimoramento:</b> <MaterialLabel id="waveStone" size={16} /> · níveis 0–5 usam 1 por tentativa; níveis 6–10 usam 2 por tentativa.</span></div><div className="recipe-list"><div className="recipe-title"><strong>Receita de fabricação</strong><Badge kind={matsReady ? "done" : "red"}>{matsReady ? "MATERIAIS OK" : "FALTAM MATERIAIS"}</Badge></div>{mats.map(([id, qty]) => { const have = profile.materials[id]; const ok = have >= qty; return <div className="recipe-row" key={id}><span className={ok ? "ok" : ""}>{ok ? "✓" : "·"}</span><div className="recipe-item"><MaterialLabel id={id} size={18} /></div><small>{number(have)} / {number(qty)}</small></div>; })}</div></section>; })}</div>
+  </>;
+}
+
+function CarrackGear() {
+  const profile = useActivePreset().profile;
+  const setCarrackGear = usePlannerStore((state) => state.setCarrackGear);
+  const carrack = CARRACKS[profile.target];
+  const gearSet = CARRACK_GEAR_SETS[profile.target];
+  const completion = carrackGearCompletion(profile);
+  return <><Header title="Equipamento de Shiro" subtitle={`Conjunto azul da própria ${carrack.shortName}, fabricado depois que a Carraca fica pronta. Cada peça parte da peça verde de Toro em +10.`} />
+    <div className="branch-banner"><span>EQUIPAMENTO DA CARRACA</span><strong>Toro (verde)</strong><i>→</i><em>Shiro (azul) · {completion}% concluído</em></div>
+    <div className="gear-grid">{(Object.entries(gearSet) as [GearKey, typeof gearSet[GearKey]][]).map(([key, gear], idx) => { const state = profile.carrackGear[key]; const mats = Object.entries(gear.materials) as [MaterialId, number][]; const matsReady = mats.every(([id, qty]) => profile.materials[id] >= qty); return <section className="gear-card" key={key}><div className="gear-card-head"><div className="gear-ordinal">0{idx + 1}</div><div><span className="eyebrow">EQUIPAMENTO DE SHIRO</span><h3><CarrackGearLabel target={profile.target} gearKey={key} size={24} /></h3><p><CarrackGearLabel target={profile.target} gearKey={key} base size={18} /></p></div><Badge kind={state.crafted && state.blueEnhancement >= 10 ? "done" : "shiro"}>{state.crafted && state.blueEnhancement >= 10 ? "PRONTA" : "EM PROGRESSO"}</Badge></div><div className="gear-controls"><label><span>Peça de Toro</span><select value={state.baseEnhancement} onChange={(e) => setCarrackGear(key, { baseEnhancement: Number(e.target.value) })}>{Array.from({ length: 11 }, (_, n) => <option value={n} key={n}>+{n}</option>)}</select></label><label className="crafted-check"><input type="checkbox" checked={state.crafted} onChange={(e) => setCarrackGear(key, { crafted: e.target.checked })} /><span>Peça de Shiro fabricada</span></label><label><span>Aprimoramento Shiro</span><select disabled={!state.crafted} value={state.blueEnhancement} onChange={(e) => setCarrackGear(key, { blueEnhancement: Number(e.target.value) })}>{Array.from({ length: 11 }, (_, n) => <option value={n} key={n}>+{n}</option>)}</select></label></div><div className="gear-prep"><span><b>Peça de Toro:</b> comprar com Lavinia, no Ninho do Corvo, e levar até +10.</span><span><b>Oficina:</b> {gear.workshop}.</span><span><b>Permissão:</b> {gear.permit} · comprar com Philaberto Falasi por Prata.</span><span><b>Aprimoramento:</b> <MaterialLabel id="waveStone" size={16} /> · mesmo consumo dos demais equipamentos de navio.</span></div><div className="recipe-list"><div className="recipe-title"><strong>Receita de fabricação</strong><Badge kind={matsReady ? "done" : "red"}>{matsReady ? "MATERIAIS OK" : "FALTAM MATERIAIS"}</Badge></div>{mats.map(([id, qty]) => { const have = profile.materials[id]; const ok = have >= qty; return <div className="recipe-row" key={id}><span className={ok ? "ok" : ""}>{ok ? "✓" : "·"}</span><div className="recipe-item"><MaterialLabel id={id} size={18} /></div><small>{number(have)} / {number(qty)}</small></div>; })}</div></section>; })}</div>
   </>;
 }
 
@@ -274,7 +299,7 @@ function App({ children }: { children: React.ReactNode }) {
     if (confirm(`Excluir o preset “${activePreset?.name}” e todo o progresso dele?`)) removePreset(activePresetId!);
   }
 
-  return <div className="app-shell"><Sidebar tab={tab} setTab={(nextTab) => { setCreatingPreset(false); setTab(nextTab); }} onAddPreset={showPresetCreator} /><main id="main-content" tabIndex={-1} ref={mainRef} className="content"><div className="content-inner">{creatingPreset ? <PresetSetup canCancel onClose={() => setCreatingPreset(false)} /> : <>{tab === "overview" && <Overview />}{tab === "inventory" && <Inventory />}{tab === "materials" && <AcquisitionCatalog />}{tab === "gear" && <Gear />}{tab === "quests" && <Quests />}{tab === "strategy" && <Strategy />}</>}</div><footer><span>Carrack Ledger · {presets.length} {presets.length === 1 ? "preset salvo" : "presets salvos"} neste navegador</span><div><button onClick={deleteActivePreset}>Excluir preset atual</button><button onClick={() => { if (confirm("Apagar todos os presets e progressos salvos?")) resetAll(); }}>Redefinir tudo</button></div></footer></main></div>;
+  return <div className="app-shell"><Sidebar tab={tab} setTab={(nextTab) => { setCreatingPreset(false); setTab(nextTab); }} onAddPreset={showPresetCreator} /><main id="main-content" tabIndex={-1} ref={mainRef} className="content"><div className="content-inner">{creatingPreset ? <PresetSetup canCancel onClose={() => setCreatingPreset(false)} /> : <>{tab === "overview" && <Overview />}{tab === "inventory" && <Inventory />}{tab === "materials" && <AcquisitionCatalog />}{tab === "gear" && <Gear />}{tab === "carrack-gear" && <CarrackGear />}{tab === "quests" && <Quests />}{tab === "strategy" && <Strategy />}</>}</div><footer><span>Carrack Ledger · {presets.length} {presets.length === 1 ? "preset salvo" : "presets salvos"} neste navegador</span><div><button onClick={deleteActivePreset}>Excluir preset atual</button><button onClick={() => { if (confirm("Apagar todos os presets e progressos salvos?")) resetAll(); }}>Redefinir tudo</button></div></footer></main></div>;
 }
 
 export default App;

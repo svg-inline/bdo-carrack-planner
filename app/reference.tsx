@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { CARRACK_ORDER, CARRACKS, GEAR_SETS, MATERIALS, MATERIAL_BY_ID, QUESTS, SOURCES } from "@/lib/data";
+import { CARRACK_GEAR_SETS, CARRACK_ORDER, CARRACKS, GEAR_SETS, MATERIALS, MATERIAL_BY_ID, QUESTS, SOURCES } from "@/lib/data";
 import type { GearKey, MaterialId } from "@/types";
 
 function Item({ id }: { id: MaterialId }) {
@@ -21,6 +21,7 @@ export default function Reference() {
     {CARRACK_ORDER.map((id) => {
       const carrack = CARRACKS[id];
       const gearSet = GEAR_SETS[carrack.branch];
+      const carrackGearSet = CARRACK_GEAR_SETS[id];
       return <section id={`guia-${id}`} className="panel scroll-mt-4" key={id}>
         <h2>{carrack.name}</h2><p>{carrack.sourceShip} → {carrack.shortName} · {carrack.role}</p><p>{carrack.description}</p>
         <details><summary className="cursor-pointer text-gold-bright">Materiais e quantidades para {carrack.shortName}</summary>
@@ -30,6 +31,16 @@ export default function Reference() {
           <div className="my-4 space-y-4">{(Object.keys(gearSet) as GearKey[]).map((key) => <article key={key}>
             <h3>{gearSet[key].name}</h3><p>Base: {gearSet[key].base}</p>
             <ul className="space-y-2">{(Object.entries(gearSet[key].materials) as [MaterialId, number][]).map(([material, qty]) => <li key={material}><Item id={material} /> · {qty}</li>)}</ul>
+          </article>)}</div>
+        </details>
+        <details><summary className="cursor-pointer text-gold-bright">Equipamento azul de Shiro da {carrack.shortName}</summary>
+          <p>Conjunto fabricado depois que a Carraca existe. Cada peça parte da peça verde de Toro em +10, comprada com Lavinia no Ninho do Corvo.</p>
+          <div className="my-4 space-y-4">{(Object.keys(carrackGearSet) as GearKey[]).map((key) => <article key={key}>
+            <h3>{carrackGearSet[key].name}</h3><p>Base: {carrackGearSet[key].base}</p>
+            <p>Oficina: {carrackGearSet[key].workshop}</p>
+            <p>Planta de construção: {carrackGearSet[key].blueprintSource}</p>
+            <p>Permissão: {carrackGearSet[key].permit}</p>
+            <ul className="space-y-2">{(Object.entries(carrackGearSet[key].materials) as [MaterialId, number][]).map(([material, qty]) => <li key={material}><Item id={material} /> · {qty}</li>)}</ul>
           </article>)}</div>
         </details>
       </section>;

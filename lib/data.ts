@@ -1,4 +1,4 @@
-import type { CarrackDefinition, CarrackTarget, GearDefinition, GearKey, MaterialDefinition, MaterialId, QuestDefinition, ShipBranch } from "@/types";
+import type { CarrackDefinition, CarrackGearDefinition, CarrackTarget, GearDefinition, GearKey, MaterialDefinition, MaterialId, QuestDefinition, ShipBranch } from "@/types";
 
 const req = (gradual: number, equilibrio: number, ascensao: number, bravura: number): Record<CarrackTarget, number> => ({ gradual, equilibrio, ascensao, bravura });
 
@@ -332,6 +332,98 @@ export const MATERIALS: MaterialDefinition[] = [
       { type: "crow", label: "Loja de Moeda Corvo", detail: "Baús/pacotes semanais conforme a loja atual." },
     ],
   },
+  {
+    id: "violentWavePlywood",
+    name: "Madeira compensada com gravação de uma onda violenta",
+    shortName: "Madeira compensada com gravação de uma onda violenta",
+    icon: "/assets/items/violent-wave-plywood.png",
+    category: "carrack-gear",
+    required: req(400, 400, 400, 400),
+    difficulty: 4,
+    sources: [
+      { type: "processing", label: "Fábrica — Escama da Besta Marinha Selvagem", detail: "Escama da Besta Marinha Selvagem x1 ou Escama do Crocodilo do Mar x1 na oficina de Shiro." },
+      { type: "hunt", label: "Criaturas Marinhas", detail: "Origem das escamas usadas na fabricação." },
+      { type: "crow", label: "Loja de Moeda Corvo", detail: "Comprar com Lavinia, no Ninho do Corvo." },
+    ],
+  },
+  {
+    id: "polishedSupport",
+    name: "Suporte com um acabamento elaborado",
+    shortName: "Suporte com um acabamento elaborado",
+    icon: "/assets/items/polished-support.png",
+    category: "carrack-gear",
+    required: req(400, 400, 400, 400),
+    difficulty: 4,
+    sources: [
+      { type: "processing", label: "Fábrica — Osso da Besta Marinha Selvagem", detail: "Osso da Besta Marinha Selvagem x1 ou Endurecedor de Luz Estrelar x1 na oficina de Shiro." },
+      { type: "weekly", label: "[Semanal] Caçador de Nineshark da Guilda Lua Minguante", detail: "Escolha de recompensa x1." },
+      { type: "hunt", label: "Criaturas Marinhas", detail: "Origem dos ossos usados na fabricação." },
+      { type: "crow", label: "Loja de Moeda Corvo", detail: "Comprar com Lavinia, no Ninho do Corvo." },
+    ],
+  },
+  {
+    id: "waveAdhesive",
+    name: "Cola com traços de onda",
+    shortName: "Cola com traços de onda",
+    icon: "/assets/items/wave-adhesive.png",
+    category: "carrack-gear",
+    required: req(400, 400, 400, 400),
+    difficulty: 4,
+    sources: [
+      { type: "processing", label: "Alquimia Simples — Essência de Criatura Marinha Cruel", detail: "Essência de Criatura Marinha Cruel x1 ou Emulsificante Luz Estrelar x1." },
+      { type: "daily", label: "[Diário] Bom para você, bom para mim", detail: "Escolha de recompensa x1." },
+      { type: "weekly", label: "[Semanal] Caçador de Dente de Aço Negro da Guilda Lua Minguante", detail: "Escolha de recompensa x1." },
+      { type: "crow", label: "Loja de Moeda Corvo", detail: "Comprar com Lavinia, no Ninho do Corvo." },
+    ],
+  },
+  {
+    id: "shiroFigureheadBlueprint",
+    name: "Planta de Construção: Proa de Shiro",
+    shortName: "Planta de Construção: Proa de Shiro",
+    icon: "/assets/items/blueprint-shiro-figurehead.png",
+    category: "carrack-gear",
+    required: req(10, 10, 10, 10),
+    difficulty: 5,
+    sources: [
+      { type: "workers", label: "Escavação na Ilha de Tinberra", detail: "Enviar trabalhadores ao nó da ilha. O guia oficial ainda cita a Ilha de Racid nesta linha." },
+    ],
+  },
+  {
+    id: "shiroPlatingBlueprint",
+    name: "Planta de Construção: Casco Negro de Shiro",
+    shortName: "Planta de Construção: Casco Negro de Shiro",
+    icon: "/assets/items/blueprint-shiro-plating.png",
+    category: "carrack-gear",
+    required: req(10, 10, 10, 10),
+    difficulty: 5,
+    sources: [
+      { type: "workers", label: "Escavação na Ilha de Lerao", detail: "Enviar trabalhadores ao nó da ilha." },
+    ],
+  },
+  {
+    id: "shiroCannonBlueprint",
+    name: "Planta de Construção: Canhão de Shiro",
+    shortName: "Planta de Construção: Canhão de Shiro",
+    icon: "/assets/items/blueprint-shiro-cannon.png",
+    category: "carrack-gear",
+    required: req(10, 10, 10, 10),
+    difficulty: 5,
+    sources: [
+      { type: "workers", label: "Escavação na Ilha de Al-Naha", detail: "Enviar trabalhadores ao nó da ilha." },
+    ],
+  },
+  {
+    id: "shiroSailBlueprint",
+    name: "Planta de Construção: Vela de Shiro",
+    shortName: "Planta de Construção: Vela de Shiro",
+    icon: "/assets/items/blueprint-shiro-sail.png",
+    category: "carrack-gear",
+    required: req(10, 10, 10, 10),
+    difficulty: 5,
+    sources: [
+      { type: "workers", label: "Escavação na Ilha de Racid", detail: "Enviar trabalhadores ao nó da ilha." },
+    ],
+  },
 ];
 
 export const MATERIAL_BY_ID = Object.fromEntries(MATERIALS.map((item) => [item.id, item])) as Record<MaterialId, MaterialDefinition>;
@@ -406,6 +498,44 @@ export const GEAR_SETS: Record<ShipBranch, Record<GearKey, GearDefinition>> = {
   },
 };
 
+// Equipamento de grau azul da própria Carraca (conjunto de Shiro), fabricado depois que a Carraca existe.
+// A peça base verde (Toro) é comprada com Lavinia; cada Carraca usa a sua própria versão da peça azul.
+const SHIRO_PIECES: Record<GearKey, { piece: string; base: string; baseIcon: string; workshop: string; blueprint: MaterialId }> = {
+  figurehead: { piece: "Proa de Shiro", base: "Carraca de Epheria: Proa de Toro +10", baseIcon: "/assets/gear/carrack/toro-figurehead.png", workshop: "Oficina de Proa de Shiro — Ilha de Tinberra", blueprint: "shiroFigureheadBlueprint" },
+  plating: { piece: "Casco Negro de Shiro", base: "Carraca de Epheria: Casco de Toro +10", baseIcon: "/assets/gear/carrack/toro-plating.png", workshop: "Oficina de Casco Negro de Shiro — Ilha de Lerao", blueprint: "shiroPlatingBlueprint" },
+  cannon: { piece: "Canhão de Shiro", base: "Carraca de Epheria: Canhão de Toro +10", baseIcon: "/assets/gear/carrack/toro-cannon.png", workshop: "Oficina de Canhão de Shiro — Ilha de Al-Naha", blueprint: "shiroCannonBlueprint" },
+  sail: { piece: "Vela de Shiro", base: "Carraca de Epheria: Vela de Toro +10", baseIcon: "/assets/gear/carrack/toro-sail.png", workshop: "Oficina de Vela de Shiro — Ilha de Racid", blueprint: "shiroSailBlueprint" },
+};
+
+// A permissão de alteração de peça ainda usa o nome antigo da linha veloz (Emergência).
+const PERMIT_NAME: Record<CarrackTarget, string> = { gradual: "Gradual", equilibrio: "Equilíbrio", ascensao: "Emergência", bravura: "Bravura" };
+
+const SHIRO_GEAR_KEYS = Object.keys(SHIRO_PIECES) as GearKey[];
+
+function carrackGearSet(target: CarrackTarget): Record<GearKey, CarrackGearDefinition> {
+  const entries = SHIRO_GEAR_KEYS.map((key) => {
+    const piece = SHIRO_PIECES[key];
+    const blueprint = MATERIAL_BY_ID[piece.blueprint];
+    const definition: CarrackGearDefinition = {
+      name: `Carraca de Epheria ${CARRACKS[target].shortName}: ${piece.piece}`,
+      icon: `/assets/gear/carrack/shiro-${target}-${key}.png`,
+      base: piece.base,
+      baseIcon: piece.baseIcon,
+      workshop: piece.workshop,
+      blueprint: piece.blueprint,
+      blueprintSource: blueprint.sources[0].label,
+      permit: `Permissão de alteração de peça da Carraca de Epheria: ${PERMIT_NAME[target]}`,
+      materials: { [piece.blueprint]: 10, violentWavePlywood: 100, polishedSupport: 100, waveAdhesive: 100 },
+    };
+    return [key, definition] as const;
+  });
+  return Object.fromEntries(entries) as Record<GearKey, CarrackGearDefinition>;
+}
+
+export const CARRACK_GEAR_SETS = Object.fromEntries(
+  CARRACK_ORDER.map((target) => [target, carrackGearSet(target)]),
+) as Record<CarrackTarget, Record<GearKey, CarrackGearDefinition>>;
+
 export const QUESTS: QuestDefinition[] = [
   {
     id: "daily-young-sea-king",
@@ -427,7 +557,7 @@ export const QUESTS: QuestDefinition[] = [
     location: "Olho de Okilua",
     objective: "Eliminar Perseguidor do Oceano ao noroeste do Olho de Okilua.",
     rewards: ["Moeda de Comemoração do Okilua x1", "Escolha: Madeira de Construção Envolto com um Brilho Azul Marinho x4 ou Cola com traços de onda x1"],
-    recommendedFor: ["blueMarineTimber"],
+    recommendedFor: ["blueMarineTimber", "waveAdhesive"],
     priority: 5,
     source: "BDO Codex",
   },
@@ -498,8 +628,8 @@ export const QUESTS: QuestDefinition[] = [
     npc: "Ravikel",
     location: "Olho de Okilua",
     objective: "Eliminar Nineshark x1.",
-    rewards: ["Moeda Corvo x500", "Escolha: Pedra Negra da Onda x60 / Olho Abissal x2 / Suporte com acabamento elaborado x1"],
-    recommendedFor: ["abyssalEye", "waveStone"],
+    rewards: ["Moeda Corvo x500", "Escolha: Pedra Negra da Onda x60 / Olho Abissal x2 / Suporte com um acabamento elaborado x1"],
+    recommendedFor: ["abyssalEye", "waveStone", "polishedSupport"],
     priority: 5,
     source: "Notas do Oceano / BDO Codex",
   },
@@ -511,7 +641,7 @@ export const QUESTS: QuestDefinition[] = [
     location: "Olho de Okilua",
     objective: "Eliminar Dente de Aço Negro x1.",
     rewards: ["Moeda Corvo x500", "Escolha: Pedra Negra da Onda x60 / Artefato dos Piratas Cox(Combate) x6 / Cola com traços de onda x1"],
-    recommendedFor: ["coxCombat", "waveStone"],
+    recommendedFor: ["coxCombat", "waveStone", "waveAdhesive"],
     priority: 5,
     source: "Notas do Oceano / BDO Codex",
   },

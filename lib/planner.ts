@@ -1,5 +1,18 @@
 import { CARRACKS, MATERIALS, MATERIAL_BY_ID } from "@/lib/data";
-import type { CarrackTarget, MaterialId, PlannerProfile } from "@/types";
+import type { CarrackTarget, GearState, MaterialDefinition, MaterialId, PlannerProfile } from "@/types";
+
+// Materiais consumidos para chegar até a Carraca. O conjunto de Shiro é equipamento posterior
+// e tem progresso próprio, por isso fica fora dos gargalos e do percentual da rota.
+export function isCarrackBuildMaterial(material: MaterialDefinition) {
+  return material.category === "blue-gear" || material.category === "carrack";
+}
+
+function gearScore(gear: GearState) {
+  const base = Math.min(1, gear.baseEnhancement / 10);
+  const crafted = gear.crafted ? 1 : 0;
+  const blue = gear.crafted ? Math.min(1, gear.blueEnhancement / 10) : 0;
+  return base * 0.25 + crafted * 0.25 + blue * 0.5;
+}
 
 export function getRequired(id: MaterialId, target: CarrackTarget) {
   return MATERIAL_BY_ID[id].required[target];
@@ -16,20 +29,20 @@ export function materialCompletion(profile: PlannerProfile, id: MaterialId) {
 }
 
 export function overallCompletion(profile: PlannerProfile) {
-  const relevant = MATERIALS.filter((m) => m.category !== "enhancement" && m.required[profile.target] > 0);
+  const relevant = MATERIALS.filter((m) => isCarrackBuildMaterial(m) && m.required[profile.target] > 0);
   const materialScore = relevant.length ? relevant.reduce((sum, m) => sum + materialCompletion(profile, m.id), 0) / relevant.length : 0;
   const branch = CARRACKS[profile.target].branch;
-  const gearScore = Object.values(profile.gear[branch]).reduce((sum, gear) => {
-    const base = Math.min(1, gear.baseEnhancement / 10);
-    const crafted = gear.crafted ? 1 : 0;
-    const blue = gear.crafted ? Math.min(1, gear.blueEnhancement / 10) : 0;
-    return sum + (base * 0.25 + crafted * 0.25 + blue * 0.5);
-  }, 0) / 4;
-  return Math.round((materialScore * 0.68 + gearScore * 0.32) * 100);
+  const branchGearScore = Object.values(profile.gear[branch]).reduce((sum, gear) => sum + gearScore(gear), 0) / 4;
+  return Math.round((materialScore * 0.68 + branchGearScore * 0.32) * 100);
+}
+
+export function carrackGearCompletion(profile: PlannerProfile) {
+  const pieces = Object.values(profile.carrackGear);
+  return Math.round(pieces.reduce((sum, gear) => sum + gearScore(gear), 0) / pieces.length * 100);
 }
 
 export function bottlenecks(profile: PlannerProfile) {
-  return MATERIALS.filter((m) => m.category !== "enhancement" && getMissing(profile, m.id) > 0)
+  return MATERIALS.filter((m) => isCarrackBuildMaterial(m) && getMissing(profile, m.id) > 0)
     .map((m) => {
       const required = getRequired(m.id, profile.target);
       const missing = getMissing(profile, m.id);

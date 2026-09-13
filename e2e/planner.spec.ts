@@ -20,7 +20,7 @@ test("loads the ship and equipment artwork in the overview", async ({ page }) =>
   await expect.poll(() => heroImage.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
 
   const equipmentImages = page.locator(".gear-mini .item-icon");
-  await expect(equipmentImages).toHaveCount(4);
+  await expect(equipmentImages).toHaveCount(8);
   await expect.poll(() => equipmentImages.evaluateAll((images: HTMLImageElement[]) => images.every((image) => image.complete && image.naturalWidth > 0))).toBe(true);
 });
 
