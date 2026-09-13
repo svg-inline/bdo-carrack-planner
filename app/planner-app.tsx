@@ -946,17 +946,18 @@ function Inventory() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | MaterialCategory>("all");
   const [sort, setSort] = useState<InventorySort | null>(null);
+  const [hideCompleted, setHideCompleted] = useState(false);
   const context = estimateContext(profile);
   const relevantCount = MATERIALS.filter(
     (m) => getRequired(m.id, profile.target) > 0,
   ).length;
-  const completed = MATERIALS.filter(
-    (m) =>
-      getRequired(m.id, profile.target) > 0 && getMissing(profile, m.id) === 0,
-  ).length;
+  const isMaterialDone = (m: MaterialDefinition) =>
+    getRequired(m.id, profile.target) > 0 && getMissing(profile, m.id) === 0;
+  const completed = MATERIALS.filter(isMaterialDone).length;
   const matches = MATERIALS.filter(
     (m) =>
       (filter === "all" || m.category === filter) &&
+      (!hideCompleted || !isMaterialDone(m)) &&
       m.name.toLowerCase().includes(query.trim().toLowerCase()),
   );
   // Com um filtro ativo, o prazo mostrado é o da categoria escolhida; sem filtro, o da rota inteira.
@@ -1037,6 +1038,14 @@ function Inventory() {
             Aprimoramento
           </button>
         </div>
+        <label className="hide-completed-toggle">
+          <input
+            type="checkbox"
+            checked={hideCompleted}
+            onChange={(e) => setHideCompleted(e.target.checked)}
+          />
+          <span>Ocultar concluídos</span>
+        </label>
         <input
           aria-label="Buscar material"
           className="inventory-search"
