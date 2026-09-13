@@ -533,6 +533,16 @@ const PERMIT_NAME: Record<CarrackTarget, string> = { gradual: "Gradual", equilib
 
 const SHIRO_GEAR_KEYS = Object.keys(SHIRO_PIECES) as GearKey[];
 
+/**
+ * As peças verdes de Toro são vendidas prontas com Lavinia, no Ninho do Corvo, e só saem por
+ * Moeda Corvo — não há missão nem permuta que as entregue. Por isso elas não são material de
+ * inventário: são uma decisão de saldo, e o preço fica aqui, ao lado das peças que as usam.
+ */
+export const CARRACK_PART_CROW_PRICE = 10_000;
+
+/** Proa, casco, canhão e vela: as quatro peças de Toro que a Carraca pode receber. */
+export const CARRACK_PART_COUNT = SHIRO_GEAR_KEYS.length;
+
 function carrackGearSet(target: CarrackTarget): Record<GearKey, CarrackGearDefinition> {
   const entries = SHIRO_GEAR_KEYS.map((key) => {
     const piece = SHIRO_PIECES[key];

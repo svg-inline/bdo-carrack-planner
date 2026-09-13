@@ -30,6 +30,33 @@ describe("formato do preset na nuvem", () => {
     expect(preset.completedQuests).toEqual({});
   });
 
+  it("mantém acelerando quem foi salvo antes da escolha de gasto da Moeda Corvo", () => {
+    const row = {
+      id: "44444444-4444-4444-8444-444444444444",
+      name: "Bravura antiga",
+      schema_version: PRESET_SCHEMA_VERSION - 1,
+      data: { profile: { crowCoins: 50_000 }, completedQuests: {} },
+    };
+
+    // Acelerar material é o que o planner sempre fez; reservar 40.000 moedas em peças, não.
+    expect(rowToPreset(row, 0)!.profile.crowSpend).toEqual({
+      carrackParts: false, carrackPartCount: 4, blueGear: true, carrackMaterials: true,
+    });
+  });
+
+  it("limita a quantidade de peças verdes gravada em um preset", () => {
+    const row = {
+      id: "55555555-5555-4555-8555-555555555555",
+      name: "Bravura",
+      schema_version: PRESET_SCHEMA_VERSION,
+      data: { profile: { crowSpend: { carrackParts: true, carrackPartCount: 9.7, blueGear: false } }, completedQuests: {} },
+    };
+
+    expect(rowToPreset(row, 0)!.profile.crowSpend).toEqual({
+      carrackParts: true, carrackPartCount: 4, blueGear: false, carrackMaterials: true,
+    });
+  });
+
   it("descarta registro sem identificador", () => {
     expect(rowToPreset({ name: "Sem id", data: {} }, 0)).toBeNull();
     expect(rowToPreset(null, 0)).toBeNull();

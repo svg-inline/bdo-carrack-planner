@@ -159,6 +159,17 @@ footer>div{display:flex;gap:14px}
 .estimate-totals span{display:block;color:#697279;font-size:8px;text-transform:uppercase;letter-spacing:.1em}
 .estimate-totals strong{display:block;margin-top:5px;font:500 16px Georgia,serif;color:#e1c56f}
 .purchase-gain{margin:11px 0 0;color:#8b939a;font-size:9px;line-height:1.55}.purchase-gain b{color:#e1c56f}
+.crow-spend{border:1px solid #343b40;background:#0d1216;padding:10px 12px;margin-bottom:6px}
+.crow-spend-title{display:block;color:#697279;font-size:8px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}
+.crow-spend-option{display:grid;grid-template-columns:auto 1fr auto;gap:9px;align-items:center;padding:8px 0;border-top:1px solid #21282d;cursor:pointer}
+.crow-spend-option input{accent-color:#b8974e;width:15px;height:15px;cursor:pointer;margin:0}
+.crow-spend-option strong{display:block;font-size:10px;color:#cdc3b2;font-weight:500}
+.crow-spend-option:hover strong{color:#dec678}
+.crow-spend-option small{display:block;margin-top:3px;color:#707981;font-size:9px;line-height:1.45}
+.crow-spend-option select{border:1px solid #3a424a;background:#121a20;color:#dec678;font-size:9px;padding:6px 7px;cursor:pointer}
+.crow-spend-option select:disabled{color:#5c646b;border-color:#272e33;cursor:not-allowed}
+.crow-spend-warning{margin:0 0 4px;color:#c6aa62;font-size:9px;line-height:1.5}.crow-spend-warning b{color:#e1c56f}
+.part-icons{display:flex;gap:2px}
 
 .source-filter-bar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;padding:8px;border:1px solid #30383e;background:#0d1216}
 .source-filter-bar button{border:1px solid transparent;background:transparent;color:#7c858c;padding:8px 11px;font-size:9px;cursor:pointer;text-transform:uppercase;letter-spacing:.06em}
@@ -235,7 +246,7 @@ footer,footer button{font-size:10px}
 .carrack-choice-image{width:112px;height:96px;object-fit:cover;filter:saturate(.75) brightness(.72)}
 .carrack-choice-copy{position:relative;z-index:1}.carrack-selector button .carrack-role{font-size:10px}.carrack-selector button strong{font-size:24px}.carrack-selector button small{font-size:11px}
 .carrack-stats-strip span{font-size:9px}.carrack-stats-strip strong{font-size:15px}
-.inventory-summary span{font-size:10px}.inventory-summary strong{font-size:18px}.inventory-eta{font-size:11px}.hero-eta-note,.hero-eta-note .item-label{font-size:11px}.source-rate{font-size:10px}.estimate-rules{font-size:12px}.purchase-gain{font-size:11px}.estimate-totals span{font-size:10px}.estimate-totals strong{font-size:19px}.inventory-search{font-size:12px;padding:11px 13px}.inventory-material-row{min-height:86px}.inventory-item>.item-label{font-size:13px}.inventory-material-row>strong{font-size:17px}
+.inventory-summary span{font-size:10px}.inventory-summary strong{font-size:18px}.inventory-eta{font-size:11px}.hero-eta-note,.hero-eta-note .item-label{font-size:11px}.source-rate{font-size:10px}.estimate-rules{font-size:12px}.purchase-gain{font-size:11px}.crow-spend-title{font-size:10px}.crow-spend-option strong{font-size:12px}.crow-spend-option small,.crow-spend-option select,.crow-spend-warning{font-size:11px}.estimate-totals span{font-size:10px}.estimate-totals strong{font-size:19px}.inventory-search{font-size:12px;padding:11px 13px}.inventory-material-row{min-height:86px}.inventory-item>.item-label{font-size:13px}.inventory-material-row>strong{font-size:17px}
 .acquisition-item>.item-label{font-size:16px}.acquisition-numbers span{font-size:10px}.acquisition-numbers strong{font-size:12px}.used-in>span{font-size:9px}.used-in small{font-size:11px}.source-card strong{font-size:11px}.source-card p{font-size:10px}.branch-banner span{font-size:10px}.branch-banner strong,.branch-banner em{font-size:13px}
 .gear-prep{font-size:11px;padding:12px 13px}.gear-prep .item-label{font-size:11px}
 .preset-setup-heading p:not(.eyebrow),.panel>p,.panel li,.panel summary{font-size:14px}

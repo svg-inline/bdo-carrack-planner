@@ -6,6 +6,7 @@ import {
   CARRACKS,
   CARRACK_GEAR_SETS,
   CARRACK_ORDER,
+  CARRACK_PART_COUNT,
   GEAR_SETS,
   MATERIALS,
   MATERIAL_BY_ID,
@@ -14,13 +15,12 @@ import {
   QUEST_CADENCES,
   SOURCES,
 } from "@/lib/data";
-import type { EstimateContext, MaterialEstimate } from "@/lib/estimate";
+import type { CoinPlan, EstimateContext, MaterialEstimate } from "@/lib/estimate";
 import {
   carrackGearEstimate,
   carrackGearSetEstimate,
   categoryEstimate,
   contextWithoutCoins,
-  daysForUnits,
   estimateContext,
   formatDuration,
   formatRate,
@@ -79,8 +79,6 @@ const tabs = [
   ["overview", "Visão geral"],
   ["inventory", "Inventário"],
   ["materials", "Como obter"],
-  ["gear", "Azuis +10"],
-  ["carrack-gear", "Shiro da Carraca"],
   ["quests", "Missões"],
   ["strategy", "Estratégia"],
 ] as const;
@@ -231,9 +229,6 @@ function etaKind(days: number) {
     : !Number.isFinite(days) || days > 30
       ? ("red" as const)
       : ("gold" as const);
-}
-function EtaBadge({ days }: { days: number }) {
-  return <Badge kind={etaKind(days)}>{etaText(days)}</Badge>;
 }
 // Quando o saldo de Moeda Corvo cobre tudo que falta, o material deixa de depender de farm.
 function materialEtaText(estimate: MaterialEstimate) {
@@ -1346,342 +1341,6 @@ function AcquisitionCatalog() {
   );
 }
 
-function Gear() {
-  const profile = useActivePreset().profile;
-  const setGear = usePlannerStore((state) => state.setGear);
-  const context = estimateContext(profile);
-  const carrack = CARRACKS[profile.target];
-  const branch = carrack.branch;
-  const gearSet = GEAR_SETS[branch];
-  return (
-    <>
-      <Header
-        title="Equipamentos azuis +10"
-        subtitle={`${carrack.sourceShip} precisa das quatro peças azuis fabricadas e em +10 para chegar à ${carrack.shortName}.`}
-      />
-      <div className="branch-banner">
-        <span>LINHA DE EXPANSÃO</span>
-        <strong>{carrack.sourceShip}</strong>
-        <i>→</i>
-        <em>{carrack.name}</em>
-      </div>
-      <div className="gear-grid">
-        {(
-          Object.entries(gearSet) as [GearKey, (typeof gearSet)[GearKey]][]
-        ).map(([key, gear], idx) => {
-          const state = profile.gear[branch][key];
-          const mats = Object.entries(gear.materials) as [MaterialId, number][];
-          const matsReady = mats.every(
-            ([id, qty]) => profile.materials[id] >= qty,
-          );
-          const eta = gearEstimate(profile, branch, key, context);
-          return (
-            <section className="gear-card" key={key}>
-              <div className="gear-card-head">
-                <div className="gear-ordinal">0{idx + 1}</div>
-                <div>
-                  <span className="eyebrow">EQUIPAMENTO AZUL</span>
-                  <h3>
-                    <GearLabel branch={branch} gearKey={key} size={24} />
-                  </h3>
-                  <p>
-                    <GearLabel branch={branch} gearKey={key} base size={18} />
-                  </p>
-                </div>
-                <Badge
-                  kind={
-                    state.crafted && state.blueEnhancement >= 10
-                      ? "done"
-                      : "default"
-                  }
-                >
-                  {state.crafted && state.blueEnhancement >= 10
-                    ? "PRONTA"
-                    : "EM PROGRESSO"}
-                </Badge>
-              </div>
-              <div className="gear-controls">
-                <label>
-                  <span>Peça base</span>
-                  <select
-                    value={state.baseEnhancement}
-                    onChange={(e) =>
-                      setGear(branch, key, {
-                        baseEnhancement: Number(e.target.value),
-                      })
-                    }
-                  >
-                    {Array.from({ length: 11 }, (_, n) => (
-                      <option value={n} key={n}>
-                        +{n}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="crafted-check">
-                  <input
-                    type="checkbox"
-                    checked={state.crafted}
-                    onChange={(e) =>
-                      setGear(branch, key, { crafted: e.target.checked })
-                    }
-                  />
-                  <span>Peça azul fabricada</span>
-                </label>
-                <label>
-                  <span>Aprimoramento azul</span>
-                  <select
-                    disabled={!state.crafted}
-                    value={state.blueEnhancement}
-                    onChange={(e) =>
-                      setGear(branch, key, {
-                        blueEnhancement: Number(e.target.value),
-                      })
-                    }
-                  >
-                    {Array.from({ length: 11 }, (_, n) => (
-                      <option value={n} key={n}>
-                        +{n}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <div className="gear-prep">
-                <span>
-                  <b>Peça base:</b> comprar com Philaberto Falasi no Porto de
-                  Epheria.
-                </span>
-                <span>
-                  <b>Aprimoramento:</b>{" "}
-                  <MaterialLabel id="waveStone" size={16} /> · níveis 0–5 usam 1
-                  por tentativa; níveis 6–10 usam 2 por tentativa.
-                </span>
-              </div>
-              <div className="recipe-list">
-                <div className="recipe-title">
-                  <strong>Receita de fabricação</strong>
-                  <div className="recipe-title-badges">
-                    <Badge kind={matsReady ? "done" : "red"}>
-                      {matsReady ? "MATERIAIS OK" : "FALTAM MATERIAIS"}
-                    </Badge>
-                    {!state.crafted && <EtaBadge days={eta.days} />}
-                  </div>
-                </div>
-                {mats.map(([id, qty]) => {
-                  const have = profile.materials[id];
-                  const ok = have >= qty;
-                  const rowMissing = Math.max(0, qty - have);
-                  const rowBought = Math.min(
-                    rowMissing,
-                    context.coverage[id] || 0,
-                  );
-                  const rowDays = daysForUnits(
-                    rowMissing - rowBought,
-                    materialRate(profile, id, context.quests).perDay,
-                  );
-                  return (
-                    <div className="recipe-row" key={id}>
-                      <span className={ok ? "ok" : ""}>{ok ? "✓" : "·"}</span>
-                      <div className="recipe-item">
-                        <MaterialLabel id={id} size={18} />
-                      </div>
-                      <small>
-                        {number(have)} / {number(qty)}
-                        {ok
-                          ? ""
-                          : rowBought >= rowMissing
-                            ? " · com moedas"
-                            : ` · ${etaText(rowDays)}`}
-                      </small>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          );
-        })}
-      </div>
-    </>
-  );
-}
-
-function CarrackGear() {
-  const profile = useActivePreset().profile;
-  const setCarrackGear = usePlannerStore((state) => state.setCarrackGear);
-  const context = estimateContext(profile);
-  const carrack = CARRACKS[profile.target];
-  const gearSet = CARRACK_GEAR_SETS[profile.target];
-  const completion = carrackGearCompletion(profile);
-  return (
-    <>
-      <Header
-        title="Equipamento de Shiro"
-        subtitle={`Conjunto azul da própria ${carrack.shortName}, fabricado depois que a Carraca fica pronta. Cada peça parte da peça verde de Toro em +10.`}
-      />
-      <div className="branch-banner">
-        <span>EQUIPAMENTO DA CARRACA</span>
-        <strong>Toro (verde)</strong>
-        <i>→</i>
-        <em>Shiro (azul) · {completion}% concluído</em>
-      </div>
-      <div className="gear-grid">
-        {(
-          Object.entries(gearSet) as [GearKey, (typeof gearSet)[GearKey]][]
-        ).map(([key, gear], idx) => {
-          const state = profile.carrackGear[key];
-          const mats = Object.entries(gear.materials) as [MaterialId, number][];
-          const matsReady = mats.every(
-            ([id, qty]) => profile.materials[id] >= qty,
-          );
-          const eta = carrackGearEstimate(profile, key, context);
-          return (
-            <section className="gear-card" key={key}>
-              <div className="gear-card-head">
-                <div className="gear-ordinal">0{idx + 1}</div>
-                <div>
-                  <span className="eyebrow">EQUIPAMENTO DE SHIRO</span>
-                  <h3>
-                    <CarrackGearLabel
-                      target={profile.target}
-                      gearKey={key}
-                      size={24}
-                    />
-                  </h3>
-                  <p>
-                    <CarrackGearLabel
-                      target={profile.target}
-                      gearKey={key}
-                      base
-                      size={18}
-                    />
-                  </p>
-                </div>
-                <Badge
-                  kind={
-                    state.crafted && state.blueEnhancement >= 10
-                      ? "done"
-                      : "shiro"
-                  }
-                >
-                  {state.crafted && state.blueEnhancement >= 10
-                    ? "PRONTA"
-                    : "EM PROGRESSO"}
-                </Badge>
-              </div>
-              <div className="gear-controls">
-                <label>
-                  <span>Peça de Toro</span>
-                  <select
-                    value={state.baseEnhancement}
-                    onChange={(e) =>
-                      setCarrackGear(key, {
-                        baseEnhancement: Number(e.target.value),
-                      })
-                    }
-                  >
-                    {Array.from({ length: 11 }, (_, n) => (
-                      <option value={n} key={n}>
-                        +{n}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="crafted-check">
-                  <input
-                    type="checkbox"
-                    checked={state.crafted}
-                    onChange={(e) =>
-                      setCarrackGear(key, { crafted: e.target.checked })
-                    }
-                  />
-                  <span>Peça de Shiro fabricada</span>
-                </label>
-                <label>
-                  <span>Aprimoramento Shiro</span>
-                  <select
-                    disabled={!state.crafted}
-                    value={state.blueEnhancement}
-                    onChange={(e) =>
-                      setCarrackGear(key, {
-                        blueEnhancement: Number(e.target.value),
-                      })
-                    }
-                  >
-                    {Array.from({ length: 11 }, (_, n) => (
-                      <option value={n} key={n}>
-                        +{n}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <div className="gear-prep">
-                <span>
-                  <b>Peça de Toro:</b> comprar com Lavinia, no Ninho do Corvo, e
-                  levar até +10.
-                </span>
-                <span>
-                  <b>Oficina:</b> {gear.workshop}.
-                </span>
-                <span>
-                  <b>Permissão:</b> {gear.permit} · comprar com Philaberto
-                  Falasi por Prata.
-                </span>
-                <span>
-                  <b>Aprimoramento:</b>{" "}
-                  <MaterialLabel id="waveStone" size={16} /> · mesmo consumo dos
-                  demais equipamentos de navio.
-                </span>
-              </div>
-              <div className="recipe-list">
-                <div className="recipe-title">
-                  <strong>Receita de fabricação</strong>
-                  <div className="recipe-title-badges">
-                    <Badge kind={matsReady ? "done" : "red"}>
-                      {matsReady ? "MATERIAIS OK" : "FALTAM MATERIAIS"}
-                    </Badge>
-                    {!state.crafted && <EtaBadge days={eta.days} />}
-                  </div>
-                </div>
-                {mats.map(([id, qty]) => {
-                  const have = profile.materials[id];
-                  const ok = have >= qty;
-                  const rowMissing = Math.max(0, qty - have);
-                  const rowBought = Math.min(
-                    rowMissing,
-                    context.coverage[id] || 0,
-                  );
-                  const rowDays = daysForUnits(
-                    rowMissing - rowBought,
-                    materialRate(profile, id, context.quests).perDay,
-                  );
-                  return (
-                    <div className="recipe-row" key={id}>
-                      <span className={ok ? "ok" : ""}>{ok ? "✓" : "·"}</span>
-                      <div className="recipe-item">
-                        <MaterialLabel id={id} size={18} />
-                      </div>
-                      <small>
-                        {number(have)} / {number(qty)}
-                        {ok
-                          ? ""
-                          : rowBought >= rowMissing
-                            ? " · com moedas"
-                            : ` · ${etaText(rowDays)}`}
-                      </small>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          );
-        })}
-      </div>
-    </>
-  );
-}
-
 function QuestCard({
   quest,
   group,
@@ -1867,8 +1526,93 @@ function Quests() {
   );
 }
 
+/**
+ * Onde o saldo de Moeda Corvo pode ser gasto. A peça verde é comprada pronta e reserva o
+ * saldo antes de tudo; acelerar material é opcional e separado por categoria, porque o
+ * jogador que está guardando moeda para as peças não quer o plano torrando o saldo em
+ * material que ele mesmo farma.
+ */
+function CrowSpendChoices({ profile, plan }: { profile: PlannerProfile; plan: CoinPlan }) {
+  const setCrowSpend = usePlannerStore((state) => state.setCrowSpend);
+  const spend = profile.crowSpend;
+  const parts = plan.parts;
+  return (
+    <div className="crow-spend">
+      <span className="crow-spend-title">Onde este saldo pode ser gasto</span>
+      <label className="crow-spend-option">
+        <input
+          aria-label="Comprar as peças verdes da Carraca"
+          type="checkbox"
+          checked={spend.carrackParts}
+          onChange={(e) => setCrowSpend({ carrackParts: e.target.checked })}
+        />
+        <div>
+          <strong>Comprar as peças verdes da Carraca</strong>
+          <small>
+            Peça de Toro, com Lavinia no Ninho do Corvo ·{" "}
+            {number(parts.unit)} moedas cada
+          </small>
+        </div>
+        <select
+          aria-label="Peças verdes compradas com moedas"
+          value={spend.carrackPartCount}
+          disabled={!spend.carrackParts}
+          onChange={(e) =>
+            setCrowSpend({ carrackPartCount: Number(e.target.value) })
+          }
+        >
+          {Array.from({ length: CARRACK_PART_COUNT + 1 }, (_, count) => (
+            <option key={count} value={count}>
+              {count === 1 ? "1 peça" : `${count} peças`}
+            </option>
+          ))}
+        </select>
+      </label>
+      {spend.carrackParts && parts.affordable < parts.count && (
+        <p className="crow-spend-warning">
+          O saldo paga <b>{number(parts.affordable)}</b> das{" "}
+          {number(parts.count)} peças. Faltam{" "}
+          <b>{number(parts.count * parts.unit - profile.crowCoins)}</b> moedas
+          para as demais.
+        </p>
+      )}
+      <label className="crow-spend-option">
+        <input
+          aria-label="Acelerar os materiais do equipamento azul"
+          type="checkbox"
+          checked={spend.blueGear}
+          onChange={(e) => setCrowSpend({ blueGear: e.target.checked })}
+        />
+        <div>
+          <strong>Acelerar os materiais do equipamento azul</strong>
+          <small>
+            Peças azuis do Navio Mercante e do Contratorpedeiro, exigidas para
+            chegar à Carraca
+          </small>
+        </div>
+      </label>
+      <label className="crow-spend-option">
+        <input
+          aria-label="Acelerar os materiais de construção da Carraca"
+          type="checkbox"
+          checked={spend.carrackMaterials}
+          onChange={(e) => setCrowSpend({ carrackMaterials: e.target.checked })}
+        />
+        <div>
+          <strong>Acelerar os materiais de construção da Carraca</strong>
+          <small>
+            Os itens verdes da própria melhoria, como o Sal de Rocha e o Olho
+            Abissal
+          </small>
+        </div>
+      </label>
+    </div>
+  );
+}
+
 function Strategy() {
   const profile = useActivePreset().profile;
+  const carrackGearSet = CARRACK_GEAR_SETS[profile.target];
   const hard = bottlenecks(profile);
   const context = estimateContext(profile);
   const plan = context.plan;
@@ -1896,29 +1640,61 @@ function Strategy() {
             a cada mudança de inventário ou de saldo. Confira sempre a aba Como
             obter antes de gastar.
           </p>
+          <CrowSpendChoices profile={profile} plan={plan} />
           <div className="purchase-list">
-            {plan.items.length ? (
-              plan.items.slice(0, 8).map((x, i) => (
-                <div className="purchase" key={x.id}>
-                  <span>0{i + 1}</span>
-                  <div>
-                    <div className="item-heading">
-                      <MaterialLabel id={x.id} size={18} />
+            {plan.parts.affordable > 0 && (
+              <div className="purchase">
+                <span>01</span>
+                <div>
+                  <div className="item-heading">
+                    <div className="part-icons">
+                      {(Object.keys(carrackGearSet) as GearKey[]).map((key) => (
+                        <ItemIcon
+                          key={key}
+                          src={carrackGearSet[key].baseIcon}
+                          alt={carrackGearSet[key].base}
+                          size={18}
+                        />
+                      ))}
                     </div>
-                    <small>
-                      {number(x.suggested)} un. × {number(x.unit)} moedas ·
-                      poupa {etaText(x.daysSaved)} de farm
-                    </small>
+                    <strong>Peças verdes da Carraca</strong>
                   </div>
-                  <em>{number(x.cost)}</em>
+                  <small>
+                    {number(plan.parts.affordable)} un. ×{" "}
+                    {number(plan.parts.unit)} moedas · reservadas antes de
+                    acelerar material
+                  </small>
                 </div>
-              ))
-            ) : (
-              <div className="empty-state">
-                Sem compra possível com o saldo atual ou sem materiais
-                pendentes.
+                <em>{number(plan.parts.cost)}</em>
               </div>
             )}
+            {plan.items.length
+              ? plan.items.slice(0, 8).map((x, i) => (
+                  <div className="purchase" key={x.id}>
+                    <span>
+                      {String(i + 1 + (plan.parts.affordable > 0 ? 1 : 0)).padStart(2, "0")}
+                    </span>
+                    <div>
+                      <div className="item-heading">
+                        <MaterialLabel id={x.id} size={18} />
+                      </div>
+                      <small>
+                        {number(x.suggested)} un. × {number(x.unit)} moedas ·
+                        poupa {etaText(x.daysSaved)} de farm
+                      </small>
+                    </div>
+                    <em>{number(x.cost)}</em>
+                  </div>
+                ))
+              : plan.parts.affordable === 0 && (
+                  <div className="empty-state">
+                    {!profile.crowSpend.blueGear &&
+                    !profile.crowSpend.carrackMaterials &&
+                    !profile.crowSpend.carrackParts
+                      ? "Nenhum destino liberado: marque acima onde as moedas podem ser gastas."
+                      : "Sem compra possível com o saldo atual ou sem materiais pendentes."}
+                  </div>
+                )}
           </div>
           <div className="purchase-total">
             <span>Saldo estimado após plano</span>
@@ -2288,8 +2064,6 @@ function App({
               {tab === "overview" && <Overview />}
               {tab === "inventory" && <Inventory />}
               {tab === "materials" && <AcquisitionCatalog />}
-              {tab === "gear" && <Gear />}
-              {tab === "carrack-gear" && <CarrackGear />}
               {tab === "quests" && <Quests />}
               {tab === "strategy" && <Strategy />}
             </>

@@ -1,6 +1,6 @@
-import { CARRACK_ORDER, CARRACKS, MATERIALS, QUESTS } from "@/lib/data";
+import { CARRACK_ORDER, CARRACK_PART_COUNT, CARRACKS, MATERIALS, QUESTS } from "@/lib/data";
 import { defaultActiveQuests, normalizeActiveQuests } from "@/lib/quests";
-import type { BranchGearState, CarrackTarget, GearKey, GearState, MaterialId, PlannerPreset, PlannerProfile, ShipBranch } from "@/types";
+import type { BranchGearState, CarrackTarget, CrowSpendPlan, GearKey, GearState, MaterialId, PlannerPreset, PlannerProfile, ShipBranch } from "@/types";
 
 export function nonNegativeInteger(value: unknown, maximum = Number.MAX_SAFE_INTEGER): number {
   return typeof value === "number" && Number.isFinite(value)
@@ -22,6 +22,22 @@ export function normalizeGear(value: unknown): GearState {
   };
 }
 
+/**
+ * Acelerar materiais é o comportamento que o planner sempre teve, então um preset salvo antes
+ * desta escolha continua com as duas categorias ligadas. Comprar as peças de Toro, não: são
+ * 10.000 moedas cada, e ligá-las sozinho reservaria o saldo de todo mundo sem ninguém pedir.
+ */
+export function normalizeCrowSpend(value: unknown): CrowSpendPlan {
+  const spend = record(value);
+  return {
+    carrackParts: spend.carrackParts === true,
+    carrackPartCount: typeof spend.carrackPartCount === "number"
+      ? nonNegativeInteger(spend.carrackPartCount, CARRACK_PART_COUNT) : CARRACK_PART_COUNT,
+    blueGear: spend.blueGear !== false,
+    carrackMaterials: spend.carrackMaterials !== false,
+  };
+}
+
 export function createInitialProfile(target: CarrackTarget = "bravura"): PlannerProfile {
   const emptySet = (): Record<GearKey, GearState> => ({
     figurehead: normalizeGear(null), plating: normalizeGear(null),
@@ -29,6 +45,7 @@ export function createInitialProfile(target: CarrackTarget = "bravura"): Planner
   });
   return {
     target, crowCoins: 0,
+    crowSpend: normalizeCrowSpend(null),
     materials: Object.fromEntries(MATERIALS.map((m) => [m.id, 0])) as Record<MaterialId, number>,
     gear: { caravel: emptySet(), galleass: emptySet() },
     carrackGear: emptySet(),
@@ -55,6 +72,7 @@ export function normalizeProfile(value: unknown): PlannerProfile {
   return {
     target,
     crowCoins: nonNegativeInteger(raw.crowCoins),
+    crowSpend: normalizeCrowSpend(raw.crowSpend),
     materials: Object.fromEntries(MATERIALS.map((m) => [m.id, nonNegativeInteger(materials[m.id])])) as Record<MaterialId, number>,
     gear,
     carrackGear,
