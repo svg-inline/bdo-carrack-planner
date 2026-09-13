@@ -3,7 +3,10 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CARRACK_GEAR_SETS, GEAR_SETS, MATERIALS } from "@/lib/data";
 
-const shipImages = ["/assets/epheria-caravel.png"];
+const standaloneImages = [
+  "/assets/epheria-caravel.png",
+  "/assets/items/ravencoin.png",
+];
 
 function publicPath(src: string) {
   return join(process.cwd(), "public", src.replace(/^\//, ""));
@@ -17,7 +20,7 @@ describe("local image assets", () => {
     const carrackGearImages = Object.values(CARRACK_GEAR_SETS).flatMap((gearSet) =>
       Object.values(gearSet).flatMap((gear) => [gear.icon, gear.baseIcon]),
     );
-    const sources = [...shipImages, ...MATERIALS.map((material) => material.icon), ...gearImages, ...carrackGearImages];
+    const sources = [...standaloneImages, ...MATERIALS.map((material) => material.icon), ...gearImages, ...carrackGearImages];
 
     for (const src of new Set(sources)) {
       const path = publicPath(src);

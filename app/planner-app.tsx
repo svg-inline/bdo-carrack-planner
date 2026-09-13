@@ -574,7 +574,15 @@ function Header({ title, subtitle }: { title: string; subtitle: string }) {
       </div>
       <div className="topbar-actions">
         <div className="coin-box">
-          <Sigil>◉</Sigil>
+          <Sigil>
+            <Image
+              className="crow-coin-icon"
+              src="/assets/items/ravencoin.png"
+              alt=""
+              width={44}
+              height={44}
+            />
+          </Sigil>
           <span>
             <small>Moeda Corvo</small>
             <input

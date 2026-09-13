@@ -29,6 +29,7 @@ Todas as mudanças relevantes para usuários são registradas em `Unreleased`, n
 
 ### Changed
 
+- O saldo de Moeda Corvo no cabeçalho passou a usar o ícone da moeda exibido no jogo.
 - Com a conta conectada, "Redefinir tudo" passa a limpar apenas este navegador; o progresso da conta continua salvo.
 - O progresso guardado no navegador passou a ser separado por conta, para que sair num computador compartilhado não deixe os planos para o próximo usuário.
 - Cabeçalho da tabela do inventário com texto maior e seta de ordenação destacada, para deixar claro quais colunas podem ser ordenadas.
