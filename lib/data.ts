@@ -23,12 +23,12 @@ export const CARRACKS: Record<CarrackTarget, CarrackDefinition> = {
   },
   ascensao: {
     id: "ascensao",
-    name: "Carraca de Epheria: Ascensão",
-    shortName: "Ascensão",
+    name: "Carraca de Epheria: Emergência",
+    shortName: "Emergência",
     branch: "galleass",
     sourceShip: "Contratorpedeiro de Epheria",
     role: "Velocidade / manobra",
-    description: "Linha veloz do Contratorpedeiro. O nome atual é Ascensão; algumas fontes antigas ainda exibem Emergência.",
+    description: "Linha veloz do Contratorpedeiro. O ID interno é 'ascensao' por compatibilidade; o nome exibido no jogo é Emergência.",
   },
   bravura: {
     id: "bravura",
