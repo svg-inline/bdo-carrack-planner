@@ -3,7 +3,8 @@ import { CADENCE_BY_ID, MATERIAL_BY_ID, MATERIALS, QUESTS, QUEST_BY_ID, QUEST_CA
 import { createInitialProfile } from "@/lib/profile";
 import {
   activeTrackOf, defaultActiveQuests, defaultTrackOf, isQuestAcquisition, isQuestActive,
-  normalizeActiveQuests, questCounts, questsOfGroup, setQuestActive, tracksOfGroup,
+  normalizeActiveQuests, normalizeQuestChoices, QUEST_CHOICE_BY_ID, questChoiceOf, questCounts,
+  questsOfGroup, setQuestActive, setQuestChoice, tracksOfGroup,
 } from "@/lib/quests";
 
 describe("current ocean quests", () => {
@@ -178,5 +179,56 @@ describe("missões que entram no cálculo", () => {
     expect(questCounts(profile, "daily").active).toBe(questCounts(profile, "daily").total - 4);
     expect(isQuestActive(profile, "daily-okilua-young-sea-king")).toBe(true);
     expect(isQuestActive(profile, "daily-okilua-kandidum")).toBe(false);
+  });
+});
+
+describe("recompensas de escolha", () => {
+  it("lê as opções da própria recompensa da missão", () => {
+    const choice = questChoiceOf("daily-okilua-charity");
+
+    expect(choice?.group).toBe("diario-a-guilda-nao-e-uma-instituicao-de-caridade");
+    expect(choice?.options).toEqual([
+      { id: "tideTimber", label: "Madeira de Construção com um brilho de onda", quantity: 5, material: "tideTimber" },
+      { id: "violentWavePlywood", label: "Madeira compensada com gravação de uma onda violenta", quantity: 1, material: "violentWavePlywood" },
+    ]);
+    // Missão de recompensa fixa não tem o que escolher.
+    expect(questChoiceOf("weekly-okilua-young-otters")).toBeNull();
+  });
+
+  it("mantém na lista a opção que o plano não acompanha", () => {
+    const foraDoPlano = questChoiceOf("daily-okilua-retribution-1")?.options.filter((option) => option.material === null);
+
+    expect(foraDoPlano).toEqual([
+      { id: "cola-com-memorias-do-mar-profundo", label: "Cola com Memórias do Mar Profundo", quantity: 16, material: null },
+    ]);
+  });
+
+  it("toda opção acompanhada tem a fonte correspondente no material", () => {
+    for (const choice of Object.values(QUEST_CHOICE_BY_ID)) {
+      for (const option of choice.options) {
+        if (!option.material) continue;
+        const source = MATERIAL_BY_ID[option.material].sources
+          .find((candidate) => isQuestAcquisition(candidate) && candidate.questId === choice.questId);
+
+        expect(source, `${choice.questId} / ${option.id}`).toMatchObject({ yield: option.quantity, group: choice.group });
+      }
+    }
+  });
+
+  it("normaliza escolhas salvas, antigas ou inválidas", () => {
+    expect(normalizeQuestChoices({ "daily-okilua-charity": "tideTimber" })).toEqual({ "daily-okilua-charity": "tideTimber" });
+    // Opção que a missão não oferece, missão sem escolha e valor inválido voltam ao automático.
+    expect(normalizeQuestChoices({ "daily-okilua-charity": "coxCombat" })).toEqual({});
+    expect(normalizeQuestChoices({ "weekly-okilua-young-otters": "seaweedStalk" })).toEqual({});
+    expect(normalizeQuestChoices({ "daily-okilua-charity": 3 })).toEqual({});
+    expect(normalizeQuestChoices(null)).toEqual({});
+  });
+
+  it("troca e desfaz a escolha do jogador", () => {
+    const escolhido = setQuestChoice({}, "daily-okilua-charity", "tideTimber");
+    const trocado = setQuestChoice(escolhido, "daily-okilua-charity", "violentWavePlywood");
+
+    expect(trocado).toEqual({ "daily-okilua-charity": "violentWavePlywood" });
+    expect(setQuestChoice(trocado, "daily-okilua-charity", null)).toEqual({});
   });
 });

@@ -27,7 +27,9 @@ import {
   gearEstimate,
   materialEstimate,
   materialRate,
+  questContext,
   questRatePerDay,
+  recommendedChoiceOption,
   shipEstimate,
 } from "@/lib/estimate";
 import {
@@ -44,6 +46,7 @@ import {
   groupsOfCadence,
   isQuestAcquisition,
   isQuestActive,
+  questChoiceOf,
   questCounts,
   questsOfGroup,
   tracksOfGroup,
@@ -66,6 +69,7 @@ import type {
   PlannerPreset,
   PlannerProfile,
   QuestCadence,
+  QuestChoice,
   QuestDefinition,
   QuestGroupDefinition,
   ShipBranch,
@@ -1147,25 +1151,40 @@ function sourceMatches(source: Acquisition, filter: SourceFilter) {
  */
 function SourceCard({
   source,
+  materialId,
   context,
   farmPerDay,
   covered,
 }: {
   source: Acquisition;
+  materialId: MaterialId;
   context: EstimateContext;
   farmPerDay: number;
   covered: number;
 }) {
   const quest = isQuestAcquisition(source) ? QUEST_BY_ID[source.questId] : null;
   const inactive = quest !== null && !context.quests.active.has(quest.id);
-  const perDay = questRatePerDay(source, context.quests);
+  const perDay = questRatePerDay(source, context.quests, materialId);
   const potential =
     quest && inactive
-      ? questRatePerDay(source, {
-          ...context.quests,
-          active: new Set([...context.quests.active, quest.id]),
-        })
+      ? questRatePerDay(
+          source,
+          {
+            ...context.quests,
+            active: new Set([...context.quests.active, quest.id]),
+          },
+          materialId,
+        )
       : 0;
+  // Escolha do jogador apontada para outro item desta mesma missão.
+  const chosenElsewhere =
+    quest && !inactive && context.quests.choices[quest.id] !== undefined
+      ? questChoiceOf(quest.id)?.options.find(
+          (option) =>
+            option.id === context.quests.choices[quest.id] &&
+            option.material !== materialId,
+        ) ?? null
+      : null;
   return (
     <div
       className={`source-card source-${source.type} ${inactive ? "source-inactive" : ""}`.trim()}
@@ -1183,6 +1202,12 @@ function SourceCard({
         <small className="source-rate">
           {quest.npc} · marque esta missão na aba Missões para somar ≈{" "}
           {formatRate(potential)} ao ritmo
+        </small>
+      )}
+      {chosenElsewhere && (
+        <small className="source-rate">
+          A escolha desta missão está em {chosenElsewhere.label}; troque na aba
+          Missões para esta recompensa voltar a render
         </small>
       )}
       {!quest && source.type !== "crow" && farmPerDay > 0 && (
@@ -1327,6 +1352,7 @@ function AcquisitionCatalog() {
                   <SourceCard
                     key={`${source.type}-${index}`}
                     source={source}
+                    materialId={m.id}
                     context={context}
                     farmPerDay={rate.farmPerDay}
                     covered={estimate.covered}
@@ -1341,6 +1367,87 @@ function AcquisitionCatalog() {
   );
 }
 
+/**
+ * Recompensa de escolha da missão. O jogo entrega um item por conclusão, então o planner
+ * precisa saber qual: sem escolha ele divide a missão entre as metas pendentes, que é uma
+ * média, e não a rotina de ninguém. A sugestão aponta a meta mais demorada entre as opções.
+ */
+function QuestChoicePicker({
+  quest,
+  choice,
+  chosen,
+  recommended,
+  shared,
+}: {
+  quest: QuestDefinition;
+  choice: QuestChoice;
+  chosen: string | null;
+  recommended: string | null;
+  shared: boolean;
+}) {
+  const setQuestChoice = usePlannerStore((state) => state.setQuestChoice);
+  const chosenOption =
+    choice.options.find((option) => option.id === chosen) ?? null;
+  return (
+    <fieldset className="quest-choice">
+      <legend>Recompensa de escolha · escolha o item que você vai pegar</legend>
+      <div className="quest-choice-options">
+        <label
+          className={`quest-choice-option ${chosen ? "" : "picked"}`.trim()}
+        >
+          <input
+            type="radio"
+            name={`quest-choice-${quest.id}`}
+            checked={chosen === null}
+            onChange={() => setQuestChoice(quest.id, null)}
+          />
+          <span className="quest-choice-text">
+            <strong>Automático</strong>
+            <small>Divide a missão entre as metas que ainda faltam</small>
+          </span>
+        </label>
+        {choice.options.map((option) => (
+          <label
+            key={option.id}
+            className={`quest-choice-option ${chosen === option.id ? "picked" : ""}`.trim()}
+          >
+            <input
+              type="radio"
+              name={`quest-choice-${quest.id}`}
+              checked={chosen === option.id}
+              onChange={() => setQuestChoice(quest.id, option.id)}
+            />
+            {option.material && (
+              <ItemIcon
+                src={MATERIAL_BY_ID[option.material].icon}
+                alt=""
+                size={22}
+              />
+            )}
+            <span className="quest-choice-text">
+              <strong>
+                {option.label} <em>x{number(option.quantity)}</em>
+                {option.id === recommended && (
+                  <span className="quest-choice-tip"> (Recomendado)</span>
+                )}
+              </strong>
+              {!option.material && (
+                <small>Fora do plano: não entra no cálculo</small>
+              )}
+            </span>
+          </label>
+        ))}
+      </div>
+      {shared && chosenOption && (
+        <p className="quest-choice-note" role="status">
+          {chosenOption.label} já está concluído neste preset, então a missão
+          voltou a dividir a recompensa entre as metas que faltam.
+        </p>
+      )}
+    </fieldset>
+  );
+}
+
 function QuestCard({
   quest,
   group,
@@ -1349,6 +1456,10 @@ function QuestCard({
   resetKey,
   relevant,
   showTrack,
+  choice,
+  chosen,
+  recommended,
+  shared,
 }: {
   quest: QuestDefinition;
   group: QuestGroupDefinition;
@@ -1357,6 +1468,10 @@ function QuestCard({
   resetKey: string;
   relevant: boolean;
   showTrack: boolean;
+  choice: QuestChoice | null;
+  chosen: string | null;
+  recommended: string | null;
+  shared: boolean;
 }) {
   const toggleQuest = usePlannerStore((state) => state.toggleQuest);
   const setQuestActive = usePlannerStore((state) => state.setQuestActive);
@@ -1405,6 +1520,15 @@ function QuestCard({
             </span>
           ))}
         </div>
+        {choice && (
+          <QuestChoicePicker
+            quest={quest}
+            choice={choice}
+            chosen={chosen}
+            recommended={recommended}
+            shared={shared}
+          />
+        )}
         <small className="quest-source">
           Fonte:{" "}
           <a href={quest.sourceUrl} target="_blank" rel="noreferrer">
@@ -1429,6 +1553,7 @@ function Quests() {
   );
   const resetKey = questResetKey(cadence);
   const counts = questCounts(profile, cadence);
+  const quests = questContext(profile);
   // Os NPCs com missões ligadas aos gargalos do preset sobem na lista.
   const groups = groupsOfCadence(cadence)
     .map((group) => ({
@@ -1477,9 +1602,9 @@ function Quests() {
         preset. As demais continuam na lista, mas não geram ritmo.
       </p>
       <div className="quest-groups">
-        {groups.map(({ group, quests, tracks }) => {
+        {groups.map(({ group, quests: groupQuests, tracks }) => {
           const exclusive = group.selection === "one-track";
-          const activeCount = quests.filter((quest) =>
+          const activeCount = groupQuests.filter((quest) =>
             isQuestActive(profile, quest.id),
           ).length;
           return (
@@ -1497,26 +1622,40 @@ function Quests() {
                     {exclusive ? "TRILHA ÚNICA" : "ACUMULÁVEIS"}
                   </Badge>
                   <Badge kind={activeCount ? "done" : "default"}>
-                    {activeCount}/{quests.length} NO CÁLCULO
+                    {activeCount}/{groupQuests.length} NO CÁLCULO
                   </Badge>
                 </div>
               </header>
               {group.note && <p className="quest-group-note">{group.note}</p>}
               <div className="quest-list">
-                {quests.map((quest) => (
-                  <QuestCard
-                    key={quest.id}
-                    quest={quest}
-                    group={group}
-                    done={completedQuests[quest.id] === resetKey}
-                    active={isQuestActive(profile, quest.id)}
-                    resetKey={resetKey}
-                    relevant={quest.recommendedFor.some((id) =>
-                      hardIds.has(id),
-                    )}
-                    showTrack={exclusive && tracks.length > 1}
-                  />
-                ))}
+                {groupQuests.map((quest) => {
+                  const choice = questChoiceOf(quest.id);
+                  const chosen = profile.questChoices[quest.id] ?? null;
+                  return (
+                    <QuestCard
+                      key={quest.id}
+                      quest={quest}
+                      group={group}
+                      done={completedQuests[quest.id] === resetKey}
+                      active={isQuestActive(profile, quest.id)}
+                      resetKey={resetKey}
+                      relevant={quest.recommendedFor.some((id) =>
+                        hardIds.has(id),
+                      )}
+                      showTrack={exclusive && tracks.length > 1}
+                      choice={choice}
+                      chosen={chosen}
+                      recommended={
+                        choice
+                          ? recommendedChoiceOption(profile, quest.id, quests)
+                          : null
+                      }
+                      shared={
+                        chosen !== null && quests.choices[quest.id] === undefined
+                      }
+                    />
+                  );
+                })}
               </div>
             </section>
           );
@@ -1777,7 +1916,8 @@ function Strategy() {
             Ravikel — apenas a trilha escolhida rende.
           </li>
           <li>
-            Recompensa de escolha rende um item por conclusão, então o ritmo é
+            Recompensa de escolha rende um item por conclusão. Escolha o item na
+            aba Missões e ele leva a conclusão inteira; no automático, o ritmo é
             dividido entre as metas que ainda faltam e acelera quando uma delas
             fecha.
           </li>

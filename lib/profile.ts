@@ -1,5 +1,5 @@
 import { CARRACK_ORDER, CARRACK_PART_COUNT, CARRACKS, MATERIALS, QUESTS } from "@/lib/data";
-import { defaultActiveQuests, normalizeActiveQuests } from "@/lib/quests";
+import { defaultActiveQuests, normalizeActiveQuests, normalizeQuestChoices } from "@/lib/quests";
 import type { BranchGearState, CarrackTarget, CrowSpendPlan, GearKey, GearState, MaterialId, PlannerPreset, PlannerProfile, ShipBranch } from "@/types";
 
 export function nonNegativeInteger(value: unknown, maximum = Number.MAX_SAFE_INTEGER): number {
@@ -50,6 +50,7 @@ export function createInitialProfile(target: CarrackTarget = "bravura"): Planner
     gear: { caravel: emptySet(), galleass: emptySet() },
     carrackGear: emptySet(),
     activeQuests: defaultActiveQuests(),
+    questChoices: {},
   };
 }
 
@@ -77,6 +78,7 @@ export function normalizeProfile(value: unknown): PlannerProfile {
     gear,
     carrackGear,
     activeQuests: normalizeActiveQuests(raw.activeQuests),
+    questChoices: normalizeQuestChoices(raw.questChoices),
   };
 }
 

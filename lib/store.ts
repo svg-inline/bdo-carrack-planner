@@ -4,7 +4,7 @@ import { create } from "zustand";
 import { persist, type PersistStorage } from "zustand/middleware";
 import { CARRACKS } from "@/lib/data";
 import { createPreset, normalizeGear, normalizePersistedState, normalizeProfile } from "@/lib/profile";
-import { setQuestActive } from "@/lib/quests";
+import { setQuestActive, setQuestChoice } from "@/lib/quests";
 import { PRESET_SCHEMA_VERSION } from "@/lib/schema";
 import { LOCAL_STORAGE_KEY, mergePending, storageKeyFor } from "@/lib/sync";
 import type { CarrackTarget, CrowSpendPlan, GearKey, GearState, MaterialId, PlannerPreset, PlannerProfile, ShipBranch } from "@/types";
@@ -39,6 +39,7 @@ interface PlannerStore {
   setCarrackGear: (key: GearKey, patch: Partial<GearState>) => void;
   toggleQuest: (id: string, resetKey: string) => void;
   setQuestActive: (id: string, active: boolean) => void;
+  setQuestChoice: (id: string, optionId: string | null) => void;
   resetAll: () => void;
   setAccount: (accountId: string | null) => void;
   setSyncStatus: (status: SyncStatus) => void;
@@ -193,6 +194,10 @@ export const usePlannerStore = create<PlannerStore>()(
       setQuestActive: (id, active) => set((state) => updateActivePreset(state, (preset) => ({
         ...preset,
         profile: { ...preset.profile, activeQuests: setQuestActive(preset.profile.activeQuests, id, active) },
+      }))),
+      setQuestChoice: (id, optionId) => set((state) => updateActivePreset(state, (preset) => ({
+        ...preset,
+        profile: { ...preset.profile, questChoices: setQuestChoice(preset.profile.questChoices, id, optionId) },
       }))),
       // Limpa apenas este navegador. Apagar o que está na conta é ação separada e explícita,
       // para o botão de redefinir não virar exclusão remota sem o jogador esperar por isso.
