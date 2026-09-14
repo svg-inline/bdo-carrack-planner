@@ -72,6 +72,7 @@ export const MATERIALS: MaterialDefinition[] = [
     crowPrice: 40,
     sources: [
       { type: "daily", label: "[Permuta][Diário] Ilha de Iliya Agitada", detail: "Recompensa x10 ao concluir 15 permutas.", yield: 10, questId: "daily-iliya-agitated" },
+      { type: "daily", label: "[Diário] Pequena Retribuição da Guilda Lua Minguante I", detail: "Escolha de recompensa x20; alternativa à Pequena Retribuição II.", yield: 20, group: "pequena-retribuicao", questId: "daily-okilua-retribution-1" },
       { type: "hunt", label: "Criaturas Marinhas", detail: "Pode ser obtida eliminando criaturas marinhas." },
       { type: "barter", label: "Permuta de Mercadoria Marítima [Nível 4]", detail: "Material de navio em rotas de permuta." },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "40 Moedas Corvo por unidade." },
@@ -341,6 +342,9 @@ export const MATERIALS: MaterialDefinition[] = [
     required: req(0, 0, 0, 0),
     difficulty: 3,
     sources: [
+      { type: "daily", label: "[Diário] Caçador de Kandidum da Guilda Lua Minguante", detail: "Escolha de recompensa x14.", yield: 14, group: "diario-cacador-de-kandidum-da-guilda-lua-minguante", questId: "daily-okilua-kandidum" },
+      { type: "daily", label: "[Diário] Caçador de Nineshark da Guilda Lua Minguante", detail: "Escolha de recompensa x14.", yield: 14, group: "diario-cacador-de-nineshark-da-guilda-lua-minguante", questId: "daily-okilua-nineshark" },
+      { type: "daily", label: "[Diário] Caçador de Dente de Aço Negro da Guilda Lua Minguante", detail: "Escolha de recompensa x14.", yield: 14, group: "diario-cacador-de-dente-de-aco-negro-da-guilda-lua-minguante", questId: "daily-okilua-black-rust" },
       { type: "weekly", label: "[Semanal] Caçador de Kandidum", detail: "Escolha de recompensa x60.", yield: 60, group: "semanal-cacador-de-kandidum", questId: "weekly-okilua-kandidum" },
       { type: "weekly", label: "[Semanal] Caçador de Nineshark", detail: "Escolha de recompensa x60.", yield: 60, group: "semanal-cacador-de-nineshark", questId: "weekly-okilua-nineshark" },
       { type: "weekly", label: "[Semanal] Caçador de Dente de Aço Negro", detail: "Escolha de recompensa x60.", yield: 60, group: "semanal-cacador-de-dente-de-aco-negro", questId: "weekly-okilua-black-rust" },

@@ -1,6 +1,6 @@
 import { CADENCE_BY_ID, CARRACK_GEAR_SETS, CARRACK_PART_COUNT, CARRACK_PART_CROW_PRICE, GEAR_SETS, MATERIALS, MATERIAL_BY_ID } from "@/lib/data";
 import { getMissing, isCarrackBuildMaterial } from "@/lib/planner";
-import { activeQuestIds, isQuestAcquisition } from "@/lib/quests";
+import { activeQuestIds, isQuestAcquisition, questChoiceOf } from "@/lib/quests";
 import type { Acquisition, AcquisitionType, CrowSpendPlan, FarmAcquisitionType, GearKey, MaterialCategory, MaterialDefinition, MaterialId, PlannerProfile, QuestAcquisition, ShipBranch } from "@/types";
 
 // O tempo estimado assume um jogador que conclui em dia as missões que ele mesmo marcou
@@ -30,6 +30,24 @@ export interface QuestContext {
   active: Set<string>;
   /** Quantas metas pendentes disputam cada recompensa de escolha. */
   competitors: Record<string, number>;
+  /** Item que o jogador leva em cada missão de escolha, já descartadas as metas concluídas. */
+  choices: Record<string, string>;
+}
+
+/**
+ * Escolhas que o cálculo aplica de fato. Missão fora da rotina não entrega nada, e uma escolha
+ * apontando para uma meta já concluída volta ao automático: presa a um item pronto, a missão
+ * zeraria o ritmo das outras opções e o prazo apareceria sem estimativa, sem nada explicando.
+ */
+export function effectiveChoices(profile: PlannerProfile, active = activeQuestIds(profile)): Record<string, string> {
+  const choices: Record<string, string> = {};
+  for (const [questId, optionId] of Object.entries(profile.questChoices)) {
+    if (!active.has(questId)) continue;
+    const option = questChoiceOf(questId)?.options.find((candidate) => candidate.id === optionId);
+    if (!option || (option.material && getMissing(profile, option.material) <= 0)) continue;
+    choices[questId] = optionId;
+  }
+  return choices;
 }
 
 /**
@@ -37,12 +55,18 @@ export interface QuestContext {
  * entrega um item por conclusão, então o ritmo dela é dividido entre os materiais que
  * ainda faltam; conforme as metas são concluídas, os restantes recebem o ritmo cheio.
  */
-export function choiceCompetitors(profile: PlannerProfile, active = activeQuestIds(profile)): Record<string, number> {
+export function choiceCompetitors(
+  profile: PlannerProfile,
+  active = activeQuestIds(profile),
+  choices = effectiveChoices(profile, active),
+): Record<string, number> {
   const competitors: Record<string, number> = {};
   for (const material of MATERIALS) {
     if (getMissing(profile, material.id) <= 0) continue;
     for (const source of material.sources) {
       if (!isQuestSource(source) || !source.group || !active.has(source.questId)) continue;
+      // Missão com item escolhido não divide nada: ela entrega o item do jogador e mais nada.
+      if (choices[source.questId]) continue;
       competitors[source.group] = (competitors[source.group] || 0) + 1;
     }
   }
@@ -51,7 +75,8 @@ export function choiceCompetitors(profile: PlannerProfile, active = activeQuestI
 
 export function questContext(profile: PlannerProfile): QuestContext {
   const active = activeQuestIds(profile);
-  return { active, competitors: choiceCompetitors(profile, active) };
+  const choices = effectiveChoices(profile, active);
+  return { active, competitors: choiceCompetitors(profile, active, choices), choices };
 }
 
 export interface CoinPurchase {
@@ -210,9 +235,12 @@ export interface MaterialRate {
  * Ritmo diário de uma missão recorrente, já descontada a disputa por recompensas de escolha.
  * Missão fora da rotina escolhida pelo jogador não rende nada.
  */
-export function questRatePerDay(source: Acquisition, quests: QuestContext) {
+export function questRatePerDay(source: Acquisition, quests: QuestContext, materialId: MaterialId) {
   if (!isQuestSource(source) || !quests.active.has(source.questId)) return 0;
-  const share = source.group ? 1 / Math.max(1, quests.competitors[source.group] || 1) : 1;
+  const chosen = source.group ? quests.choices[source.questId] : undefined;
+  // Com o item escolhido, a conclusão inteira vai para ele; as outras opções não saem da missão.
+  const share = chosen ? (chosen === materialId ? 1 : 0)
+    : source.group ? 1 / Math.max(1, quests.competitors[source.group] || 1) : 1;
   return (source.yield * share) / CADENCE_BY_ID[source.type].periodDays;
 }
 
@@ -223,7 +251,7 @@ export function materialRate(profile: PlannerProfile, id: MaterialId, quests = q
     type: source.type,
     questId: source.questId,
     active: quests.active.has(source.questId),
-    perDay: questRatePerDay(source, quests),
+    perDay: questRatePerDay(source, quests, id),
   }));
   const questPerDay = sources.reduce((sum, quest) => sum + quest.perDay, 0);
   // Permuta, caça e processamento são alternativas do mesmo tempo de jogo: contam uma vez só.
@@ -234,6 +262,36 @@ export function materialRate(profile: PlannerProfile, id: MaterialId, quests = q
 export function daysForUnits(units: number, perDay: number) {
   if (units <= 0) return 0;
   return perDay > 0 ? units / perDay : Number.POSITIVE_INFINITY;
+}
+
+/**
+ * Opção que o planner sugere numa recompensa de escolha: entre as metas que ainda faltam, a
+ * que hoje demora mais para ficar pronta sem esta missão. Medir o prazo sem a própria missão é
+ * de propósito — a sugestão não pode mudar de lugar só porque o jogador aceitou a anterior.
+ */
+export function recommendedChoiceOption(profile: PlannerProfile, questId: string, quests = questContext(profile)): string | null {
+  const choice = questChoiceOf(questId);
+  if (!choice) return null;
+
+  let recommended: string | null = null;
+  let longest = -1;
+  let deepest = 0;
+  for (const option of choice.options) {
+    if (!option.material) continue;
+    const missing = getMissing(profile, option.material);
+    if (missing <= 0) continue;
+    const rate = materialRate(profile, option.material, quests);
+    const withoutQuest = rate.quests.reduce((sum, quest) => quest.questId === questId ? sum - quest.perDay : sum, rate.perDay);
+    const days = daysForUnits(missing, withoutQuest);
+    // Empate entre metas sem ritmo nenhum: vence a que exige mais conclusões desta missão.
+    const completions = missing / Math.max(1, option.quantity);
+    if (days > longest || (days === longest && completions > deepest)) {
+      recommended = option.id;
+      longest = days;
+      deepest = completions;
+    }
+  }
+  return recommended;
 }
 
 export interface MaterialEstimate {

@@ -1,5 +1,5 @@
-import { CADENCE_BY_ID, QUESTS, QUEST_BY_ID, QUEST_GROUPS, QUEST_GROUP_BY_ID } from "@/lib/data";
-import type { Acquisition, PlannerProfile, QuestAcquisition, QuestCadence, QuestDefinition, QuestGroupDefinition } from "@/types";
+import { CADENCE_BY_ID, MATERIALS, QUESTS, QUEST_BY_ID, QUEST_GROUPS, QUEST_GROUP_BY_ID } from "@/lib/data";
+import type { Acquisition, MaterialId, PlannerProfile, QuestAcquisition, QuestCadence, QuestChoice, QuestChoiceOption, QuestDefinition, QuestGroupDefinition } from "@/types";
 
 /** Toda fonte de missão carrega a missão de origem, então o vínculo é seguro de assumir. */
 export function isQuestAcquisition(source: Acquisition): source is QuestAcquisition {
@@ -111,4 +111,88 @@ export function questCounts(profile: PlannerProfile, cadence: QuestCadence) {
 /** Grupos de uma frequência, prontos para a aba Missões e para o guia sem JavaScript. */
 export function groupsOfCadence(cadence: QuestCadence): QuestGroupDefinition[] {
   return QUEST_GROUPS.filter((group) => group.cadence === cadence);
+}
+
+/**
+ * Recompensas de escolha. O catálogo já escreve a escolha na própria recompensa da missão —
+ * `Escolha: item xN / item xM` —, então é dela que sai a lista de opções: uma opção nova
+ * entra no planner no mesmo lugar em que o texto da missão é atualizado, sem catálogo paralelo.
+ */
+const CHOICE_PREFIX = "Escolha:";
+
+const MATERIAL_BY_NAME = new Map<string, MaterialId>();
+for (const material of MATERIALS) {
+  MATERIAL_BY_NAME.set(material.name.toLowerCase(), material.id);
+  MATERIAL_BY_NAME.set(material.shortName.toLowerCase(), material.id);
+}
+
+/** Apelido estável de uma opção que o planner não acompanha, usado como chave no preset. */
+function optionSlug(label: string) {
+  return label.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
+function parseChoiceOptions(reward: string): QuestChoiceOption[] {
+  return reward.slice(CHOICE_PREFIX.length).split("/").map((text) => {
+    const parts = text.trim().match(/^(.+?)\s*x(\d+)$/);
+    const label = (parts ? parts[1] : text).trim();
+    const material = MATERIAL_BY_NAME.get(label.toLowerCase()) ?? null;
+    return { id: material ?? optionSlug(label), label, quantity: parts ? Number(parts[2]) : 1, material };
+  });
+}
+
+/** Grupo de disputa das fontes que a missão entrega, quando o plano acompanha alguma opção. */
+function choiceGroupOf(questId: string): string | null {
+  for (const material of MATERIALS) {
+    for (const source of material.sources) {
+      if (isQuestAcquisition(source) && source.questId === questId && source.group) return source.group;
+    }
+  }
+  return null;
+}
+
+function readQuestChoice(quest: QuestDefinition): QuestChoice | null {
+  const reward = quest.rewards.find((item) => item.startsWith(CHOICE_PREFIX));
+  if (!reward) return null;
+  const options = parseChoiceOptions(reward);
+  // Uma `escolha` de uma opção só não é escolha: não há o que decidir nem o que disputar.
+  if (options.length < 2) return null;
+  return { questId: quest.id, group: choiceGroupOf(quest.id), options };
+}
+
+export const QUEST_CHOICE_BY_ID: Record<string, QuestChoice> = Object.fromEntries(
+  QUESTS.map((quest) => [quest.id, readQuestChoice(quest)]).filter((entry): entry is [string, QuestChoice] => entry[1] !== null),
+);
+
+/** Recompensa de escolha da missão, ou `null` quando a recompensa dela é fixa. */
+export function questChoiceOf(questId: string): QuestChoice | null {
+  return QUEST_CHOICE_BY_ID[questId] ?? null;
+}
+
+/** Opção escolhida pelo jogador nesta missão, ou `null` quando ele mantém o automático. */
+export function chosenOptionOf(profile: PlannerProfile, questId: string): QuestChoiceOption | null {
+  const choice = questChoiceOf(questId);
+  const id = profile.questChoices[questId];
+  return choice?.options.find((option) => option.id === id) ?? null;
+}
+
+/**
+ * Escolhas vindas do armazenamento, de uma versão antiga ou de um catálogo que mudou. Missão
+ * sem escolha e opção que a missão não oferece mais somem, e o que sobra volta ao automático.
+ */
+export function normalizeQuestChoices(value: unknown): Record<string, string> {
+  const raw = value !== null && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+  const choices: Record<string, string> = {};
+  for (const [questId, choice] of Object.entries(QUEST_CHOICE_BY_ID)) {
+    const chosen = raw[questId];
+    if (typeof chosen === "string" && choice.options.some((option) => option.id === chosen)) choices[questId] = chosen;
+  }
+  return choices;
+}
+
+/** Escolha do jogador nesta missão. `null` devolve a missão ao automático. */
+export function setQuestChoice(choices: Record<string, string>, questId: string, optionId: string | null): Record<string, string> {
+  const next = { ...choices };
+  if (optionId === null) delete next[questId];
+  else next[questId] = optionId;
+  return normalizeQuestChoices(next);
 }

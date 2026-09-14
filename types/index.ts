@@ -151,6 +151,11 @@ export interface PlannerProfile {
   carrackGear: Record<GearKey, GearState>;
   /** Missões que o jogador mantém na rotina e que, por isso, entram no ritmo estimado. */
   activeQuests: Record<string, boolean>;
+  /**
+   * Item que o jogador leva na recompensa de escolha de cada missão, por identificador de
+   * missão. Missão ausente do mapa segue no automático, dividindo a recompensa entre as metas.
+   */
+  questChoices: Record<string, string>;
 }
 
 export interface PlannerPreset {
@@ -211,6 +216,29 @@ export interface QuestDefinition extends Omit<QuestEntry, "track" | "defaultActi
   group: string;
   track: string;
   defaultActive: boolean;
+}
+
+/**
+ * Uma opção de uma recompensa de escolha, lida da própria recompensa da missão. Opções que o
+ * planner não acompanha existem no jogo e aparecem na lista: escolhê-las é dizer que aquela
+ * conclusão não rende nada para o plano.
+ */
+export interface QuestChoiceOption {
+  /** Chave guardada no preset: o material, quando o plano o acompanha, ou um apelido do nome. */
+  id: string;
+  /** Nome do item como a recompensa o escreve. */
+  label: string;
+  /** Unidades entregues por conclusão. */
+  quantity: number;
+  material: MaterialId | null;
+}
+
+/** Recompensa de escolha de uma missão, com as opções na ordem em que a missão as oferece. */
+export interface QuestChoice {
+  questId: string;
+  /** Grupo de disputa das fontes, quando alguma opção é material do plano. */
+  group: string | null;
+  options: QuestChoiceOption[];
 }
 
 /** Conta do jogador, vinda do Discord pelo Supabase Auth. Guardamos o mínimo para identificar. */

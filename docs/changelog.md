@@ -6,6 +6,7 @@ Todas as mudanças relevantes para usuários são registradas em `Unreleased`, n
 
 ### Added
 
+- Escolha do item que você pega nas missões de recompensa de escolha, na aba Missões: a conclusão inteira passa a contar para o item escolhido, em vez de ser dividida entre as metas que faltam. A opção sugerida leva o texto "(Recomendado)" e aponta a meta que hoje demora mais sem aquela missão. A escolha pertence ao preset; "Automático" mantém a divisão de antes, e uma escolha cuja meta já foi concluída volta sozinha ao automático.
 - Escolha de onde a Moeda Corvo pode ser gasta, na aba Estratégia: comprar as peças verdes de Toro da Carraca, com a quantidade de peças, e acelerar os materiais do equipamento azul e os da construção da Carraca, cada um com o seu próprio interruptor. A escolha pertence ao preset. As peças reservam o saldo antes de tudo, a 10.000 moedas cada, e o plano avisa quantas o saldo realmente paga.
 - Ícone do Discord no botão de login, tanto no planner quanto no guia sem JavaScript.
 - Conta pelo Discord: o progresso passa a ser salvo na nuvem e fica acessível em outro navegador ou aparelho. Entrar e sair funcionam sem JavaScript.
@@ -30,6 +31,8 @@ Todas as mudanças relevantes para usuários são registradas em `Unreleased`, n
 
 ### Changed
 
+- O catálogo "Como obter" avisa quando a recompensa de uma missão está escolhida em outro item, para explicar por que aquela fonte parou de render.
+- Fontes de obtenção completadas com as opções que faltavam nas recompensas de escolha: a Madeira Compensada Revestida de Rubus Aprimorada da Pequena Retribuição I e a Pedra Negra da Onda das três caçadas diárias da Guilda Lua Minguante.
 - O saldo de Moeda Corvo no cabeçalho passou a usar o ícone da moeda exibido no jogo.
 - Com a conta conectada, "Redefinir tudo" passa a limpar apenas este navegador; o progresso da conta continua salvo.
 - O progresso guardado no navegador passou a ser separado por conta, para que sair num computador compartilhado não deixe os planos para o próximo usuário.

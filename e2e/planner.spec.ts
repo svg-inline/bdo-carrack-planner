@@ -195,6 +195,35 @@ test("lets the player choose which quests feed the estimate", async ({ page }) =
   await expect(ravikel.locator(".quest-card").filter({ hasText: "Rei do Mar Jovem" }).getByRole("checkbox")).not.toBeChecked();
 });
 
+test("lets the player choose which reward a quest hands over", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /Bravura/ }).click();
+  await page.getByRole("button", { name: "Missões" }).click();
+
+  const caridade = page.locator(".quest-card").filter({ hasText: "A guilda não é uma instituição de caridade" });
+  const madeira = caridade.locator(".quest-choice-option").filter({ hasText: "Madeira de Construção com um brilho de onda" });
+  const compensada = caridade.locator(".quest-choice-option").filter({ hasText: "Madeira compensada com gravação de uma onda violenta" });
+
+  // O preset começa no automático, com a sugestão na meta mais demorada entre as opções.
+  await expect(caridade.locator(".quest-choice-option.picked")).toContainText("Automático");
+  await expect(compensada).toContainText("(Recomendado)");
+
+  await madeira.getByRole("radio").check();
+  await expect(madeira).toHaveClass(/picked/);
+
+  // A conclusão inteira passa a contar para o item escolhido, e a outra opção para de render.
+  await page.getByRole("button", { name: "Como obter" }).click();
+  const cardMadeira = page.locator(".acquisition-card").filter({ hasText: "Madeira de Construção com um brilho de onda" }).first();
+  await expect(cardMadeira.locator(".source-card").filter({ hasText: "caridade" })).toContainText("Rende ≈ 5/dia");
+  const cardCompensada = page.locator(".acquisition-card").filter({ hasText: "Madeira compensada com gravação de uma onda violenta" }).first();
+  await expect(cardCompensada.locator(".source-card").filter({ hasText: "caridade" })).toContainText("A escolha desta missão está em");
+
+  // A escolha pertence ao preset e sobrevive ao recarregamento.
+  await page.reload();
+  await page.getByRole("button", { name: "Missões" }).click();
+  await expect(caridade.locator(".quest-choice-option.picked")).toContainText("Madeira de Construção com um brilho de onda");
+});
+
 test("lets the player choose where the crow coins are spent", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: /Bravura/ }).click();

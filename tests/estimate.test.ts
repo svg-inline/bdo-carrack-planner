@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 import { CARRACK_GEAR_SETS, CARRACK_PART_COUNT, CARRACK_PART_CROW_PRICE, GEAR_SETS, MATERIALS, MATERIAL_BY_ID } from "@/lib/data";
 import { createInitialProfile } from "@/lib/profile";
 import { isCarrackBuildMaterial } from "@/lib/planner";
-import { setQuestActive } from "@/lib/quests";
+import { setQuestActive, setQuestChoice } from "@/lib/quests";
 import {
   carrackGearEstimate, carrackGearSetEstimate, categoryEstimate, choiceCompetitors, coinPlan, contextWithoutCoins, daysForUnits,
-  estimateContext, FARM_UNITS_PER_DAY, formatDuration, formatRate, gearEstimate, materialEstimate, materialRate,
-  partPurchase, questContext, questRatePerDay, shipEstimate,
+  effectiveChoices, estimateContext, FARM_UNITS_PER_DAY, formatDuration, formatRate, gearEstimate, materialEstimate, materialRate,
+  partPurchase, questContext, questRatePerDay, recommendedChoiceOption, shipEstimate,
 } from "@/lib/estimate";
 import type { MaterialId } from "@/types";
 
@@ -15,17 +15,19 @@ describe("ritmo de obtenção", () => {
     const profile = createInitialProfile("bravura");
     const rate = materialRate(profile, "enhancedPlywood");
 
-    // Ilha de Iliya Agitada entrega 10 por dia; caça e permuta valem um dia de farm de dificuldade 3.
-    expect(rate.questPerDay).toBe(10);
+    // Ilha de Iliya Agitada entrega 10 por dia e a Pequena Retribuição I oferece 20 na escolha,
+    // divididos entre as metas que a disputam; caça e permuta valem um dia de farm de dificuldade 3.
+    const escolha = 20 / choiceCompetitors(profile)["pequena-retribuicao"];
+    expect(rate.questPerDay).toBeCloseTo(10 + escolha);
     expect(rate.farmPerDay).toBe(FARM_UNITS_PER_DAY[3]);
-    expect(rate.perDay).toBe(10 + FARM_UNITS_PER_DAY[3]);
-    expect(formatRate(rate.perDay)).toBe("30/dia");
+    expect(rate.perDay).toBeCloseTo(10 + escolha + FARM_UNITS_PER_DAY[3]);
+    expect(formatRate(rate.perDay)).toBe("33,3/dia");
   });
 
   it("converte missão semanal em ritmo diário", () => {
     const otters = MATERIAL_BY_ID.seaweedStalk.sources.find((source) => source.type === "weekly");
 
-    expect(questRatePerDay(otters!, questContext(createInitialProfile("bravura")))).toBeCloseTo(45 / 7);
+    expect(questRatePerDay(otters!, questContext(createInitialProfile("bravura")), "seaweedStalk")).toBeCloseTo(45 / 7);
   });
 
   it("divide a recompensa de escolha entre as metas que ainda faltam", () => {
@@ -92,8 +94,9 @@ describe("prazo por material", () => {
     profile.materials.enhancedPlywood = 150;
     const half = materialEstimate(profile, "enhancedPlywood");
 
-    expect(full.days).toBeCloseTo(300 / 30);
-    expect(half.days).toBeCloseTo(150 / 30);
+    const perDay = materialRate(profile, "enhancedPlywood").perDay;
+    expect(full.days).toBeCloseTo(300 / perDay);
+    expect(half.days).toBeCloseTo(150 / perDay);
     expect(half.days).toBeLessThan(full.days);
   });
 
@@ -126,9 +129,9 @@ describe("prazo por peça e por navio", () => {
     expect(estimate.pending).toBe(recipe.length);
     expect(estimate.days).toBeCloseTo(slowest);
     expect(recipe.map(([id]) => id)).toContain(estimate.slowest);
-    // A receita pede 300 de madeira compensada e o ritmo estimado é de 30 por dia.
+    // A receita pede 300 de madeira compensada, no ritmo estimado do próprio material.
     expect(estimate.slowest).toBe("enhancedPlywood");
-    expect(estimate.days).toBeCloseTo(10);
+    expect(estimate.days).toBeCloseTo(300 / materialRate(profile, "enhancedPlywood").perDay);
   });
 
   it("ignora os materiais da peça já fabricada", () => {
@@ -374,5 +377,67 @@ describe("onde a Moeda Corvo pode ser gasta", () => {
     profile.crowSpend.carrackPartCount = 99;
 
     expect(partPurchase(profile).count).toBe(CARRACK_PART_COUNT);
+  });
+});
+
+describe("item escolhido na recompensa de escolha", () => {
+  const CHARITY = "daily-okilua-charity";
+  const rateOf = (profile: ReturnType<typeof createInitialProfile>, id: MaterialId, questId = CHARITY) =>
+    materialRate(profile, id).quests.find((quest) => quest.questId === questId)?.perDay;
+
+  it("entrega a conclusão inteira ao item escolhido", () => {
+    const profile = createInitialProfile("bravura");
+    // Sem escolha, a diária do Soldado é dividida entre as duas metas que ela oferece.
+    expect(rateOf(profile, "tideTimber")).toBeCloseTo(5 / 2);
+    expect(rateOf(profile, "violentWavePlywood")).toBeCloseTo(1 / 2);
+
+    profile.questChoices = setQuestChoice(profile.questChoices, CHARITY, "violentWavePlywood");
+
+    expect(rateOf(profile, "violentWavePlywood")).toBe(1);
+    expect(rateOf(profile, "tideTimber")).toBe(0);
+    expect(choiceCompetitors(profile)["diario-a-guilda-nao-e-uma-instituicao-de-caridade"]).toBeUndefined();
+  });
+
+  it("tira a missão da conta quando o item escolhido está fora do plano", () => {
+    const profile = createInitialProfile("bravura");
+    profile.questChoices = setQuestChoice(profile.questChoices, "daily-okilua-retribution-1", "cola-com-memorias-do-mar-profundo");
+
+    expect(questContext(profile).choices["daily-okilua-retribution-1"]).toBe("cola-com-memorias-do-mar-profundo");
+    for (const id of ["seaweedStalk", "redSeaGold", "purePearl", "reefPiece", "enhancedPlywood", "coxHigh"] as MaterialId[]) {
+      expect(rateOf(profile, id, "daily-okilua-retribution-1")).toBe(0);
+    }
+  });
+
+  it("volta ao automático quando a meta escolhida já está concluída", () => {
+    const profile = createInitialProfile("bravura");
+    profile.materials.violentWavePlywood = MATERIAL_BY_ID.violentWavePlywood.required.bravura;
+    profile.questChoices = setQuestChoice(profile.questChoices, CHARITY, "violentWavePlywood");
+
+    expect(effectiveChoices(profile)[CHARITY]).toBeUndefined();
+    // Sem concorrente pendente, a missão passa a render tudo para a meta que falta.
+    expect(rateOf(profile, "tideTimber")).toBe(5);
+  });
+
+  it("ignora a escolha de uma missão que o preset tirou da rotina", () => {
+    const profile = createInitialProfile("bravura");
+    profile.questChoices = setQuestChoice(profile.questChoices, "daily-okilua-kandidum", "waveStone");
+
+    // A trilha padrão do Ravikel é o Rei do Mar Jovem, então a caçada da Guilda não rende nada.
+    expect(effectiveChoices(profile)[CHARITY]).toBeUndefined();
+    expect(rateOf(profile, "violentWavePlywood", "daily-okilua-kandidum")).toBe(0);
+  });
+
+  it("sugere a meta que demora mais sem esta missão, e não muda por causa da escolha feita", () => {
+    const profile = createInitialProfile("bravura");
+    expect(recommendedChoiceOption(profile, CHARITY)).toBe("violentWavePlywood");
+
+    profile.questChoices = setQuestChoice(profile.questChoices, CHARITY, "tideTimber");
+    expect(recommendedChoiceOption(profile, CHARITY)).toBe("violentWavePlywood");
+
+    // Concluída a meta sugerida, a sugestão passa para a opção que ainda falta.
+    profile.materials.violentWavePlywood = MATERIAL_BY_ID.violentWavePlywood.required.bravura;
+    expect(recommendedChoiceOption(profile, CHARITY)).toBe("tideTimber");
+
+    expect(recommendedChoiceOption(profile, "weekly-okilua-young-otters")).toBeNull();
   });
 });

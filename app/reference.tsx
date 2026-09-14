@@ -89,7 +89,7 @@ export default function Reference({ account, accountEnabled, notice }: { account
       <p>Os prazos partem da quantidade que ainda falta e do ritmo de cada fonte. São estimativas do planner, não uma promessa de data.</p>
       <ul className="my-4 space-y-2">
         <li>Missões entram com a quantidade que a recompensa entrega, supondo que você as conclui em dia. No planner, só as missões que você marca contam, e onde o jogo obriga a escolher entre alternativas do mesmo NPC apenas a trilha escolhida rende.</li>
-        <li>Recompensa de escolha rende um item por conclusão, então o ritmo é dividido entre as metas que ainda faltam.</li>
+        <li>Recompensa de escolha rende um item por conclusão. No planner você escolhe qual item leva, e a conclusão inteira vai para ele; sem escolha, o ritmo é dividido entre as metas que ainda faltam.</li>
         <li>Permuta, caça, processamento e escavação não têm frequência fixa: valem uma estimativa por dificuldade do material, para um dia dedicado ao oceano.</li>
         <li>O saldo de Moeda Corvo encurta o prazo pelo que a compra sugerida resolve na hora, mas não vira ritmo diário. A compra vai primeiro para o material que segura o prazo, até ele empatar com o próximo da fila. No planner você decide onde o saldo pode ser gasto: comprar as peças verdes de Toro da Carraca, a 10.000 moedas cada, e acelerar os materiais do equipamento azul e os da construção da Carraca. Este guia mostra o prazo sem moedas.</li>
         <li>Os materiais são obtidos em paralelo, então o prazo é o do material mais demorado; fabricar e aprimorar as peças fica fora da conta.</li>

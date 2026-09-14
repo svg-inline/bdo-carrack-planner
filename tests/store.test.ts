@@ -150,3 +150,31 @@ describe("fila de envio para a conta", () => {
     expect(usePlannerStore.getState().importedFor).toEqual(["u1"]);
   });
 });
+
+describe("escolha de recompensa no preset", () => {
+  beforeEach(() => usePlannerStore.getState().resetAll());
+
+  it("guarda a escolha de cada preset separadamente", () => {
+    usePlannerStore.getState().addPreset("bravura");
+    const comEscolha = usePlannerStore.getState().activePresetId!;
+    usePlannerStore.getState().setQuestChoice("daily-okilua-charity", "violentWavePlywood");
+
+    usePlannerStore.getState().addPreset("bravura");
+    const presets = usePlannerStore.getState().presets;
+
+    expect(presets.find((preset) => preset.id === comEscolha)?.profile.questChoices)
+      .toEqual({ "daily-okilua-charity": "violentWavePlywood" });
+    expect(presets.at(-1)?.profile.questChoices).toEqual({});
+  });
+
+  it("desfaz a escolha e descarta opção que a missão não oferece", () => {
+    usePlannerStore.getState().addPreset("bravura");
+    usePlannerStore.getState().setQuestChoice("daily-okilua-charity", "violentWavePlywood");
+    usePlannerStore.getState().setQuestChoice("daily-okilua-charity", "coxCombat");
+    expect(usePlannerStore.getState().presets[0]?.profile.questChoices).toEqual({});
+
+    usePlannerStore.getState().setQuestChoice("daily-okilua-charity", "tideTimber");
+    usePlannerStore.getState().setQuestChoice("daily-okilua-charity", null);
+    expect(usePlannerStore.getState().presets[0]?.profile.questChoices).toEqual({});
+  });
+});
