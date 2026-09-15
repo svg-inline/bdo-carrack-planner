@@ -15,13 +15,12 @@ describe("ritmo de obtenção", () => {
     const profile = createInitialProfile("bravura");
     const rate = materialRate(profile, "enhancedPlywood");
 
-    // Ilha de Iliya Agitada entrega 10 por dia e a Pequena Retribuição I oferece 20 na escolha,
-    // divididos entre as metas que a disputam; caça e permuta valem um dia de farm de dificuldade 3.
-    const escolha = 20 / choiceCompetitors(profile)["pequena-retribuicao"];
-    expect(rate.questPerDay).toBeCloseTo(10 + escolha);
+    // Ilha de Iliya Agitada entrega 10 por dia de recompensa fixa; caça e permuta
+    // valem um dia de farm de dificuldade 3.
+    expect(rate.questPerDay).toBeCloseTo(10);
     expect(rate.farmPerDay).toBe(FARM_UNITS_PER_DAY[3]);
-    expect(rate.perDay).toBeCloseTo(10 + escolha + FARM_UNITS_PER_DAY[3]);
-    expect(formatRate(rate.perDay)).toBe("33,3/dia");
+    expect(rate.perDay).toBeCloseTo(10 + FARM_UNITS_PER_DAY[3]);
+    expect(formatRate(rate.perDay)).toBe("30/dia");
   });
 
   it("converte missão semanal em ritmo diário", () => {
@@ -32,18 +31,19 @@ describe("ritmo de obtenção", () => {
 
   it("divide a recompensa de escolha entre as metas que ainda faltam", () => {
     const profile = createInitialProfile("bravura");
-    const disputed = choiceCompetitors(profile)["pequena-retribuicao"];
+    const disputed = choiceCompetitors(profile)["semanal-cacador-de-kandidum"];
     const shared = materialRate(profile, "redSeaGold");
 
     expect(disputed).toBeGreaterThan(1);
-    expect(shared.questPerDay).toBeCloseTo(15 / 7 + 4 / disputed + (4 / 7) / 2);
+    // Lontras entrega 15 fixos por semana; a semanal do Kandidum divide a conclusão entre as metas.
+    expect(shared.questPerDay).toBeCloseTo(15 / 7 + (4 / disputed) / 7);
 
     // Com as outras metas da mesma escolha concluídas, a missão passa a render tudo para este material.
     const alone = createInitialProfile("bravura");
     for (const material of MATERIALS) {
       if (material.id !== "redSeaGold") alone.materials[material.id] = material.required.bravura;
     }
-    expect(materialRate(alone, "redSeaGold").questPerDay).toBeCloseTo(15 / 7 + 4 + 4 / 7);
+    expect(materialRate(alone, "redSeaGold").questPerDay).toBeCloseTo(15 / 7 + 4 / 7);
   });
 
   it("só conta as missões que o preset mantém na rotina", () => {
@@ -398,13 +398,15 @@ describe("item escolhido na recompensa de escolha", () => {
     expect(choiceCompetitors(profile)["diario-a-guilda-nao-e-uma-instituicao-de-caridade"]).toBeUndefined();
   });
 
-  it("tira a missão da conta quando o item escolhido está fora do plano", () => {
+  it("guarda a escolha de um item que o plano não acompanha, sem mexer em meta nenhuma", () => {
+    const ROUTE = "daily-okilua-route-monsters";
     const profile = createInitialProfile("bravura");
-    profile.questChoices = setQuestChoice(profile.questChoices, "daily-okilua-retribution-1", "cola-com-memorias-do-mar-profundo");
+    profile.questChoices = setQuestChoice(profile.questChoices, ROUTE, "agua-fresca-cristalina-de-okilua");
 
-    expect(questContext(profile).choices["daily-okilua-retribution-1"]).toBe("cola-com-memorias-do-mar-profundo");
-    for (const id of ["seaweedStalk", "redSeaGold", "purePearl", "reefPiece", "enhancedPlywood", "coxHigh"] as MaterialId[]) {
-      expect(rateOf(profile, id, "daily-okilua-retribution-1")).toBe(0);
+    expect(questContext(profile).choices[ROUTE]).toBe("agua-fresca-cristalina-de-okilua");
+    // As três águas do Hae-Ran estão fora do plano da Carraca: nenhuma meta recebe ritmo.
+    for (const material of MATERIALS) {
+      expect(rateOf(profile, material.id, ROUTE), material.id).toBeUndefined();
     }
   });
 

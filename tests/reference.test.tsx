@@ -15,10 +15,10 @@ describe("static planner guide", () => {
     expect(screen.getByRole("heading", { name: "Carraca de Epheria: Bravura" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Materiais e onde conseguir" })).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Guia de Carracas" })).toBeInTheDocument();
-    expect(screen.getByText("27 missões diárias e 11 missões semanais em Iliya, Velia, Olho da Okilua e Terra do Amanhecer, organizadas por NPC.")).toBeInTheDocument();
+    expect(screen.getByText("12 missões diárias e 9 missões semanais em Ilha de Iliya, Velia, Olho da Okilua, Ilha da Seda Azure · Terra do Amanhecer, organizadas por NPC.")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Ravikel · Olho da Okilua · Diárias" })).toBeInTheDocument();
     expect(screen.getByText("Diária · [Permuta][Diário] Ilha de Iliya Agitada")).toBeInTheDocument();
-    expect(screen.getByText("Semanal · Investigar a ecologia da área de Lyngbakr")).toBeInTheDocument();
+    expect(screen.getByText("Semanal · [Semanal] Investigar a ecologia da área de Lyngbakr")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Como o tempo é estimado" })).toBeInTheDocument();
     expect(screen.getAllByText(/Partindo do zero, os materiais da rota levam/)).toHaveLength(4);
   });

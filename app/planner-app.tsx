@@ -134,6 +134,13 @@ function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+/**
+ * Moeda Corvo não é material do plano — não há missão nem permuta que a entregue —, então ela
+ * não está em `MATERIALS`. Mesmo assim o jogo a mostra como item, e o planner a trata como tal
+ * em toda quantia: o ícone vem daqui para os dois lados não divergirem.
+ */
+const CROW_COIN_ICON = "/assets/items/ravencoin.png";
+
 const itemAliasPairs: Array<[string, { label: string; icon: string }]> = [
   ...MATERIALS.flatMap(
     (item) =>
@@ -156,6 +163,9 @@ const itemAliasPairs: Array<[string, { label: string; icon: string }]> = [
       icon: MATERIAL_BY_ID.coxCombat.icon,
     },
   ],
+  // O plural vem primeiro por clareza; o padrão ordena por tamanho, então "Moedas" vence sozinho.
+  ["Moedas Corvo", { label: "Moedas Corvo", icon: CROW_COIN_ICON }],
+  ["Moeda Corvo", { label: "Moeda Corvo", icon: CROW_COIN_ICON }],
 ];
 
 const ITEM_MENTION_MAP = new Map<string, { label: string; icon: string }>();
@@ -335,6 +345,29 @@ function MaterialLabel({
     <span className={`item-label ${className}`.trim()}>
       <ItemIcon src={item.icon} alt={item.name} size={size} />
       <span className="item-label-text">{item.name}</span>
+    </span>
+  );
+}
+
+/** Quantia de Moeda Corvo com o ícone do jogo, do mesmo jeito que um material aparece. */
+function CrowCoinAmount({
+  value,
+  suffix = "",
+  size = 18,
+  className = "",
+}: {
+  value: number;
+  suffix?: string;
+  size?: number;
+  className?: string;
+}) {
+  return (
+    <span className={`item-label crow-coin-amount ${className}`.trim()}>
+      <ItemIcon src={CROW_COIN_ICON} alt="Moeda Corvo" size={size} />
+      <span className="item-label-text">
+        {number(value)}
+        {suffix && ` ${suffix}`}
+      </span>
     </span>
   );
 }
@@ -555,7 +588,13 @@ function Sidebar({
       <div className="sidebar-footer">
         <span>{activePreset.name}</span>
         <strong>{carrack.shortName}</strong>
-        <small>{number(profile.crowCoins)} Moedas Corvo</small>
+        <small>
+          <CrowCoinAmount
+            value={profile.crowCoins}
+            suffix="Moedas Corvo"
+            size={14}
+          />
+        </small>
       </div>
     </aside>
   );
@@ -669,8 +708,16 @@ function Overview() {
                 Ritmo estimado com as missões diárias e semanais em dia e o
                 restante do tempo no oceano. O prazo é ditado por{" "}
                 <MaterialLabel id={ship.slowest} size={18} />.
-                {ship.covered > 0 &&
-                  ` Suas ${number(profile.crowCoins)} Moedas Corvo já cobrem ${number(ship.covered)} unidades da rota.`}
+                {ship.covered > 0 && (
+                  <>
+                    {" Suas "}
+                    <CrowCoinAmount
+                      value={profile.crowCoins}
+                      suffix="Moedas Corvo"
+                    />
+                    {` já cobrem ${number(ship.covered)} unidades da rota.`}
+                  </>
+                )}
               </>
             ) : (
               "Todos os materiais da rota estão completos."
@@ -993,7 +1040,9 @@ function Inventory() {
         </div>
         <div>
           <span>Moedas Corvo</span>
-          <strong>{number(profile.crowCoins)}</strong>
+          <strong>
+            <CrowCoinAmount value={profile.crowCoins} size={20} />
+          </strong>
         </div>
         <div>
           <span>
@@ -1191,8 +1240,14 @@ function SourceCard({
     >
       <Badge kind={source.type}>{sourceLabel[source.type]}</Badge>
       {inactive && <Badge kind="red">FORA DO CÁLCULO</Badge>}
-      <strong>{source.label}</strong>
-      {source.detail && <p>{source.detail}</p>}
+      <strong>
+        <TextWithItemIcons text={source.label} />
+      </strong>
+      {source.detail && (
+        <p>
+          <TextWithItemIcons text={source.detail} />
+        </p>
+      )}
       {perDay > 0 && (
         <small className="source-rate">
           Rende ≈ {formatRate(perDay)} para este material
@@ -1772,7 +1827,13 @@ function Strategy() {
               <span className="eyebrow">MOEDA CORVO</span>
               <h3>Compra sugerida</h3>
             </div>
-            <Badge kind="gold">{number(profile.crowCoins)} DISPONÍVEIS</Badge>
+            <Badge kind="gold">
+              <CrowCoinAmount
+                value={profile.crowCoins}
+                suffix="DISPONÍVEIS"
+                size={14}
+              />
+            </Badge>
           </div>
           <p className="panel-note">
             O plano gasta o saldo onde ele corta mais tempo da rota e é refeito
@@ -1804,7 +1865,9 @@ function Strategy() {
                     acelerar material
                   </small>
                 </div>
-                <em>{number(plan.parts.cost)}</em>
+                <em>
+                  <CrowCoinAmount value={plan.parts.cost} size={16} />
+                </em>
               </div>
             )}
             {plan.items.length
@@ -1822,7 +1885,9 @@ function Strategy() {
                         poupa {etaText(x.daysSaved)} de farm
                       </small>
                     </div>
-                    <em>{number(x.cost)}</em>
+                    <em>
+                      <CrowCoinAmount value={x.cost} size={16} />
+                    </em>
                   </div>
                 ))
               : plan.parts.affordable === 0 && (
@@ -1837,7 +1902,9 @@ function Strategy() {
           </div>
           <div className="purchase-total">
             <span>Saldo estimado após plano</span>
-            <strong>{number(plan.remainingCoins)}</strong>
+            <strong>
+              <CrowCoinAmount value={plan.remainingCoins} size={18} />
+            </strong>
           </div>
           {plan.items.length > 0 && (
             <p className="purchase-gain">
@@ -1878,9 +1945,18 @@ function Strategy() {
                 <p>
                   Faltam <b>{number(m.missing)}</b> de {number(m.required)}:{" "}
                   <b>{materialEtaLine(profile, m.id, context)}</b>.{" "}
-                  {m.crowPrice
-                    ? `Comprar tudo custaria ${number(m.missing * m.crowPrice)} Moedas Corvo.`
-                    : "Priorize fontes recorrentes."}
+                  {m.crowPrice ? (
+                    <>
+                      Comprar tudo custaria{" "}
+                      <CrowCoinAmount
+                        value={m.missing * m.crowPrice}
+                        suffix="Moedas Corvo"
+                      />
+                      .
+                    </>
+                  ) : (
+                    "Priorize fontes recorrentes."
+                  )}
                 </p>
                 <div className="source-chips">
                   {m.sources.slice(0, 4).map((s, i) => (

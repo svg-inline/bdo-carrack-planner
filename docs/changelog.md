@@ -27,19 +27,19 @@ Todas as mudanças relevantes para usuários são registradas em `Unreleased`, n
 - Escolha de quais missões entram no cálculo, uma a uma, guardada em cada preset. As que ficam de fora continuam na lista, marcadas, com o ritmo que devolveriam se voltassem.
 - Aba Missões organizada por NPC, com a regra de aceite de cada um e a contagem de quantas missões do NPC estão no cálculo.
 - Ordenação do inventário por material, estoque, falta ou prazo, direto nos cabeçalhos das colunas Item, Tenho, Falta e Tempo, com inversão da direção a cada clique.
-- Regra de trilha única do jogo: aceitar a caçada ao Rei do Mar Jovem bloqueia as três caçadas da Guilda Lua Minguante do Ravikel, e vice-versa; as duas Pequenas Retribuições do Herrad Romson seguem a mesma regra. O planner deixa de somar alternativas que não podem ser aceitas no mesmo dia.
+- Regra de trilha única do jogo: aceitar a caçada ao Rei do Mar Jovem bloqueia as três caçadas da Guilda Lua Minguante do Ravikel, e vice-versa. O planner deixa de somar alternativas que não podem ser aceitas no mesmo dia. O Ravikel é o único NPC do catálogo com essa exclusividade.
 
 ### Changed
 
 - O catálogo "Como obter" avisa quando a recompensa de uma missão está escolhida em outro item, para explicar por que aquela fonte parou de render.
 - Fontes de obtenção completadas com as opções que faltavam nas recompensas de escolha: a Madeira Compensada Revestida de Rubus Aprimorada da Pequena Retribuição I e a Pedra Negra da Onda das três caçadas diárias da Guilda Lua Minguante.
-- O saldo de Moeda Corvo no cabeçalho passou a usar o ícone da moeda exibido no jogo.
+- O ícone da Moeda Corvo passou a acompanhar toda menção à moeda, e não só o saldo do cabeçalho: recompensas de missão, a Loja de Moeda Corvo em "Como obter", o rodapé da barra lateral, o resumo do inventário e as quantias da compra sugerida na aba Estratégia.
 - Com a conta conectada, "Redefinir tudo" passa a limpar apenas este navegador; o progresso da conta continua salvo.
 - O progresso guardado no navegador passou a ser separado por conta, para que sair num computador compartilhado não deixe os planos para o próximo usuário.
 - Cabeçalho da tabela do inventário com texto maior e seta de ordenação destacada, para deixar claro quais colunas podem ser ordenadas.
 - O tempo estimado no resumo do inventário passou a acompanhar o filtro de categoria: em Todos ele continua sendo o prazo da rota até a Carraca, e em Equip. azul, Carraca, Equip. Carraca ou Aprimoramento mostra apenas o prazo da categoria selecionada.
 - Dependências atualizadas para a geração estável mais recente compatível, incluindo Next.js 16.3.5, React 19.3 e Tailwind CSS 4.3.
-- Catálogo marítimo atualizado para 27 missões diárias e 11 semanais, incluindo a missão consolidada da Ilha de Iliya, as semanais atuais do Kario e as missões da Terra do Amanhecer.
+- Catálogo marítimo reduzido às 12 diárias e 9 semanais conferidas nos prints do jogo em `docs/quests`: títulos, objetivos e recompensas passaram a ser os que a janela de missão mostra, com a Moeda de Okilua que faltava nas diárias do Soldado e do Ravikel e as três Águas Frescas de Okilua como recompensa de escolha do Hae-Ran.
 - Fontes de obtenção dos materiais sincronizadas com as frequências, quantidades e alternativas de recompensa atuais das missões marítimas.
 - Catálogo de missões reorganizado por NPC e frequência: o grupo passou a carregar NPC, local, frequência e regra de aceite, de modo que uma missão nova — inclusive de evento — só precisa do próprio conteúdo.
 - Cada fonte de material passou a apontar para a missão que a entrega, o que sincroniza o catálogo de missões com o de obtenção.
@@ -51,6 +51,7 @@ Todas as mudanças relevantes para usuários são registradas em `Unreleased`, n
 
 ### Removed
 
+- Removidas do catálogo as missões sem confirmação no jogo: as diárias do Baori, Maonil e Friko na Ilha de Iliya, as duas Pequenas Retribuições do Herrad Romson, a semanal Piratas do Meio do Caminho do Yu-An e as diárias e a semanal de Velia, com exceção do Transporte de Suprimentos (Ilha de Iliya). As fontes de material que dependiam delas saíram junto; nenhum material ficou sem fonte.
 - Removidas as abas "Azuis +10" e "Shiro da Carraca" do menu lateral. O acompanhamento de fabricação e aprimoramento das peças sai da interface por ora; o resumo de cada peça continua na Visão geral e os materiais continuam no inventário e no catálogo de obtenção.
 - Removido o onboarding obrigatório de três etapas.
 - Removidos a área do Passe Especial de Navegação, seus dados salvos, recomendações de baús e fontes de obtenção do evento.

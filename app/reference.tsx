@@ -68,7 +68,7 @@ export default function Reference({ account, accountEnabled, notice }: { account
       </details>)}</div>
     </section>
     <section id="guia-missoes" className="panel scroll-mt-4"><h2>Missões do Oceano</h2>
-      <p>{QUEST_CADENCES.map((cadence) => `${QUESTS.filter((quest) => quest.cadence === cadence.id).length} missões ${cadence.plural.toLowerCase()}`).join(" e ")} em Iliya, Velia, Olho da Okilua e Terra do Amanhecer, organizadas por NPC.</p>
+      <p>{QUEST_CADENCES.map((cadence) => `${QUESTS.filter((quest) => quest.cadence === cadence.id).length} missões ${cadence.plural.toLowerCase()}`).join(" e ")} em {[...new Set(QUEST_GROUPS.map((group) => group.location))].join(", ")}, organizadas por NPC.</p>
       <p>Com JavaScript, você escolhe quais delas entram no cálculo do seu preset. Este guia mostra o catálogo completo.</p>
       <div className="mt-4 space-y-6">{QUEST_GROUPS.map((group) => <article key={group.id}>
         <h3>{group.npc} · {group.location} · {CADENCE_BY_ID[group.cadence].plural}</h3>

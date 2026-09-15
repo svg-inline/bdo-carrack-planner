@@ -102,6 +102,12 @@ p { line-height:1.65; }
 .item-heading{font-size:11px;font-weight:700;color:#eee6d8;line-height:1.35}
 .inline-item-copy{display:inline-flex;margin:0 3px;transform:translateY(1px)}
 .inline-item-mention{display:inline-flex;align-items:center;gap:5px;vertical-align:middle;margin:0 2px}
+/* Quantia de moeda é um número com unidade: quebrar entre o ícone e o texto a torna ilegível.
+   A quantia aparece dentro de blocos que empilham os próprios `span` de rótulo (rodapé da
+   barra lateral, resumo do inventário, totais), então ela reafirma o que precisa e herda
+   a tipografia do elemento que a contém, em vez da regra de rótulo do bloco. */
+.item-label.crow-coin-amount{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font:inherit;color:inherit;text-transform:none;letter-spacing:normal}
+.item-label.crow-coin-amount .item-label-text{display:inline-block;white-space:nowrap;font:inherit;color:inherit;letter-spacing:inherit;text-transform:inherit}
 .recipe-item{min-width:0}
 .recipe-item .item-label,.item-heading .item-label,.rewards .item-label,.inventory-row .item-label{align-items:flex-start}
 .recipe-item .item-label-text,.item-heading .item-label-text,.inventory-row .item-label-text{white-space:normal}

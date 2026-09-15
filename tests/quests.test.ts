@@ -8,10 +8,10 @@ import {
 } from "@/lib/quests";
 
 describe("current ocean quests", () => {
-  it("keeps the complete daily and weekly catalog from the quest guide", () => {
-    expect(QUESTS).toHaveLength(38);
-    expect(QUESTS.filter((quest) => quest.cadence === "daily")).toHaveLength(27);
-    expect(QUESTS.filter((quest) => quest.cadence === "weekly")).toHaveLength(11);
+  it("keeps exactly the quests confirmed by the in-game screenshots", () => {
+    expect(QUESTS).toHaveLength(21);
+    expect(QUESTS.filter((quest) => quest.cadence === "daily")).toHaveLength(12);
+    expect(QUESTS.filter((quest) => quest.cadence === "weekly")).toHaveLength(9);
     expect(new Set(QUESTS.map((quest) => quest.id))).toHaveLength(QUESTS.length);
   });
 
@@ -19,7 +19,7 @@ describe("current ocean quests", () => {
     const agitated = QUEST_BY_ID["daily-iliya-agitated"];
 
     expect(agitated?.title).toBe("[Permuta][Diário] Ilha de Iliya Agitada");
-    expect(agitated?.objective).toBe("Fazer 15 permutas.");
+    expect(agitated?.objective).toBe("Fazer 15 Permutas.");
     expect(agitated?.rewards).toEqual(expect.arrayContaining([
       "Madeira Compensada Revestida de Rubus Aprimorada x10",
       "Artefato dos Piratas Cox(Negociação de Alto Nível) x1",
@@ -42,9 +42,9 @@ describe("current ocean quests", () => {
     expect(MATERIAL_BY_ID.redSeaGold.sources).toContainEqual(expect.objectContaining({ questId: kario.id, detail: expect.stringContaining("x15") }));
   });
 
-  it("includes the permanent Terra do Amanhecer weeklies", () => {
-    expect(QUEST_BY_ID["weekly-morning-light-panokseon"]?.rewards).toContain("Projeto: Panokseon x2");
+  it("includes the Terra do Amanhecer weekly", () => {
     expect(QUEST_BY_ID["weekly-azure-silk-lyngbakr"]?.rewards).toContain("Moeda Corvo x500");
+    expect(QUEST_BY_ID["weekly-azure-silk-lyngbakr"]?.location).toContain("Terra do Amanhecer");
   });
 });
 
@@ -89,7 +89,6 @@ describe("catálogo por NPC", () => {
 
   it("mantém as regras de aceite do jogo nos grupos com alternativa", () => {
     const ravikel = QUEST_GROUP_BY_ID["okilua-ravikel-daily"];
-    const herrad = QUEST_GROUP_BY_ID["okilua-herrad-daily"];
 
     expect(ravikel.selection).toBe("one-track");
     expect(QUEST_BY_ID["daily-okilua-young-sea-king"].track).toBe("rei-do-mar-jovem");
@@ -97,13 +96,8 @@ describe("catálogo por NPC", () => {
       expect(QUEST_BY_ID[id].track, id).toBe("cacadas-da-guilda");
     }
 
-    expect(herrad.selection).toBe("one-track");
-    expect(herrad.note).toContain("não podem ser aceitas ao mesmo tempo");
-    expect(QUEST_BY_ID["daily-okilua-retribution-1"].track).not.toBe(QUEST_BY_ID["daily-okilua-retribution-2"].track);
-
-    // Grupo documentado como acumulável continua sem exclusividade.
-    expect(QUEST_GROUP_BY_ID["velia-mia-daily"].selection).toBe("all");
-    expect(QUEST_GROUP_BY_ID["velia-mia-daily"].note).toContain("ao mesmo tempo");
+    // O Ravikel é o único NPC com exclusividade: todo o resto do catálogo acumula.
+    expect(QUEST_GROUPS.filter((group) => group.selection === "one-track")).toEqual([ravikel]);
   });
 });
 
@@ -116,8 +110,6 @@ describe("missões que entram no cálculo", () => {
     expect(active["daily-okilua-kandidum"]).toBe(false);
     expect(active["daily-okilua-nineshark"]).toBe(false);
     expect(active["daily-okilua-black-rust"]).toBe(false);
-    expect(active["daily-okilua-retribution-1"]).toBe(true);
-    expect(active["daily-okilua-retribution-2"]).toBe(false);
     // Fora dos grupos de trilha única, nada fica de fora por padrão.
     expect(QUESTS.filter((quest) => QUEST_GROUP_BY_ID[quest.group].selection === "all").every((quest) => active[quest.id])).toBe(true);
   });
@@ -155,7 +147,7 @@ describe("missões que entram no cálculo", () => {
 
     expect(normalizado["quest-de-evento-antiga"]).toBeUndefined();
     expect(normalizado["daily-iliya-agitated"]).toBe(false);
-    expect(normalizado["daily-velia-baremi-goods"]).toBe(true);
+    expect(normalizado["daily-velia-supply-iliya"]).toBe(true);
     expect(Object.keys(normalizado)).toHaveLength(QUESTS.length);
 
     // Estado inconsistente não deixa duas trilhas ligadas no mesmo NPC.
@@ -176,7 +168,7 @@ describe("missões que entram no cálculo", () => {
       expect(counts.active).toBeLessThanOrEqual(counts.total);
     }
     // As três caçadas da Guilda ficam fora até o jogador trocar de trilha.
-    expect(questCounts(profile, "daily").active).toBe(questCounts(profile, "daily").total - 4);
+    expect(questCounts(profile, "daily").active).toBe(questCounts(profile, "daily").total - 3);
     expect(isQuestActive(profile, "daily-okilua-young-sea-king")).toBe(true);
     expect(isQuestActive(profile, "daily-okilua-kandidum")).toBe(false);
   });
@@ -196,10 +188,12 @@ describe("recompensas de escolha", () => {
   });
 
   it("mantém na lista a opção que o plano não acompanha", () => {
-    const foraDoPlano = questChoiceOf("daily-okilua-retribution-1")?.options.filter((option) => option.material === null);
+    const foraDoPlano = questChoiceOf("daily-okilua-route-monsters")?.options.filter((option) => option.material === null);
 
     expect(foraDoPlano).toEqual([
-      { id: "cola-com-memorias-do-mar-profundo", label: "Cola com Memórias do Mar Profundo", quantity: 16, material: null },
+      { id: "agua-fresca-alaranjada-de-okilua", label: "Água Fresca Alaranjada de Okilua", quantity: 1, material: null },
+      { id: "agua-fresca-cristalina-de-okilua", label: "Água Fresca Cristalina de Okilua", quantity: 1, material: null },
+      { id: "agua-fresca-dourada-de-okilua", label: "Água Fresca Dourada de Okilua", quantity: 1, material: null },
     ]);
   });
 
