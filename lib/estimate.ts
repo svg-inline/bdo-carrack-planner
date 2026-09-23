@@ -1,24 +1,36 @@
 import { CADENCE_BY_ID, CARRACK_GEAR_SETS, CARRACK_PART_COUNT, CARRACK_PART_CROW_PRICE, GEAR_SETS, MATERIALS, MATERIAL_BY_ID } from "@/lib/data";
 import { getMissing, isCarrackBuildMaterial } from "@/lib/planner";
 import { activeQuestIds, isQuestAcquisition, questChoiceOf } from "@/lib/quests";
-import type { Acquisition, AcquisitionType, CrowSpendPlan, FarmAcquisitionType, GearKey, MaterialCategory, MaterialDefinition, MaterialId, PlannerProfile, QuestAcquisition, ShipBranch } from "@/types";
+import type { Acquisition, AcquisitionType, CrowSpendPlan, FarmActivity, FarmRoutine, GearKey, MaterialCategory, MaterialDefinition, MaterialId, PlannerProfile, QuestAcquisition, ShipBranch } from "@/types";
 
 // O tempo estimado assume um jogador que conclui em dia as missões que ele mesmo marcou
-// como parte da rotina e ainda dedica o resto do dia às rotas livres do oceano. Missões
-// têm quantidade e frequência conhecidas; permuta, caça, processamento e escavação
-// dependem do tempo de jogo, então usam uma estimativa única por dificuldade.
+// como parte da rotina e ainda dedica o resto do dia às atividades livres do oceano que
+// ele também marcou. Missões têm quantidade e frequência conhecidas; permuta, caça,
+// processamento e escavação dependem do tempo de jogo, então usam uma estimativa única
+// por dificuldade — e só quando o jogador diz que faz aquela atividade.
 
 /** Unidades atribuídas a um dia de farm dedicado, por dificuldade do material. */
 export const FARM_UNITS_PER_DAY: Record<MaterialDefinition["difficulty"], number> = { 1: 60, 2: 35, 3: 20, 4: 10, 5: 4 };
 
-const FARM_TYPES: AcquisitionType[] = ["barter", "hunt", "processing", "workers", "market"] satisfies FarmAcquisitionType[];
+/**
+ * Atividade da rotina que libera cada fonte sem frequência fixa. Processar depende do drop da
+ * caça, então anda com ela. Mercado não tem interruptor e nenhum material do catálogo o usa.
+ */
+const FARM_ACTIVITY_OF: Partial<Record<AcquisitionType, FarmActivity>> = {
+  barter: "barter",
+  hunt: "hunt",
+  processing: "hunt",
+  workers: "workers",
+};
 
 function isQuestSource(source: Acquisition): source is QuestAcquisition {
   return isQuestAcquisition(source) && source.yield > 0;
 }
 
-function isFarmSource(source: Acquisition) {
-  return FARM_TYPES.includes(source.type);
+/** A fonte é de farm e a atividade dela está na rotina do jogador. */
+export function isRoutineFarmSource(source: Acquisition, routine: FarmRoutine) {
+  const activity = FARM_ACTIVITY_OF[source.type];
+  return activity !== undefined && routine[activity];
 }
 
 /**
@@ -152,6 +164,16 @@ export function coinPlan(profile: PlannerProfile, quests = questContext(profile)
       order: 0,
     }));
   const daysLeft = (candidate: typeof candidates[number]) => daysForUnits(candidate.missing - candidate.bought, candidate.perDay);
+  const costLeft = (candidate: typeof candidates[number]) => (candidate.missing - candidate.bought) * candidate.price;
+  // Material sem fonte na rotina só sai da loja e segura o prazo até ser comprado por inteiro.
+  // Entre dois assim, vai primeiro o que custa menos para fechar: cada um fechado é uma
+  // pendência a menos, e dividir o saldo entre vários não fecharia nenhum.
+  const slower = (a: typeof candidates[number], b: typeof candidates[number]) => {
+    const daysA = daysLeft(a);
+    const daysB = daysLeft(b);
+    if (daysA !== daysB) return daysA > daysB;
+    return !Number.isFinite(daysA) && costLeft(a) < costLeft(b);
+  };
 
   let remainingCoins = Math.max(0, Math.floor(profile.crowCoins)) - parts.cost;
   let order = 0;
@@ -159,7 +181,7 @@ export function coinPlan(profile: PlannerProfile, quests = questContext(profile)
     const reducible = candidates.filter((candidate) => candidate.bought < candidate.missing && candidate.price <= remainingCoins);
     if (!reducible.length) break;
 
-    const target = reducible.reduce((slowest, candidate) => (daysLeft(candidate) > daysLeft(slowest) ? candidate : slowest));
+    const target = reducible.reduce((slowest, candidate) => (slower(candidate, slowest) ? candidate : slowest));
     const targetDays = daysLeft(target);
     // Comprar além do próximo prazo da fila não adianta: o gargalo passaria a ser o outro material.
     const nextDays = candidates.reduce((longest, candidate) => {
@@ -254,8 +276,10 @@ export function materialRate(profile: PlannerProfile, id: MaterialId, quests = q
     perDay: questRatePerDay(source, quests, id),
   }));
   const questPerDay = sources.reduce((sum, quest) => sum + quest.perDay, 0);
-  // Permuta, caça e processamento são alternativas do mesmo tempo de jogo: contam uma vez só.
-  const farmPerDay = material.sources.some(isFarmSource) ? FARM_UNITS_PER_DAY[material.difficulty] : 0;
+  // Permuta, caça e processamento são alternativas do mesmo tempo de jogo: contam uma vez só,
+  // e nenhuma vez quando o jogador não faz nenhuma delas.
+  const farmPerDay = material.sources.some((source) => isRoutineFarmSource(source, profile.farmRoutine))
+    ? FARM_UNITS_PER_DAY[material.difficulty] : 0;
   return { perDay: questPerDay + farmPerDay, questPerDay, farmPerDay, quests: sources };
 }
 
@@ -385,6 +409,27 @@ function slowestOf(estimates: MaterialEstimate[]): PartEstimate {
 export function shipEstimate(profile: PlannerProfile, context = estimateContext(profile)): PartEstimate {
   const route = MATERIALS.filter((material) => isCarrackBuildMaterial(material) && material.required[profile.target] > 0);
   return slowestOf(route.map((material) => materialEstimate(profile, material.id, context)));
+}
+
+/** Material da rota que nenhuma fonte da rotina entrega e que o plano de compra não fechou. */
+export interface StalledMaterial {
+  id: MaterialId;
+  /** Unidades que continuam faltando depois da compra sugerida. */
+  remaining: number;
+  /** Moedas para comprar esse resto na loja. */
+  cost: number;
+}
+
+/**
+ * Materiais que deixam a rota sem prazo. Com permuta e caça fora da rotina, o que não vem de
+ * missão só sai da loja, e o planner precisa dizer quanto falta em vez de mostrar um prazo vazio.
+ */
+export function stalledRoute(profile: PlannerProfile, context = estimateContext(profile)): StalledMaterial[] {
+  return MATERIALS
+    .filter((material) => isCarrackBuildMaterial(material) && material.required[profile.target] > 0)
+    .map((material) => materialEstimate(profile, material.id, context))
+    .filter((estimate) => estimate.remaining > 0 && estimate.perDay <= 0)
+    .map((estimate) => ({ id: estimate.id, remaining: estimate.remaining, cost: estimate.remaining * (MATERIAL_BY_ID[estimate.id].crowPrice || 0) }));
 }
 
 /**

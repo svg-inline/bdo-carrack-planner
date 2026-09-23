@@ -6,6 +6,7 @@ Todas as mudanças relevantes para usuários são registradas em `Unreleased`, n
 
 ### Added
 
+- Rotina de farm na aba Estratégia: escolha se você faz permuta, caça no oceano (com o processamento dos drops) e escavação. Atividade desmarcada deixa de contar no prazo, e o material que nenhuma missão entrega passa a aparecer como "sem fonte" e a ter prioridade na compra sugerida de Moeda Corvo, com o total que falta para fechá-lo. A escolha pertence ao preset; presets antigos continuam com as três atividades ligadas.
 - Escolha do item que você pega nas missões de recompensa de escolha, na aba Missões: a conclusão inteira passa a contar para o item escolhido, em vez de ser dividida entre as metas que faltam. A opção sugerida leva o texto "(Recomendado)" e aponta a meta que hoje demora mais sem aquela missão. A escolha pertence ao preset; "Automático" mantém a divisão de antes, e uma escolha cuja meta já foi concluída volta sozinha ao automático.
 - Escolha de onde a Moeda Corvo pode ser gasta, na aba Estratégia: comprar as peças verdes de Toro da Carraca, com a quantidade de peças, e acelerar os materiais do equipamento azul e os da construção da Carraca, cada um com o seu próprio interruptor. A escolha pertence ao preset. As peças reservam o saldo antes de tudo, a 10.000 moedas cada, e o plano avisa quantas o saldo realmente paga.
 - Ícone do Discord no botão de login, tanto no planner quanto no guia sem JavaScript.

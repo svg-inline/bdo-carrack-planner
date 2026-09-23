@@ -141,11 +141,26 @@ export interface CrowSpendPlan {
   carrackMaterials: boolean;
 }
 
+/**
+ * Atividade sem frequência fixa que o jogador pode incluir na rotina. Processamento não tem
+ * interruptor próprio: a matéria-prima dele vem de caça no oceano, então segue a caça.
+ */
+export type FarmActivity = "barter" | "hunt" | "workers";
+
+/**
+ * O que o jogador faz além das missões. Quem só cumpre missões não junta nada em permuta ou
+ * caça, e contar esse ritmo prometeria um prazo que ele nunca vai ver; o material que só sai
+ * dessas fontes passa a depender da loja de Moeda Corvo.
+ */
+export type FarmRoutine = Record<FarmActivity, boolean>;
+
 export interface PlannerProfile {
   target: CarrackTarget;
   crowCoins: number;
   /** Escolha do jogador sobre onde o saldo de Moeda Corvo pode ser gasto. */
   crowSpend: CrowSpendPlan;
+  /** Atividades fora das missões que entram no ritmo estimado. */
+  farmRoutine: FarmRoutine;
   materials: Record<MaterialId, number>;
   gear: BranchGearState;
   carrackGear: Record<GearKey, GearState>;

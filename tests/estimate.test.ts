@@ -6,7 +6,7 @@ import { setQuestActive, setQuestChoice } from "@/lib/quests";
 import {
   carrackGearEstimate, carrackGearSetEstimate, categoryEstimate, choiceCompetitors, coinPlan, contextWithoutCoins, daysForUnits,
   effectiveChoices, estimateContext, FARM_UNITS_PER_DAY, formatDuration, formatRate, gearEstimate, materialEstimate, materialRate,
-  partPurchase, questContext, questRatePerDay, recommendedChoiceOption, shipEstimate,
+  partPurchase, questContext, questRatePerDay, recommendedChoiceOption, shipEstimate, stalledRoute,
 } from "@/lib/estimate";
 import type { MaterialId } from "@/types";
 
@@ -377,6 +377,77 @@ describe("onde a Moeda Corvo pode ser gasta", () => {
     profile.crowSpend.carrackPartCount = 99;
 
     expect(partPurchase(profile).count).toBe(CARRACK_PART_COUNT);
+  });
+});
+
+describe("atividades de farm na rotina", () => {
+  const soMissoes = { barter: false, hunt: false, workers: false };
+
+  it("conta permuta, caça e escavação por padrão", () => {
+    expect(createInitialProfile("bravura").farmRoutine).toEqual({ barter: true, hunt: true, workers: true });
+  });
+
+  it("tira o farm do ritmo quando o jogador só faz missões", () => {
+    const profile = createInitialProfile("bravura");
+    profile.farmRoutine = soMissoes;
+    const rate = materialRate(profile, "enhancedPlywood");
+
+    expect(rate.farmPerDay).toBe(0);
+    expect(rate.perDay).toBeCloseTo(rate.questPerDay);
+    // O Sal de Rocha não vem de missão nenhuma: sem farm, só a loja entrega.
+    expect(materialRate(profile, "saltRock").perDay).toBe(0);
+    expect(materialEstimate(profile, "saltRock").days).toBe(Number.POSITIVE_INFINITY);
+  });
+
+  it("conta a fonte só pela atividade marcada, e o processamento segue a caça", () => {
+    const profile = createInitialProfile("bravura");
+    profile.farmRoutine = { barter: false, hunt: true, workers: false };
+    // A Madeira da Lua sai de Khan secado e de caça, além de permuta.
+    expect(materialRate(profile, "moonScalePlywood").farmPerDay).toBe(FARM_UNITS_PER_DAY[4]);
+
+    profile.farmRoutine = { barter: true, hunt: false, workers: false };
+    expect(materialRate(profile, "moonScalePlywood").farmPerDay).toBe(FARM_UNITS_PER_DAY[4]);
+    // Cristal de Pérola Brilhante sai de caça e permuta; sem as duas, não rende.
+    profile.farmRoutine = { barter: false, hunt: false, workers: true };
+    expect(materialRate(profile, "brilliantPearl").farmPerDay).toBe(0);
+  });
+
+  it("compra primeiro o que só sai da loja, começando pelo mais barato de fechar", () => {
+    const profile = createInitialProfile("bravura");
+    Object.assign(profile.materials, {
+      coxCombat: 76, saltRock: 0, brilliantPearl: 2, luminousCobalt: 6, greatOceanIron: 3,
+    });
+    profile.crowCoins = 5_887;
+    profile.farmRoutine = soMissoes;
+    const plano = coinPlan(profile);
+
+    // O Artefato de Combate vem de missão; o Cobalto (24 × 400) é o sem-fonte mais barato de fechar.
+    expect(plano.coverage.coxCombat).toBeUndefined();
+    expect(plano.items[0].id).toBe("luminousCobalt");
+    expect(plano.items[0].daysSaved).toBe(Number.POSITIVE_INFINITY);
+
+    // Com farm na rotina, o mesmo saldo volta a atacar o gargalo por prazo.
+    profile.farmRoutine = { barter: true, hunt: true, workers: true };
+    const gargalo = shipEstimate(profile, contextWithoutCoins(estimateContext(profile))).slowest;
+    expect(coinPlan(profile).items[0].id).toBe(gargalo);
+  });
+
+  it("aponta os materiais sem fonte que o saldo não fecha e quanto custam", () => {
+    const profile = createInitialProfile("bravura");
+    profile.farmRoutine = soMissoes;
+    const context = estimateContext(profile);
+    const parados = stalledRoute(profile, context);
+
+    expect(shipEstimate(profile, context).days).toBe(Number.POSITIVE_INFINITY);
+    expect(parados.map((material) => material.id)).toContain("saltRock");
+    const sal = parados.find((material) => material.id === "saltRock")!;
+    expect(sal.cost).toBe(sal.remaining * MATERIAL_BY_ID.saltRock.crowPrice!);
+
+    // Saldo suficiente fecha tudo que só a loja entrega e devolve um prazo à rota.
+    profile.crowCoins = 1_000_000;
+    const comSaldo = estimateContext(profile);
+    expect(stalledRoute(profile, comSaldo)).toEqual([]);
+    expect(Number.isFinite(shipEstimate(profile, comSaldo).days)).toBe(true);
   });
 });
 

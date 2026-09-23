@@ -44,6 +44,28 @@ describe("formato do preset na nuvem", () => {
     });
   });
 
+  it("mantém o farm no prazo de quem foi salvo antes da escolha de rotina", () => {
+    const row = {
+      id: "66666666-6666-4666-8666-666666666666",
+      name: "Bravura antiga",
+      schema_version: PRESET_SCHEMA_VERSION - 1,
+      data: { profile: { crowCoins: 1_000 }, completedQuests: {} },
+    };
+
+    expect(rowToPreset(row, 0)!.profile.farmRoutine).toEqual({ barter: true, hunt: true, workers: true });
+  });
+
+  it("guarda a rotina de farm escolhida no preset", () => {
+    const row = {
+      id: "77777777-7777-4777-8777-777777777777",
+      name: "Só missões",
+      schema_version: PRESET_SCHEMA_VERSION,
+      data: { profile: { farmRoutine: { barter: false, hunt: false, market: true } }, completedQuests: {} },
+    };
+
+    expect(rowToPreset(row, 0)!.profile.farmRoutine).toEqual({ barter: false, hunt: false, workers: true });
+  });
+
   it("limita a quantidade de peças verdes gravada em um preset", () => {
     const row = {
       id: "55555555-5555-4555-8555-555555555555",

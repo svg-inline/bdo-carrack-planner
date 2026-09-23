@@ -25,12 +25,14 @@ import {
   formatDuration,
   formatRate,
   gearEstimate,
+  isRoutineFarmSource,
   materialEstimate,
   materialRate,
   questContext,
   questRatePerDay,
   recommendedChoiceOption,
   shipEstimate,
+  stalledRoute,
 } from "@/lib/estimate";
 import {
   bottlenecks,
@@ -62,6 +64,7 @@ import type {
   Acquisition,
   AcquisitionType,
   CarrackTarget,
+  FarmActivity,
   GearKey,
   MaterialCategory,
   MaterialDefinition,
@@ -115,6 +118,30 @@ const sourceLabel: Record<AcquisitionType, string> = {
   processing: "Processar",
   workers: "Trabalhadores",
   market: "Mercado",
+};
+/** Atividades de farm que o preset pode tirar da conta. Processar segue a caça, que traz a matéria-prima. */
+const FARM_ROUTINE_OPTIONS: { id: FarmActivity; title: string; detail: string }[] = [
+  {
+    id: "barter",
+    title: "Permuta",
+    detail: "Trocas de Mercadoria Marítima nas ilhas do Grande Oceano",
+  },
+  {
+    id: "hunt",
+    title: "Caça no oceano",
+    detail: "Piratas Cox, Khan e criaturas marinhas, incluindo processar o que eles dropam",
+  },
+  {
+    id: "workers",
+    title: "Escavação",
+    detail: "Trabalhadores nos nós das ilhas",
+  },
+];
+const FARM_ACTIVITY_LABEL: Partial<Record<AcquisitionType, string>> = {
+  barter: "Permuta",
+  hunt: "Caça no oceano",
+  processing: "Caça no oceano",
+  workers: "Escavação",
 };
 const shipArt: Record<ShipBranch, { src: string; alt: string }> = {
   caravel: {
@@ -233,9 +260,10 @@ function Badge({
   return <span className={badgeVariants({ kind })}>{children}</span>;
 }
 
-// Prazos são estimativas: o texto sempre aparece com "≈", menos quando já não falta nada.
+// Prazos são estimativas: o texto sempre aparece com "≈", menos quando já não falta nada
+// ou quando não há prazo nenhum para aproximar.
 function etaText(days: number) {
-  return days > 0 ? `≈ ${formatDuration(days)}` : formatDuration(days);
+  return days > 0 && Number.isFinite(days) ? `≈ ${formatDuration(days)}` : formatDuration(days);
 }
 function etaKind(days: number) {
   return days <= 0
@@ -245,14 +273,19 @@ function etaKind(days: number) {
       : ("gold" as const);
 }
 // Quando o saldo de Moeda Corvo cobre tudo que falta, o material deixa de depender de farm.
+// Sem fonte na rotina, o material não tem prazo: só a loja resolve o que falta.
 function materialEtaText(estimate: MaterialEstimate) {
   return estimate.missing <= 0
     ? "pronto"
     : estimate.remaining <= 0
       ? "com moedas"
-      : etaText(estimate.days);
+      : estimate.perDay <= 0
+        ? "sem fonte"
+        : etaText(estimate.days);
 }
 function materialEtaTitle(estimate: MaterialEstimate) {
+  if (estimate.remaining > 0 && estimate.perDay <= 0)
+    return "Nenhuma fonte deste material está na sua rotina: marque a missão ou a atividade na aba Estratégia, ou compre com Moeda Corvo";
   const rate = `Ritmo estimado: ${formatRate(estimate.perDay)}`;
   return estimate.covered > 0
     ? `${rate} · ${number(estimate.covered)} un. cobertas pelo saldo de Moeda Corvo`
@@ -266,6 +299,8 @@ function materialEtaLine(
   const estimate = materialEstimate(profile, id, context);
   if (estimate.remaining <= 0)
     return `compra imediata com ${number(estimate.covered)} un. de Moeda Corvo`;
+  if (estimate.perDay <= 0)
+    return "nenhuma fonte na sua rotina, só a loja";
   const coins =
     estimate.covered > 0
       ? ` · ${number(estimate.covered)} un. com Moeda Corvo`
@@ -1204,15 +1239,21 @@ function SourceCard({
   context,
   farmPerDay,
   covered,
+  routine,
 }: {
   source: Acquisition;
   materialId: MaterialId;
   context: EstimateContext;
   farmPerDay: number;
   covered: number;
+  routine: PlannerProfile["farmRoutine"];
 }) {
   const quest = isQuestAcquisition(source) ? QUEST_BY_ID[source.questId] : null;
-  const inactive = quest !== null && !context.quests.active.has(quest.id);
+  const farmOff =
+    !quest && source.type !== "crow" && source.type in FARM_ACTIVITY_LABEL
+      ? !isRoutineFarmSource(source, routine)
+      : false;
+  const inactive = (quest !== null && !context.quests.active.has(quest.id)) || farmOff;
   const perDay = questRatePerDay(source, context.quests, materialId);
   const potential =
     quest && inactive
@@ -1265,7 +1306,13 @@ function SourceCard({
           Missões para esta recompensa voltar a render
         </small>
       )}
-      {!quest && source.type !== "crow" && farmPerDay > 0 && (
+      {farmOff && (
+        <small className="source-rate">
+          Fora da sua rotina · ligue {FARM_ACTIVITY_LABEL[source.type]} na aba
+          Estratégia para esta fonte entrar no ritmo
+        </small>
+      )}
+      {!quest && !farmOff && source.type !== "crow" && farmPerDay > 0 && (
         <small className="source-rate">
           Entra no ritmo como ≈ {formatRate(farmPerDay)}, contados uma vez entre
           as rotas livres deste material
@@ -1411,6 +1458,7 @@ function AcquisitionCatalog() {
                     context={context}
                     farmPerDay={rate.farmPerDay}
                     covered={estimate.covered}
+                    routine={profile.farmRoutine}
                   />
                 ))}
               </div>
@@ -1804,6 +1852,33 @@ function CrowSpendChoices({ profile, plan }: { profile: PlannerProfile; plan: Co
   );
 }
 
+/**
+ * O que o jogador faz além das missões. Atividade desligada deixa de render no prazo, e o
+ * material que só sai dela passa a depender da loja — é isso que redireciona a compra sugerida.
+ */
+function FarmRoutineChoices({ profile }: { profile: PlannerProfile }) {
+  const setFarmRoutine = usePlannerStore((state) => state.setFarmRoutine);
+  return (
+    <div className="crow-spend">
+      <span className="crow-spend-title">Além das missões, eu faço</span>
+      {FARM_ROUTINE_OPTIONS.map((option) => (
+        <label className="crow-spend-option" key={option.id}>
+          <input
+            aria-label={option.title}
+            type="checkbox"
+            checked={profile.farmRoutine[option.id]}
+            onChange={(e) => setFarmRoutine({ [option.id]: e.target.checked })}
+          />
+          <div>
+            <strong>{option.title}</strong>
+            <small>{option.detail}</small>
+          </div>
+        </label>
+      ))}
+    </div>
+  );
+}
+
 function Strategy() {
   const profile = useActivePreset().profile;
   const carrackGearSet = CARRACK_GEAR_SETS[profile.target];
@@ -1814,12 +1889,30 @@ function Strategy() {
   const shiroSet = carrackGearSetEstimate(profile, context);
   const withoutCoins = shipEstimate(profile, contextWithoutCoins(context));
   const savedDays = withoutCoins.days - ship.days;
+  const stalled = stalledRoute(profile, context);
+  const stalledCost = stalled.reduce((sum, material) => sum + material.cost, 0);
+  const stalledNames = stalled.map((material) => MATERIAL_BY_ID[material.id].shortName);
   return (
     <>
       <Header
         title="Estratégia de aquisição"
         subtitle="Use Moedas Corvo apenas depois de comparar missões, processamento, drop e permuta."
       />
+      <section className="panel">
+        <div className="panel-title">
+          <div>
+            <span className="eyebrow">ROTINA</span>
+            <h3>O que entra no prazo</h3>
+          </div>
+        </div>
+        <p className="panel-note">
+          As missões marcadas na aba Missões sempre contam. Desmarque aqui o
+          que você não faz: a atividade deixa de render no prazo, e o material
+          que só sai dela passa para a compra sugerida. Drop que cai por acaso
+          durante as missões não entra no ritmo; registre-o no inventário.
+        </p>
+        <FarmRoutineChoices profile={profile} />
+      </section>
       <div className="strategy-grid">
         <section className="panel">
           <div className="panel-title">
@@ -1881,8 +1974,10 @@ function Strategy() {
                         <MaterialLabel id={x.id} size={18} />
                       </div>
                       <small>
-                        {number(x.suggested)} un. × {number(x.unit)} moedas ·
-                        poupa {etaText(x.daysSaved)} de farm
+                        {number(x.suggested)} un. × {number(x.unit)} moedas ·{" "}
+                        {Number.isFinite(x.daysSaved)
+                          ? `poupa ${etaText(x.daysSaved)} de farm`
+                          : "sem outra fonte na sua rotina"}
                       </small>
                     </div>
                     <em>
@@ -1906,9 +2001,32 @@ function Strategy() {
               <CrowCoinAmount value={plan.remainingCoins} size={18} />
             </strong>
           </div>
-          {plan.items.length > 0 && (
+          {stalled.length > 0 ? (
             <p className="purchase-gain">
-              {savedDays > 0 ? (
+              {stalled.length === 1
+                ? "Um material da rota não tem"
+                : `${number(stalled.length)} materiais da rota não têm`}{" "}
+              fonte na sua rotina e só {stalled.length === 1 ? "sai" : "saem"}{" "}
+              da loja: {stalledNames.slice(0, 3).join(", ")}
+              {stalledNames.length > 3
+                ? ` e mais ${number(stalledNames.length - 3)}`
+                : ""}
+              . Faltam{" "}
+              <b>
+                <CrowCoinAmount value={stalledCost} suffix="Moedas Corvo" />
+              </b>{" "}
+              para fechá-{stalled.length === 1 ? "lo" : "los"}; até lá, a rota
+              até a Carraca fica sem prazo.
+            </p>
+          ) : plan.items.length > 0 && (
+            <p className="purchase-gain">
+              {!Number.isFinite(withoutCoins.days) ? (
+                <>
+                  Com esta compra, a rota até a Carraca passa a ter prazo:{" "}
+                  <b>{etaText(ship.days)}</b>. Sem ela, faltariam materiais que
+                  nenhuma fonte da sua rotina entrega.
+                </>
+              ) : savedDays > 0 ? (
                 <>
                   Com esta compra, a rota até a Carraca cai de{" "}
                   <b>{etaText(withoutCoins.days)}</b> para{" "}
@@ -2000,7 +2118,8 @@ function Strategy() {
           <li>
             Permuta, caça, processamento e escavação não têm frequência fixa:
             valem uma estimativa única por dificuldade do material, para um dia
-            dedicado ao oceano.
+            dedicado ao oceano, e só quando a atividade está marcada na sua
+            rotina, no topo desta aba.
           </li>
           <li>
             Moeda Corvo é estoque, não renda: o que a compra sugerida acima
@@ -2008,9 +2127,11 @@ function Strategy() {
           </li>
           <li>
             O saldo vai primeiro para o material que segura o prazo, até ele
-            empatar com o próximo da fila. Comprar algo que já é mais rápido que
-            o gargalo não anteciparia a Carraca, por isso esses materiais ficam
-            de fora do plano.
+            empatar com o próximo da fila. Material sem nenhuma fonte na sua
+            rotina segura o prazo até ser comprado inteiro, então vem antes de
+            tudo, começando pelo mais barato de fechar. Comprar algo que já é
+            mais rápido que o gargalo não anteciparia a Carraca, por isso esses
+            materiais ficam de fora do plano.
           </li>
           <li>
             Os materiais são obtidos em paralelo, então o prazo da rota é o do

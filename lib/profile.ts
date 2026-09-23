@@ -1,6 +1,6 @@
 import { CARRACK_ORDER, CARRACK_PART_COUNT, CARRACKS, MATERIALS, QUESTS } from "@/lib/data";
 import { defaultActiveQuests, normalizeActiveQuests, normalizeQuestChoices } from "@/lib/quests";
-import type { BranchGearState, CarrackTarget, CrowSpendPlan, GearKey, GearState, MaterialId, PlannerPreset, PlannerProfile, ShipBranch } from "@/types";
+import type { BranchGearState, CarrackTarget, CrowSpendPlan, FarmRoutine, GearKey, GearState, MaterialId, PlannerPreset, PlannerProfile, ShipBranch } from "@/types";
 
 export function nonNegativeInteger(value: unknown, maximum = Number.MAX_SAFE_INTEGER): number {
   return typeof value === "number" && Number.isFinite(value)
@@ -38,6 +38,19 @@ export function normalizeCrowSpend(value: unknown): CrowSpendPlan {
   };
 }
 
+/**
+ * Todo preset salvo antes desta escolha contava permuta, caça e escavação no prazo, então o
+ * padrão continua sendo tudo ligado: só o jogador desliga o que não faz.
+ */
+export function normalizeFarmRoutine(value: unknown): FarmRoutine {
+  const routine = record(value);
+  return {
+    barter: routine.barter !== false,
+    hunt: routine.hunt !== false,
+    workers: routine.workers !== false,
+  };
+}
+
 export function createInitialProfile(target: CarrackTarget = "bravura"): PlannerProfile {
   const emptySet = (): Record<GearKey, GearState> => ({
     figurehead: normalizeGear(null), plating: normalizeGear(null),
@@ -46,6 +59,7 @@ export function createInitialProfile(target: CarrackTarget = "bravura"): Planner
   return {
     target, crowCoins: 0,
     crowSpend: normalizeCrowSpend(null),
+    farmRoutine: normalizeFarmRoutine(null),
     materials: Object.fromEntries(MATERIALS.map((m) => [m.id, 0])) as Record<MaterialId, number>,
     gear: { caravel: emptySet(), galleass: emptySet() },
     carrackGear: emptySet(),
@@ -74,6 +88,7 @@ export function normalizeProfile(value: unknown): PlannerProfile {
     target,
     crowCoins: nonNegativeInteger(raw.crowCoins),
     crowSpend: normalizeCrowSpend(raw.crowSpend),
+    farmRoutine: normalizeFarmRoutine(raw.farmRoutine),
     materials: Object.fromEntries(MATERIALS.map((m) => [m.id, nonNegativeInteger(materials[m.id])])) as Record<MaterialId, number>,
     gear,
     carrackGear,
