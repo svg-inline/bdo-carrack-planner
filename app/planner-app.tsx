@@ -20,7 +20,6 @@ import {
   carrackGearEstimate,
   carrackGearSetEstimate,
   categoryEstimate,
-  contextWithoutCoins,
   estimateContext,
   formatDuration,
   formatRate,
@@ -272,14 +271,18 @@ function etaKind(days: number) {
       ? ("red" as const)
       : ("gold" as const);
 }
+// Quando a compra fica paga: hoje, ou depois de juntar a moeda nas missões.
+function purchaseWhen(days: number) {
+  return days <= 0 ? "agora" : etaText(days);
+}
 // Quando o saldo de Moeda Corvo cobre tudo que falta, o material deixa de depender de farm.
 // Sem fonte na rotina, o material não tem prazo: só a loja resolve o que falta.
 function materialEtaText(estimate: MaterialEstimate) {
   return estimate.missing <= 0
     ? "pronto"
-    : estimate.remaining <= 0
+    : estimate.remaining <= 0 && estimate.days <= 0
       ? "com moedas"
-      : estimate.perDay <= 0
+      : estimate.remaining > 0 && estimate.perDay <= 0
         ? "sem fonte"
         : etaText(estimate.days);
 }
@@ -298,7 +301,9 @@ function materialEtaLine(
 ) {
   const estimate = materialEstimate(profile, id, context);
   if (estimate.remaining <= 0)
-    return `compra imediata com ${number(estimate.covered)} un. de Moeda Corvo`;
+    return estimate.days <= 0
+      ? `compra imediata com ${number(estimate.covered)} un. de Moeda Corvo`
+      : `${etaText(estimate.days)} para juntar a Moeda Corvo de ${number(estimate.covered)} un.`;
   if (estimate.perDay <= 0)
     return "nenhuma fonte na sua rotina, só a loja";
   const coins =
@@ -1887,10 +1892,10 @@ function Strategy() {
   const plan = context.plan;
   const ship = shipEstimate(profile, context);
   const shiroSet = carrackGearSetEstimate(profile, context);
-  const withoutCoins = shipEstimate(profile, contextWithoutCoins(context));
-  const savedDays = withoutCoins.days - ship.days;
   const stalled = stalledRoute(profile, context);
-  const stalledCost = stalled.reduce((sum, material) => sum + material.cost, 0);
+  const planCost =
+    plan.parts.count * plan.parts.unit +
+    plan.items.reduce((sum, item) => sum + item.cost, 0);
   const stalledNames = stalled.map((material) => MATERIAL_BY_ID[material.id].shortName);
   return (
     <>
@@ -1929,13 +1934,19 @@ function Strategy() {
             </Badge>
           </div>
           <p className="panel-note">
-            O plano gasta o saldo onde ele corta mais tempo da rota e é refeito
-            a cada mudança de inventário ou de saldo. Confira sempre a aba Como
-            obter antes de gastar.
+            O plano soma o saldo de hoje à Moeda Corvo das missões marcadas
+            {plan.income > 0 ? (
+              <>
+                {" "}
+                (<b>≈ {number(Math.round(plan.income))}/dia</b>)
+              </>
+            ) : null}{" "}
+            e compra primeiro o que só sai da loja. O que as missões trazem
+            entra só com a diferença que elas não cobrem a tempo.
           </p>
           <CrowSpendChoices profile={profile} plan={plan} />
           <div className="purchase-list">
-            {plan.parts.affordable > 0 && (
+            {plan.parts.count > 0 && (
               <div className="purchase">
                 <span>01</span>
                 <div>
@@ -1953,21 +1964,23 @@ function Strategy() {
                     <strong>Peças verdes da Carraca</strong>
                   </div>
                   <small>
-                    {number(plan.parts.affordable)} un. ×{" "}
-                    {number(plan.parts.unit)} moedas · reservadas antes de
-                    acelerar material
+                    {number(plan.parts.count)} un. × {number(plan.parts.unit)}{" "}
+                    moedas · {purchaseWhen(plan.parts.readyIn)}
                   </small>
                 </div>
                 <em>
-                  <CrowCoinAmount value={plan.parts.cost} size={16} />
+                  <CrowCoinAmount
+                    value={plan.parts.count * plan.parts.unit}
+                    size={16}
+                  />
                 </em>
               </div>
             )}
             {plan.items.length
-              ? plan.items.slice(0, 8).map((x, i) => (
+              ? plan.items.map((x, i) => (
                   <div className="purchase" key={x.id}>
                     <span>
-                      {String(i + 1 + (plan.parts.affordable > 0 ? 1 : 0)).padStart(2, "0")}
+                      {String(i + 1 + (plan.parts.count > 0 ? 1 : 0)).padStart(2, "0")}
                     </span>
                     <div>
                       <div className="item-heading">
@@ -1975,9 +1988,7 @@ function Strategy() {
                       </div>
                       <small>
                         {number(x.suggested)} un. × {number(x.unit)} moedas ·{" "}
-                        {Number.isFinite(x.daysSaved)
-                          ? `poupa ${etaText(x.daysSaved)} de farm`
-                          : "sem outra fonte na sua rotina"}
+                        {purchaseWhen(x.readyIn)}
                       </small>
                     </div>
                     <em>
@@ -1985,61 +1996,57 @@ function Strategy() {
                     </em>
                   </div>
                 ))
-              : plan.parts.affordable === 0 && (
+              : plan.parts.count === 0 && (
                   <div className="empty-state">
                     {!profile.crowSpend.blueGear &&
                     !profile.crowSpend.carrackMaterials &&
                     !profile.crowSpend.carrackParts
                       ? "Nenhum destino liberado: marque acima onde as moedas podem ser gastas."
-                      : "Sem compra possível com o saldo atual ou sem materiais pendentes."}
+                      : "Nada a comprar: as fontes da sua rotina já cobrem o que falta."}
                   </div>
                 )}
           </div>
           <div className="purchase-total">
-            <span>Saldo estimado após plano</span>
+            <span>Saldo após o plano</span>
             <strong>
-              <CrowCoinAmount value={plan.remainingCoins} size={18} />
+              <CrowCoinAmount
+                value={profile.crowCoins - planCost}
+                size={18}
+              />
             </strong>
           </div>
           {stalled.length > 0 ? (
             <p className="purchase-gain">
-              {stalled.length === 1
-                ? "Um material da rota não tem"
-                : `${number(stalled.length)} materiais da rota não têm`}{" "}
-              fonte na sua rotina e só {stalled.length === 1 ? "sai" : "saem"}{" "}
-              da loja: {stalledNames.slice(0, 3).join(", ")}
+              {stalledNames.slice(0, 3).join(", ")}
               {stalledNames.length > 3
                 ? ` e mais ${number(stalledNames.length - 3)}`
-                : ""}
-              . Faltam{" "}
-              <b>
-                <CrowCoinAmount value={stalledCost} suffix="Moedas Corvo" />
-              </b>{" "}
-              para fechá-{stalled.length === 1 ? "lo" : "los"}; até lá, a rota
-              até a Carraca fica sem prazo.
+                : ""}{" "}
+              {stalled.length === 1 ? "não tem" : "não têm"} como fechar:{" "}
+              {plan.income > 0
+                ? "nenhuma fonte na sua rotina, e a compra deles não está liberada acima."
+                : "nenhuma missão marcada rende Moeda Corvo, e o saldo de hoje não paga."}{" "}
+              Até lá, a rota até a Carraca fica sem prazo.
             </p>
-          ) : plan.items.length > 0 && (
-            <p className="purchase-gain">
-              {!Number.isFinite(withoutCoins.days) ? (
-                <>
-                  Com esta compra, a rota até a Carraca passa a ter prazo:{" "}
-                  <b>{etaText(ship.days)}</b>. Sem ela, faltariam materiais que
-                  nenhuma fonte da sua rotina entrega.
-                </>
-              ) : savedDays > 0 ? (
-                <>
-                  Com esta compra, a rota até a Carraca cai de{" "}
-                  <b>{etaText(withoutCoins.days)}</b> para{" "}
-                  <b>{etaText(ship.days)}</b>.
-                </>
-              ) : (
-                <>
-                  A compra adianta materiais, mas o prazo da rota continua em{" "}
-                  <b>{etaText(ship.days)}</b>, preso a um material que a loja
-                  não vende.
-                </>
-              )}
-            </p>
+          ) : (
+            (plan.items.length > 0 || plan.parts.count > 0) && (
+              <p className="purchase-gain">
+                {plan.shortfall > 0 ? (
+                  <>
+                    Faltam juntar{" "}
+                    <b>
+                      <CrowCoinAmount value={plan.shortfall} suffix="moedas" />
+                    </b>{" "}
+                    nas missões. A rota até a Carraca fica em{" "}
+                    <b>{etaText(ship.days)}</b>.
+                  </>
+                ) : (
+                  <>
+                    O saldo de hoje paga tudo. A rota até a Carraca fica em{" "}
+                    <b>{etaText(ship.days)}</b>.
+                  </>
+                )}
+              </p>
+            )
           )}
         </section>
         <section className="panel">
@@ -2122,16 +2129,15 @@ function Strategy() {
             rotina, no topo desta aba.
           </li>
           <li>
-            Moeda Corvo é estoque, não renda: o que a compra sugerida acima
-            resolve sai do que falta farmar, mas o saldo não vira ritmo diário.
+            A Moeda Corvo soma o saldo de hoje à que as missões marcadas rendem
+            por dia. A compra sugerida é paga em fila: cada item fica pronto no
+            dia em que a moeda acumulada cobre ele e tudo que vem antes.
           </li>
           <li>
-            O saldo vai primeiro para o material que segura o prazo, até ele
-            empatar com o próximo da fila. Material sem nenhuma fonte na sua
-            rotina segura o prazo até ser comprado inteiro, então vem antes de
-            tudo, começando pelo mais barato de fechar. Comprar algo que já é
-            mais rápido que o gargalo não anteciparia a Carraca, por isso esses
-            materiais ficam de fora do plano.
+            A fila começa pelas peças verdes, segue pelo que nenhuma fonte da
+            sua rotina entrega, do mais barato ao mais caro, e termina nos
+            materiais que também vêm de missão — destes, só a diferença que as
+            missões não cobrem até a Carraca ficar pronta.
           </li>
           <li>
             Os materiais são obtidos em paralelo, então o prazo da rota é o do

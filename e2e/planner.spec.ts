@@ -163,10 +163,14 @@ test("lets the player choose which quests feed the estimate", async ({ page }) =
   await page.goto("/");
   await page.getByRole("button", { name: /Bravura/ }).click();
 
-  const heroEta = page.locator(".hero-stats div").filter({ hasText: "Tempo estimado" }).locator("strong");
-  const before = await heroEta.textContent();
+  // O ritmo do Olho Abissal depende da trilha do Ravikel que o preset mantém.
+  await page.getByRole("button", { name: "Como obter" }).click();
+  const abyssalEye = page.locator(".acquisition-card").filter({ hasText: "Olho Abissal" }).first();
+  const abyssalRate = abyssalEye.locator("span").filter({ hasText: "Ritmo" }).locator("strong");
+  const before = await abyssalRate.textContent();
 
-  await page.getByRole("button", { name: "Missões" }).click();
+  // Como obter também tem um filtro "Missões"; o primeiro botão é o do menu lateral.
+  await page.getByRole("button", { name: "Missões" }).first().click();
   const ravikel = page.locator(".quest-group").filter({ has: page.getByRole("heading", { name: "Ravikel", exact: true }) });
   await expect(ravikel.getByText("TRILHA ÚNICA")).toBeVisible();
   await expect(ravikel.getByText("1/4 NO CÁLCULO")).toBeVisible();
@@ -183,11 +187,8 @@ test("lets the player choose which quests feed the estimate", async ({ page }) =
 
   // O material que só vinha da trilha abandonada passa a aparecer fora do cálculo.
   await page.getByRole("button", { name: "Como obter" }).click();
-  const abyssalEye = page.locator(".acquisition-card").filter({ hasText: "Olho Abissal" }).first();
   await expect(abyssalEye.locator(".source-inactive").filter({ hasText: "Rei do Mar Jovem" })).toBeVisible();
-
-  await page.getByRole("button", { name: "Visão geral" }).click();
-  await expect(heroEta).not.toHaveText(before ?? "");
+  await expect(abyssalRate).not.toHaveText(before ?? "");
 
   // A escolha pertence ao preset e sobrevive ao recarregamento.
   await page.reload();
@@ -238,13 +239,12 @@ test("lets the player choose where the crow coins are spent", async ({ page }) =
   // O saldo acelera material desde o início; reservar peça é escolha explícita do jogador.
   await expect(parts).toHaveCount(0);
   await expect(blueGear).toBeChecked();
-  const beforeParts = await purchases.count();
 
   await page.getByRole("checkbox", { name: "Comprar as peças verdes da Carraca" }).check();
   await expect(parts).toHaveText(/4 un\. × 10\.000 moedas/);
   await expect(parts.locator("em")).toHaveText("40.000");
-  // As peças saem do topo do saldo, então sobra menos para acelerar material.
-  expect(await purchases.count()).toBeLessThan(beforeParts + 1);
+  // As peças saem do topo do saldo e o saldo de hoje paga as quatro.
+  await expect(parts).toContainText("agora");
 
   // Categoria desmarcada some do plano, e sem nenhuma liberada o saldo fica intacto.
   await blueGear.uncheck();

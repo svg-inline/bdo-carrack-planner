@@ -1,14 +1,23 @@
 import { describe, expect, it } from "vitest";
-import { CARRACK_GEAR_SETS, CARRACK_PART_COUNT, CARRACK_PART_CROW_PRICE, GEAR_SETS, MATERIALS, MATERIAL_BY_ID } from "@/lib/data";
+import { CARRACK_GEAR_SETS, CARRACK_PART_COUNT, CARRACK_PART_CROW_PRICE, GEAR_SETS, MATERIALS, MATERIAL_BY_ID, QUESTS } from "@/lib/data";
 import { createInitialProfile } from "@/lib/profile";
 import { isCarrackBuildMaterial } from "@/lib/planner";
 import { setQuestActive, setQuestChoice } from "@/lib/quests";
 import {
-  carrackGearEstimate, carrackGearSetEstimate, categoryEstimate, choiceCompetitors, coinPlan, contextWithoutCoins, daysForUnits,
+  carrackGearEstimate, carrackGearSetEstimate, categoryEstimate, choiceCompetitors, coinPlan, contextWithoutCoins, crowCoinsPerDay, daysForUnits,
   effectiveChoices, estimateContext, FARM_UNITS_PER_DAY, formatDuration, formatRate, gearEstimate, materialEstimate, materialRate,
-  partPurchase, questContext, questRatePerDay, recommendedChoiceOption, shipEstimate, stalledRoute,
+  partPurchase, questContext, questCrowCoins, questRatePerDay, recommendedChoiceOption, shipEstimate, stalledRoute,
 } from "@/lib/estimate";
-import type { MaterialId } from "@/types";
+import type { MaterialId, PlannerProfile } from "@/types";
+
+/**
+ * Tira da rotina as missões que rendem Moeda Corvo, para testar o plano só com o saldo de hoje.
+ * As outras recompensas delas também saem, e é por isso que o ajuste fica restrito a estes testes.
+ */
+function soSaldo(profile: PlannerProfile) {
+  for (const quest of QUESTS) if (questCrowCoins(quest) > 0) profile.activeQuests[quest.id] = false;
+  return profile;
+}
 
 describe("ritmo de obtenção", () => {
   it("soma as missões recorrentes com a estimativa de farm do material", () => {
@@ -207,7 +216,7 @@ describe("prazo por peça e por navio", () => {
 
 describe("Moeda Corvo no prazo", () => {
   it("gasta primeiro no material que segura o prazo da rota", () => {
-    const profile = createInitialProfile("bravura");
+    const profile = soSaldo(createInitialProfile("bravura"));
     const semMoedas = shipEstimate(profile);
     profile.crowCoins = 1_200; // 10 unidades do Artefato Cox(Combate).
     const plano = coinPlan(profile);
@@ -217,11 +226,11 @@ describe("Moeda Corvo no prazo", () => {
     expect(plano.items).toHaveLength(1);
     expect(plano.items[0]).toMatchObject({ id: "coxCombat", suggested: 10, cost: 1_200 });
     expect(plano.remainingCoins).toBe(0);
-    expect(materialEstimate(profile, "coxCombat").remaining).toBe(240);
+    expect(materialEstimate(profile, "coxCombat").remaining).toBe(MATERIAL_BY_ID.coxCombat.required.bravura - 10);
   });
 
   it("para de comprar quando o material alcança o próximo da fila", () => {
-    const profile = createInitialProfile("bravura");
+    const profile = soSaldo(createInitialProfile("bravura"));
     profile.crowCoins = 60_000;
     const plano = coinPlan(profile);
     const context = estimateContext(profile);
@@ -237,7 +246,7 @@ describe("Moeda Corvo no prazo", () => {
   });
 
   it("refaz o plano inteiro quando o estoque muda", () => {
-    const profile = createInitialProfile("bravura");
+    const profile = soSaldo(createInitialProfile("bravura"));
     profile.crowCoins = 1_200;
     expect(coinPlan(profile).items[0].id).toBe("coxCombat");
 
@@ -249,7 +258,7 @@ describe("Moeda Corvo no prazo", () => {
   });
 
   it("nunca compra mais do que falta nem gasta mais do que o saldo", () => {
-    const profile = createInitialProfile("bravura");
+    const profile = soSaldo(createInitialProfile("bravura"));
     profile.materials.coxCombat = 200;
     profile.crowCoins = 25_000;
     const plano = coinPlan(profile);
@@ -272,7 +281,7 @@ describe("Moeda Corvo no prazo", () => {
   });
 
   it("encurta o prazo do navio conforme o saldo cresce", () => {
-    const profile = createInitialProfile("bravura");
+    const profile = soSaldo(createInitialProfile("bravura"));
     const semMoedas = shipEstimate(profile);
     profile.crowCoins = 29_438;
     const parcial = shipEstimate(profile);
@@ -284,6 +293,26 @@ describe("Moeda Corvo no prazo", () => {
     expect(shipEstimate(profile, context).days).toBe(0);
     expect(gearEstimate(profile, "galleass", "sail", context).days).toBe(0);
     expect(shipEstimate(profile, contextWithoutCoins(context)).days).toBeCloseTo(semMoedas.days);
+  });
+});
+
+describe("renda de Moeda Corvo das missões", () => {
+  it("lê a moeda de toda recompensa que a menciona", () => {
+    for (const quest of QUESTS) {
+      const mencionadas = quest.rewards.filter((reward) => reward.includes("Moeda Corvo"));
+      if (mencionadas.length) expect(questCrowCoins(quest)).toBeGreaterThan(0);
+      else expect(questCrowCoins(quest)).toBe(0);
+    }
+  });
+
+  it("soma só as missões da rotina, com as semanais divididas pela semana", () => {
+    const profile = createInitialProfile("bravura");
+    const quests = questContext(profile);
+    const esperado = QUESTS.filter((quest) => quests.active.has(quest.id))
+      .reduce((sum, quest) => sum + questCrowCoins(quest) / (quest.cadence === "weekly" ? 7 : 1), 0);
+
+    expect(crowCoinsPerDay(quests)).toBeCloseTo(esperado);
+    expect(crowCoinsPerDay(questContext(soSaldo(profile)))).toBe(0);
   });
 });
 
@@ -316,6 +345,11 @@ describe("onde a Moeda Corvo pode ser gasta", () => {
 
   it("deixa de gastar na categoria que o jogador desmarcou", () => {
     const profile = createInitialProfile("bravura");
+    // Com o equipamento azul quase pronto, a Carraca é quem segura o prazo e tem o que comprar.
+    for (const material of MATERIALS) {
+      if (material.category === "blue-gear") profile.materials[material.id] = material.required.bravura;
+    }
+    profile.materials.coxCombat -= 1;
     profile.crowCoins = 60_000;
     profile.crowSpend.blueGear = false;
     const plano = coinPlan(profile);
@@ -342,12 +376,14 @@ describe("onde a Moeda Corvo pode ser gasta", () => {
     profile.crowCoins = 45_000;
     profile.crowSpend.carrackParts = true;
     const plano = coinPlan(profile);
-    const gastoEmMaterial = plano.items.reduce((sum, item) => sum + item.cost, 0);
+    const gastoHoje = plano.items.reduce((sum, item) => sum + item.now * item.unit, 0);
 
-    expect(plano.parts).toMatchObject({ count: CARRACK_PART_COUNT, affordable: CARRACK_PART_COUNT });
+    expect(plano.parts).toMatchObject({ count: CARRACK_PART_COUNT, affordable: CARRACK_PART_COUNT, readyIn: 0 });
     expect(plano.parts.cost).toBe(CARRACK_PART_COUNT * CARRACK_PART_CROW_PRICE);
-    expect(gastoEmMaterial).toBeLessThanOrEqual(5_000);
-    expect(plano.remainingCoins).toBe(45_000 - plano.parts.cost - gastoEmMaterial);
+    // Hoje só sobram 5.000 para material; o resto da fila espera a moeda das missões.
+    expect(gastoHoje).toBeLessThanOrEqual(5_000);
+    expect(plano.remainingCoins).toBe(45_000 - plano.parts.cost - gastoHoje);
+    for (const item of plano.items) expect(item.readyIn).toBeGreaterThanOrEqual(0);
   });
 
   it("compra só as peças que o saldo paga", () => {
@@ -394,9 +430,12 @@ describe("atividades de farm na rotina", () => {
 
     expect(rate.farmPerDay).toBe(0);
     expect(rate.perDay).toBeCloseTo(rate.questPerDay);
-    // O Sal de Rocha não vem de missão nenhuma: sem farm, só a loja entrega.
+    // O Sal de Rocha não vem de missão nenhuma: sem farm, só a loja entrega, no dia em que
+    // a moeda das missões pagar a compra.
+    const context = estimateContext(profile);
     expect(materialRate(profile, "saltRock").perDay).toBe(0);
-    expect(materialEstimate(profile, "saltRock").days).toBe(Number.POSITIVE_INFINITY);
+    expect(materialEstimate(profile, "saltRock", context).days).toBe(context.plan.readyAt.saltRock);
+    expect(materialEstimate(profile, "saltRock", context).days).toBeGreaterThan(0);
   });
 
   it("conta a fonte só pela atividade marcada, e o processamento segue a caça", () => {
@@ -421,19 +460,36 @@ describe("atividades de farm na rotina", () => {
     profile.farmRoutine = soMissoes;
     const plano = coinPlan(profile);
 
-    // O Artefato de Combate vem de missão; o Cobalto (24 × 400) é o sem-fonte mais barato de fechar.
-    expect(plano.coverage.coxCombat).toBeUndefined();
-    expect(plano.items[0].id).toBe("luminousCobalt");
-    expect(plano.items[0].daysSaved).toBe(Number.POSITIVE_INFINITY);
+    // O Cobalto (24 × 400) é o sem-fonte mais barato de fechar, e o saldo de hoje paga 14.
+    expect(plano.items[0]).toMatchObject({ id: "luminousCobalt", suggested: 24, now: 14 });
+    // Tudo que só sai da loja vem antes das diferenças de quem também vem de missão.
+    const primeiraDiferenca = plano.items.findIndex((item) => materialRate(profile, item.id).perDay > 0);
+    for (const item of plano.items.slice(0, primeiraDiferenca)) expect(materialRate(profile, item.id).perDay).toBe(0);
+    // O Artefato de Combate vem de missão: só a diferença que ela não cobre entra na compra.
+    expect(plano.coverage.coxCombat ?? 0).toBeLessThan(materialEstimate(profile, "coxCombat").missing);
+    // A fila fica paga em ordem: cada item depois do anterior.
+    for (let index = 1; index < plano.items.length; index += 1) {
+      expect(plano.items[index].readyIn).toBeGreaterThanOrEqual(plano.items[index - 1].readyIn);
+    }
+  });
 
-    // Com farm na rotina, o mesmo saldo volta a atacar o gargalo por prazo.
-    profile.farmRoutine = { barter: true, hunt: true, workers: true };
-    const gargalo = shipEstimate(profile, contextWithoutCoins(estimateContext(profile))).slowest;
-    expect(coinPlan(profile).items[0].id).toBe(gargalo);
+  it("junta a Moeda Corvo das missões para comprar o que o saldo não paga", () => {
+    const profile = createInitialProfile("bravura");
+    profile.farmRoutine = soMissoes;
+    const context = estimateContext(profile);
+    const plano = context.plan;
+    const ultimo = plano.items[plano.items.length - 1];
+
+    expect(plano.income).toBeGreaterThan(0);
+    expect(plano.shortfall).toBe(plano.items.reduce((sum, item) => sum + item.cost, 0));
+    expect(ultimo.readyIn).toBeCloseTo(plano.shortfall / plano.income);
+    expect(stalledRoute(profile, context)).toEqual([]);
+    expect(Number.isFinite(shipEstimate(profile, context).days)).toBe(true);
+    expect(shipEstimate(profile, context).days).toBeGreaterThanOrEqual(ultimo.readyIn - 1e-9);
   });
 
   it("aponta os materiais sem fonte que o saldo não fecha e quanto custam", () => {
-    const profile = createInitialProfile("bravura");
+    const profile = soSaldo(createInitialProfile("bravura"));
     profile.farmRoutine = soMissoes;
     const context = estimateContext(profile);
     const parados = stalledRoute(profile, context);

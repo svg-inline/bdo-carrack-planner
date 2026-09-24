@@ -1,7 +1,7 @@
-import { CADENCE_BY_ID, CARRACK_GEAR_SETS, CARRACK_PART_COUNT, CARRACK_PART_CROW_PRICE, GEAR_SETS, MATERIALS, MATERIAL_BY_ID } from "@/lib/data";
+import { CADENCE_BY_ID, CARRACK_GEAR_SETS, CARRACK_PART_COUNT, CARRACK_PART_CROW_PRICE, GEAR_SETS, MATERIALS, MATERIAL_BY_ID, QUESTS } from "@/lib/data";
 import { getMissing, isCarrackBuildMaterial } from "@/lib/planner";
 import { activeQuestIds, isQuestAcquisition, questChoiceOf } from "@/lib/quests";
-import type { Acquisition, AcquisitionType, CrowSpendPlan, FarmActivity, FarmRoutine, GearKey, MaterialCategory, MaterialDefinition, MaterialId, PlannerProfile, QuestAcquisition, ShipBranch } from "@/types";
+import type { Acquisition, AcquisitionType, CrowSpendPlan, FarmActivity, FarmRoutine, GearKey, MaterialCategory, MaterialDefinition, MaterialId, PlannerProfile, QuestAcquisition, QuestDefinition, ShipBranch } from "@/types";
 
 // O tempo estimado assume um jogador que conclui em dia as missões que ele mesmo marcou
 // como parte da rotina e ainda dedica o resto do dia às atividades livres do oceano que
@@ -96,12 +96,15 @@ export interface CoinPurchase {
   name: string;
   /** Preço em Moeda Corvo por unidade. */
   unit: number;
+  /** Unidades que o plano compra, somando hoje e o que vem da moeda das missões. */
   suggested: number;
   cost: number;
   missing: number;
   difficulty: MaterialDefinition["difficulty"];
-  /** Dias de farm que a compra economiza neste material. */
-  daysSaved: number;
+  /** Unidades que o saldo de hoje já paga. */
+  now: number;
+  /** Dias até a moeda acumulada pagar a compra inteira, contando tudo que vem antes na fila. */
+  readyIn: number;
 }
 
 /** Reserva de saldo para as peças verdes de Toro, decidida antes de acelerar qualquer material. */
@@ -113,13 +116,23 @@ export interface CoinPartPurchase {
   /** Moedas separadas para elas. */
   cost: number;
   unit: number;
+  /** Dias até a moeda das missões pagar todas as peças pedidas. */
+  readyIn: number;
 }
 
 export interface CoinPlan {
+  /** Fila de compra, na ordem em que a moeda paga cada item. */
   items: CoinPurchase[];
   coverage: Partial<Record<MaterialId, number>>;
+  /** Dia em que a compra de cada material fica paga. */
+  readyAt: Partial<Record<MaterialId, number>>;
+  /** Saldo que sobra depois do que dá para comprar hoje. */
   remainingCoins: number;
   parts: CoinPartPurchase;
+  /** Moeda Corvo por dia que as missões da rotina rendem. */
+  income: number;
+  /** Moedas que ainda faltam juntar para pagar a fila inteira. */
+  shortfall: number;
 }
 
 /**
@@ -132,87 +145,131 @@ export function acceleratesCategory(spend: CrowSpendPlan, category: MaterialCate
   return false;
 }
 
+/** Moeda Corvo entregue por uma conclusão da missão, lida da própria recompensa. */
+export function questCrowCoins(quest: QuestDefinition): number {
+  return quest.rewards.reduce((sum, reward) => {
+    const match = /^Moeda Corvo x(\d+)$/.exec(reward.trim());
+    return match ? sum + Number(match[1]) : sum;
+  }, 0);
+}
+
+/** Moeda Corvo por dia das missões da rotina, supondo que o jogador as conclui em dia. */
+export function crowCoinsPerDay(quests: QuestContext): number {
+  return QUESTS.reduce((sum, quest) => quests.active.has(quest.id)
+    ? sum + questCrowCoins(quest) / CADENCE_BY_ID[quest.cadence].periodDays : sum, 0);
+}
+
+/** Dias para as missões renderem as moedas que faltam. */
+function daysToEarn(missingCoins: number, income: number) {
+  if (missingCoins <= 0) return 0;
+  return income > 0 ? missingCoins / income : Number.POSITIVE_INFINITY;
+}
+
 /**
  * Peças de Toro que o saldo cobre. Elas saem do topo do saldo, e não do que sobra: o jogador
  * que decide comprá-las está dizendo que aquelas moedas já têm dono, mesmo que acelerar
  * material rendesse mais dias. Peça é decisão, não otimização.
  */
-export function partPurchase(profile: PlannerProfile): CoinPartPurchase {
+export function partPurchase(profile: PlannerProfile, income = 0): CoinPartPurchase {
   const spend = profile.crowSpend;
   const balance = Math.max(0, Math.floor(profile.crowCoins));
   const count = spend.carrackParts ? Math.min(CARRACK_PART_COUNT, Math.max(0, Math.floor(spend.carrackPartCount))) : 0;
   const affordable = Math.min(count, Math.floor(balance / CARRACK_PART_CROW_PRICE));
-  return { count, affordable, cost: affordable * CARRACK_PART_CROW_PRICE, unit: CARRACK_PART_CROW_PRICE };
+  return {
+    count, affordable, cost: affordable * CARRACK_PART_CROW_PRICE, unit: CARRACK_PART_CROW_PRICE,
+    readyIn: daysToEarn(count * CARRACK_PART_CROW_PRICE - balance, income),
+  };
 }
 
 /**
- * Distribui o saldo de Moeda Corvo onde ele corta mais tempo. A cada passo compra o
- * material que hoje define o prazo, só até ele alcançar o próximo da fila, e repete com
- * o que sobrar. Como o prazo depende do estoque, o plano é refeito inteiro sempre que o
- * inventário, o saldo ou a Carraca do preset mudam.
+ * Decide o que comprar com o saldo de hoje e com a Moeda Corvo que as missões da rotina ainda
+ * vão render. O prazo da rota é o primeiro dia T em que a moeda acumulada paga tudo que as
+ * outras fontes não entregam até T: o que falta de cada material, menos o ritmo dele vezes T,
+ * vezes o preço. Material que só sai da loja entra inteiro; material que vem de missão entra
+ * só com a diferença, e por isso a compra nunca antecipa o que a missão já vai trazer.
+ *
+ * A fila começa pelas peças de Toro, porque são decisão do jogador, segue pelo que só a loja
+ * entrega, do mais barato de fechar ao mais caro, e termina nas diferenças. Cada item fica
+ * pronto no dia em que a moeda acumulada paga ele e tudo que vem antes. Como o prazo depende do
+ * estoque, o plano é refeito inteiro sempre que o inventário, o saldo, a rotina ou a Carraca mudam.
  */
 export function coinPlan(profile: PlannerProfile, quests = questContext(profile)): CoinPlan {
-  const parts = partPurchase(profile);
-  const candidates = MATERIALS
-    .filter((material) => (material.crowPrice || 0) > 0 && acceleratesCategory(profile.crowSpend, material.category) && getMissing(profile, material.id) > 0)
+  const income = crowCoinsPerDay(quests);
+  const parts = partPurchase(profile, income);
+  const balance = Math.max(0, Math.floor(profile.crowCoins));
+  const partsTotal = parts.count * parts.unit;
+  const route = MATERIALS
+    .filter((material) => isCarrackBuildMaterial(material) && getMissing(profile, material.id) > 0)
     .map((material) => ({
       material,
-      price: material.crowPrice || 0,
+      price: acceleratesCategory(profile.crowSpend, material.category) ? material.crowPrice || 0 : 0,
       missing: getMissing(profile, material.id),
       perDay: materialRate(profile, material.id, quests).perDay,
-      bought: 0,
-      order: 0,
     }));
-  const daysLeft = (candidate: typeof candidates[number]) => daysForUnits(candidate.missing - candidate.bought, candidate.perDay);
-  const costLeft = (candidate: typeof candidates[number]) => (candidate.missing - candidate.bought) * candidate.price;
-  // Material sem fonte na rotina só sai da loja e segura o prazo até ser comprado por inteiro.
-  // Entre dois assim, vai primeiro o que custa menos para fechar: cada um fechado é uma
-  // pendência a menos, e dividir o saldo entre vários não fecharia nenhum.
-  const slower = (a: typeof candidates[number], b: typeof candidates[number]) => {
-    const daysA = daysLeft(a);
-    const daysB = daysLeft(b);
-    if (daysA !== daysB) return daysA > daysB;
-    return !Number.isFinite(daysA) && costLeft(a) < costLeft(b);
-  };
+  const buyable = route.filter((candidate) => candidate.price > 0);
 
-  let remainingCoins = Math.max(0, Math.floor(profile.crowCoins)) - parts.cost;
-  let order = 0;
-  while (remainingCoins > 0) {
-    const reducible = candidates.filter((candidate) => candidate.bought < candidate.missing && candidate.price <= remainingCoins);
-    if (!reducible.length) break;
+  // O que a loja não resolve impõe um prazo mínimo; comprar para terminar antes dele não adianta.
+  const floor = route.reduce((longest, candidate) => {
+    const days = candidate.price > 0 ? 0 : daysForUnits(candidate.missing, candidate.perDay);
+    return Number.isFinite(days) && days > longest ? days : longest;
+  }, 0);
+  const costAt = (days: number) => buyable.reduce((sum, candidate) =>
+    sum + candidate.price * Math.max(0, candidate.missing - candidate.perDay * days), 0);
+  const fundsAt = (days: number) => balance - partsTotal + income * days;
+  const enough = (days: number) => fundsAt(days) >= costAt(days) - 1e-6;
+  // A partir daqui, só o que a loja entrega sozinha continua custando.
+  const settled = buyable.reduce((longest, candidate) =>
+    candidate.perDay > 0 ? Math.max(longest, candidate.missing / candidate.perDay) : longest, floor);
 
-    const target = reducible.reduce((slowest, candidate) => (slower(candidate, slowest) ? candidate : slowest));
-    const targetDays = daysLeft(target);
-    // Comprar além do próximo prazo da fila não adianta: o gargalo passaria a ser o outro material.
-    const nextDays = candidates.reduce((longest, candidate) => {
-      const days = daysLeft(candidate);
-      return candidate !== target && days < targetDays && days > longest ? days : longest;
-    }, 0);
-    const left = target.missing - target.bought;
-    const toNextLevel = Number.isFinite(targetDays) && target.perDay > 0 ? Math.ceil((targetDays - nextDays) * target.perDay) : left;
-    const affordable = Math.floor(remainingCoins / target.price);
-    const units = Math.max(1, Math.min(left, affordable, Math.max(1, toNextLevel)));
+  let target: number;
+  if (enough(floor)) target = floor;
+  else if (enough(settled)) {
+    let low = floor;
+    let high = settled;
+    for (let step = 0; step < 60; step += 1) {
+      const middle = (low + high) / 2;
+      if (enough(middle)) high = middle;
+      else low = middle;
+    }
+    target = high;
+  } else target = income > 0 ? settled + (costAt(settled) - fundsAt(settled)) / income : Number.POSITIVE_INFINITY;
 
-    target.bought += units;
-    remainingCoins -= units * target.price;
-    if (!target.order) target.order = ++order;
-  }
+  // Com renda, arredondar a diferença para cima custa uma fração de dia; sem renda, passaria do
+  // saldo e deixaria a compra sem data, então arredonda para baixo.
+  const round = income > 0 ? (units: number) => Math.ceil(units - 1e-6) : (units: number) => Math.floor(units + 1e-6);
+  const queue = buyable
+    .map((candidate) => {
+      const units = candidate.perDay <= 0 ? candidate.missing
+        : Number.isFinite(target) ? Math.min(candidate.missing, Math.max(0, round(candidate.missing - candidate.perDay * target))) : 0;
+      return { ...candidate, units, cost: units * candidate.price };
+    })
+    .filter((candidate) => candidate.units > 0)
+    .sort((a, b) => Number(a.perDay > 0) - Number(b.perDay > 0) || a.cost - b.cost);
 
-  const items = candidates
-    .filter((candidate) => candidate.bought > 0)
-    .sort((a, b) => a.order - b.order)
-    .map((candidate) => ({
+  // Hoje o saldo paga as peças primeiro e o resto segue a fila; a sobra passa para o próximo
+  // item que ela paga, porque tudo na fila vai ser comprado de qualquer jeito.
+  let available = partsTotal <= balance ? balance - partsTotal : 0;
+  let spent = partsTotal;
+  const items: CoinPurchase[] = queue.map((candidate) => {
+    const now = Math.min(candidate.units, Math.floor(available / candidate.price));
+    available -= now * candidate.price;
+    spent += candidate.cost;
+    return {
       id: candidate.material.id,
       name: candidate.material.name,
       unit: candidate.price,
-      suggested: candidate.bought,
-      cost: candidate.bought * candidate.price,
+      suggested: candidate.units,
+      cost: candidate.cost,
       missing: candidate.missing,
       difficulty: candidate.material.difficulty,
-      daysSaved: daysForUnits(candidate.bought, candidate.perDay),
-    }));
+      now,
+      readyIn: daysToEarn(spent - balance, income),
+    };
+  });
   const coverage = Object.fromEntries(items.map((item) => [item.id, item.suggested])) as Partial<Record<MaterialId, number>>;
-  return { items, coverage, remainingCoins, parts };
+  const readyAt = Object.fromEntries(items.map((item) => [item.id, item.readyIn])) as Partial<Record<MaterialId, number>>;
+  const remainingCoins = partsTotal <= balance ? available : balance - parts.cost;
+  return { items, coverage, readyAt, remainingCoins, parts, income, shortfall: Math.max(0, spent - balance) };
 }
 
 /** Tudo que depende do plano inteiro, calculado uma vez e reaproveitado nas estimativas. */
@@ -230,8 +287,18 @@ export function estimateContext(profile: PlannerProfile): EstimateContext {
 
 /** Mesmo contexto, sem gastar moeda nenhuma: serve para mostrar o prazo antes da compra. */
 export function contextWithoutCoins(context: EstimateContext): EstimateContext {
-  const parts = { count: 0, affordable: 0, cost: 0, unit: CARRACK_PART_CROW_PRICE };
-  return { quests: context.quests, coverage: {}, plan: { items: [], coverage: {}, remainingCoins: 0, parts } };
+  const parts = { count: 0, affordable: 0, cost: 0, unit: CARRACK_PART_CROW_PRICE, readyIn: 0 };
+  return {
+    quests: context.quests,
+    coverage: {},
+    plan: { items: [], coverage: {}, readyAt: {}, remainingCoins: 0, parts, income: context.plan.income, shortfall: 0 },
+  };
+}
+
+/** Dia em que o material fica completo: pelo ritmo das fontes ou pela compra, o que vier depois. */
+function completionDays(missing: number, bought: number, perDay: number, readyAt: number | undefined) {
+  const byRate = daysForUnits(missing - bought, perDay);
+  return bought > 0 ? Math.max(byRate, readyAt ?? 0) : byRate;
 }
 
 export interface QuestRate {
@@ -336,7 +403,7 @@ export function materialEstimate(profile: PlannerProfile, id: MaterialId, contex
   const covered = Math.min(missing, context.coverage[id] || 0);
   const remaining = missing - covered;
   const { perDay } = materialRate(profile, id, context.quests);
-  return { id, missing, covered, remaining, perDay, days: daysForUnits(remaining, perDay) };
+  return { id, missing, covered, remaining, perDay, days: completionDays(missing, covered, perDay, context.plan.readyAt[id]) };
 }
 
 export interface PartEstimate {
@@ -363,7 +430,7 @@ export function recipeEstimate(profile: PlannerProfile, materials: Partial<Recor
     const bought = Math.min(missing, context.coverage[id] || 0);
     covered += bought;
     const { perDay } = materialRate(profile, id, context.quests);
-    const materialDays = daysForUnits(missing - bought, perDay);
+    const materialDays = completionDays(missing, bought, perDay, context.plan.readyAt[id]);
     if (materialDays > days) {
       days = materialDays;
       slowest = id;
@@ -411,25 +478,30 @@ export function shipEstimate(profile: PlannerProfile, context = estimateContext(
   return slowestOf(route.map((material) => materialEstimate(profile, material.id, context)));
 }
 
-/** Material da rota que nenhuma fonte da rotina entrega e que o plano de compra não fechou. */
+/** Material da rota que nem as fontes da rotina nem a Moeda Corvo conseguem fechar. */
 export interface StalledMaterial {
   id: MaterialId;
-  /** Unidades que continuam faltando depois da compra sugerida. */
+  /** Unidades que o saldo de hoje não paga. */
   remaining: number;
   /** Moedas para comprar esse resto na loja. */
   cost: number;
 }
 
 /**
- * Materiais que deixam a rota sem prazo. Com permuta e caça fora da rotina, o que não vem de
- * missão só sai da loja, e o planner precisa dizer quanto falta em vez de mostrar um prazo vazio.
+ * Materiais que deixam a rota sem prazo: nenhuma fonte na rotina e nenhum jeito de pagar a
+ * compra — a categoria não está liberada para a moeda, ou nenhuma missão marcada rende Moeda
+ * Corvo e o saldo de hoje não chega. O planner diz quais são em vez de mostrar um prazo vazio.
  */
 export function stalledRoute(profile: PlannerProfile, context = estimateContext(profile)): StalledMaterial[] {
   return MATERIALS
     .filter((material) => isCarrackBuildMaterial(material) && material.required[profile.target] > 0)
     .map((material) => materialEstimate(profile, material.id, context))
-    .filter((estimate) => estimate.remaining > 0 && estimate.perDay <= 0)
-    .map((estimate) => ({ id: estimate.id, remaining: estimate.remaining, cost: estimate.remaining * (MATERIAL_BY_ID[estimate.id].crowPrice || 0) }));
+    .filter((estimate) => estimate.missing > 0 && !Number.isFinite(estimate.days))
+    .map((estimate) => {
+      const paidToday = context.plan.items.find((item) => item.id === estimate.id)?.now ?? 0;
+      const remaining = estimate.missing - paidToday;
+      return { id: estimate.id, remaining, cost: remaining * (MATERIAL_BY_ID[estimate.id].crowPrice || 0) };
+    });
 }
 
 /**
