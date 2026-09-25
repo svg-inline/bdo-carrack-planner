@@ -6,6 +6,8 @@ Todas as mudanças relevantes para usuários são registradas em `Unreleased`, n
 
 ### Added
 
+- Marcação "Pronta · fora do cálculo" em cada peça do equipamento azul do Navio Mercante ou do Contratorpedeiro e do conjunto de Shiro, na Visão geral. Os materiais da peça marcada saem da meta, do que falta, dos gargalos e do prazo — o estoque que caiu depois da fabricação deixa de voltar como falta. A marcação pertence ao preset e é salva no navegador e na conta.
+
 - A compra sugerida de Moeda Corvo passa a contar a moeda que as missões marcadas rendem por dia. Todos os itens da fila aparecem, cada um com o prazo em que fica pago ("agora", "≈ 5 dias", "≈ 3 semanas"), e o saldo após o plano pode ficar negativo, mostrando quanto falta juntar. Materiais que só saem da loja deixam de aparecer "sem estimativa" e ganham prazo; dos que também vêm de missão, o plano compra só a diferença que as missões não cobrem a tempo.
 - Rotina de farm na aba Estratégia: escolha se você faz permuta, caça no oceano (com o processamento dos drops) e escavação. Atividade desmarcada deixa de contar no prazo, e o material que nenhuma missão entrega passa a aparecer como "sem fonte" e a ter prioridade na compra sugerida de Moeda Corvo, com o total que falta para fechá-lo. A escolha pertence ao preset; presets antigos continuam com as três atividades ligadas.
 - Escolha do item que você pega nas missões de recompensa de escolha, na aba Missões: a conclusão inteira passa a contar para o item escolhido, em vez de ser dividida entre as metas que faltam. A opção sugerida leva o texto "(Recomendado)" e aponta a meta que hoje demora mais sem aquela missão. A escolha pertence ao preset; "Automático" mantém a divisão de antes, e uma escolha cuja meta já foi concluída volta sozinha ao automático.
@@ -60,6 +62,7 @@ Todas as mudanças relevantes para usuários são registradas em `Unreleased`, n
 
 ### Fixed
 
+- "Ocultar concluídos" no inventário passou a ficar salvo neste navegador; antes voltava desligado a cada troca de aba ou recarga.
 - Progresso dos equipamentos ignora aprimoramento azul antes da fabricação da peça.
 - O tempo estimado não soma mais missões que o jogo não deixa aceitar juntas, o que deixava os prazos de Olho Abissal, Escama da Lua, Suporte Elaborado e Cola com Traços de Onda otimistas demais.
 - Campos, navegação, foco e indicadores de progresso receberam nomes e estados acessíveis.

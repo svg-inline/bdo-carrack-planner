@@ -1,5 +1,5 @@
-import { CADENCE_BY_ID, CARRACKS, MATERIALS, MATERIAL_BY_ID } from "@/lib/data";
-import type { CarrackTarget, GearState, MaterialDefinition, MaterialId, PlannerProfile, QuestCadence } from "@/types";
+import { CADENCE_BY_ID, CARRACK_GEAR_SETS, CARRACKS, GEAR_SETS, MATERIALS, MATERIAL_BY_ID } from "@/lib/data";
+import type { CarrackTarget, GearKey, GearState, MaterialDefinition, MaterialId, PlannerProfile, QuestCadence } from "@/types";
 
 // Materiais consumidos para chegar até a Carraca. O conjunto de Shiro é equipamento posterior
 // e tem progresso próprio, por isso fica fora dos gargalos e do percentual da rota.
@@ -14,16 +14,39 @@ function gearScore(gear: GearState) {
   return base * 0.25 + crafted * 0.25 + blue * 0.5;
 }
 
+/** Meta do catálogo: tudo que a Carraca pede, sem descontar nenhuma peça já fabricada. */
 export function getRequired(id: MaterialId, target: CarrackTarget) {
   return MATERIAL_BY_ID[id].required[target];
 }
 
+/** Peças do plano ativo, com a receita de cada uma e se o jogador já as fabricou. */
+function planPieces(profile: PlannerProfile) {
+  const branch = CARRACKS[profile.target].branch;
+  const keys = Object.keys(GEAR_SETS[branch]) as GearKey[];
+  return [
+    ...keys.map((key) => ({ crafted: profile.gear[branch][key].crafted, materials: GEAR_SETS[branch][key].materials })),
+    ...keys.map((key) => ({ crafted: profile.carrackGear[key].crafted, materials: CARRACK_GEAR_SETS[profile.target][key].materials })),
+  ];
+}
+
+/**
+ * Meta que ainda conta no plano. A meta do catálogo é a soma das receitas das quatro peças, e
+ * fabricar uma peça consome os materiais dela: sem este desconto, o estoque que caiu depois da
+ * fabricação voltaria a aparecer como falta.
+ */
+export function getPlanRequired(profile: PlannerProfile, id: MaterialId) {
+  const used = planPieces(profile)
+    .filter((piece) => piece.crafted)
+    .reduce((sum, piece) => sum + (piece.materials[id] || 0), 0);
+  return Math.max(0, getRequired(id, profile.target) - used);
+}
+
 export function getMissing(profile: PlannerProfile, id: MaterialId) {
-  return Math.max(0, getRequired(id, profile.target) - (profile.materials[id] || 0));
+  return Math.max(0, getPlanRequired(profile, id) - (profile.materials[id] || 0));
 }
 
 export function materialCompletion(profile: PlannerProfile, id: MaterialId) {
-  const required = getRequired(id, profile.target);
+  const required = getPlanRequired(profile, id);
   if (!required) return 1;
   return Math.min(1, (profile.materials[id] || 0) / required);
 }
@@ -44,7 +67,7 @@ export function carrackGearCompletion(profile: PlannerProfile) {
 export function bottlenecks(profile: PlannerProfile) {
   return MATERIALS.filter((m) => isCarrackBuildMaterial(m) && getMissing(profile, m.id) > 0)
     .map((m) => {
-      const required = getRequired(m.id, profile.target);
+      const required = getPlanRequired(profile, m.id);
       const missing = getMissing(profile, m.id);
       const missingRatio = required ? missing / required : 0;
       const crowBurden = m.crowPrice ? Math.min(1, (missing * m.crowPrice) / Math.max(1, profile.crowCoins || 1)) : 0.35;

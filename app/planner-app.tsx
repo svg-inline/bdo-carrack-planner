@@ -37,6 +37,7 @@ import {
   bottlenecks,
   carrackGearCompletion,
   getMissing,
+  getPlanRequired,
   getRequired,
   materialCompletion,
   nextActions,
@@ -65,6 +66,7 @@ import type {
   CarrackTarget,
   FarmActivity,
   GearKey,
+  GearState,
   MaterialCategory,
   MaterialDefinition,
   MaterialId,
@@ -680,8 +682,41 @@ function Header({ title, subtitle }: { title: string; subtitle: string }) {
   );
 }
 
+/**
+ * Peça marcada como pronta: os materiais dela já foram consumidos na fabricação e saem da meta,
+ * do que falta e do prazo. Usa o `crafted` do preset, então a marcação é salva com o plano.
+ */
+function GearReadyToggle({
+  name,
+  state,
+  onChange,
+}: {
+  name: string;
+  state: GearState;
+  onChange: (crafted: boolean) => void;
+}) {
+  return (
+    <label className="gear-ready-toggle" title="Os materiais desta peça deixam de contar na meta e no prazo">
+      <input
+        type="checkbox"
+        aria-label={`${name} pronta, fora do cálculo`}
+        checked={state.crafted}
+        onChange={(e) => onChange(e.target.checked)}
+      />
+      Pronta · fora do cálculo
+    </label>
+  );
+}
+
+function GearStatus({ state }: { state: GearState }) {
+  if (state.crafted && state.blueEnhancement >= 10) return <em>✓ +10</em>;
+  return <em>{state.crafted ? "✓ PRONTA" : "PENDENTE"}</em>;
+}
+
 function Overview() {
   const profile = useActivePreset().profile;
+  const setGear = usePlannerStore((state) => state.setGear);
+  const setCarrackGear = usePlannerStore((state) => state.setCarrackGear);
   const carrack = CARRACKS[profile.target];
   const completion = overallCompletion(profile);
   const hard = bottlenecks(profile).slice(0, 5);
@@ -843,10 +878,9 @@ function Overview() {
         <div className="gear-mini-grid">
           {(Object.keys(gearSet) as GearKey[]).map((key) => {
             const state = profile.gear[carrack.branch][key];
-            const done = state.crafted && state.blueEnhancement >= 10;
             const eta = gearEstimate(profile, carrack.branch, key, context);
             return (
-              <div className={`gear-mini ${done ? "done" : ""}`} key={key}>
+              <div className={`gear-mini ${state.crafted ? "done" : ""}`} key={key}>
                 <div>
                   <div className="item-heading">
                     <GearLabel
@@ -865,8 +899,15 @@ function Overview() {
                       ? "Materiais já usados"
                       : `Materiais desta peça ${etaText(eta.days)}`}
                   </span>
+                  <GearReadyToggle
+                    name={gearSet[key].name}
+                    state={state}
+                    onChange={(crafted) =>
+                      setGear(carrack.branch, key, { crafted })
+                    }
+                  />
                 </div>
-                <em>{done ? "✓ PRONTA" : "PENDENTE"}</em>
+                <GearStatus state={state} />
               </div>
             );
           })}
@@ -891,10 +932,9 @@ function Overview() {
         <div className="gear-mini-grid">
           {(Object.keys(carrackGearSet) as GearKey[]).map((key) => {
             const state = profile.carrackGear[key];
-            const done = state.crafted && state.blueEnhancement >= 10;
             const eta = carrackGearEstimate(profile, key, context);
             return (
-              <div className={`gear-mini ${done ? "done" : ""}`} key={key}>
+              <div className={`gear-mini ${state.crafted ? "done" : ""}`} key={key}>
                 <div>
                   <div className="item-heading">
                     <CarrackGearLabel
@@ -913,8 +953,13 @@ function Overview() {
                       ? "Materiais já usados"
                       : `Materiais desta peça ${etaText(eta.days)}`}
                   </span>
+                  <GearReadyToggle
+                    name={carrackGearSet[key].name}
+                    state={state}
+                    onChange={(crafted) => setCarrackGear(key, { crafted })}
+                  />
                 </div>
-                <em>{done ? "✓ PRONTA" : "PENDENTE"}</em>
+                <GearStatus state={state} />
               </div>
             );
           })}
@@ -1026,13 +1071,37 @@ function SortHeader({
   );
 }
 
+const HIDE_COMPLETED_KEY = "bdo-carrack-ledger:hide-completed";
+
+/**
+ * Preferência de exibição deste navegador. A aba do inventário desmonta a cada troca de aba,
+ * então um estado só do componente voltava desligado toda vez. Não entra no preset: é como o
+ * jogador prefere ver a lista, e não parte do plano.
+ */
+function readHideCompleted() {
+  try {
+    return window.localStorage.getItem(HIDE_COMPLETED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function saveHideCompleted(value: boolean) {
+  try {
+    window.localStorage.setItem(HIDE_COMPLETED_KEY, value ? "1" : "0");
+  } catch {
+    // Sem armazenamento a opção continua valendo até a aba ser trocada.
+  }
+}
+
 function Inventory() {
   const profile = useActivePreset().profile;
   const setMaterial = usePlannerStore((state) => state.setMaterial);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | MaterialCategory>("all");
   const [sort, setSort] = useState<InventorySort | null>(null);
-  const [hideCompleted, setHideCompleted] = useState(false);
+  // O inventário só monta no cliente, depois de o planner carregar, então ler aqui é seguro.
+  const [hideCompleted, setHideCompleted] = useState(readHideCompleted);
   const context = estimateContext(profile);
   const relevantCount = MATERIALS.filter(
     (m) => getRequired(m.id, profile.target) > 0,
@@ -1130,7 +1199,10 @@ function Inventory() {
           <input
             type="checkbox"
             checked={hideCompleted}
-            onChange={(e) => setHideCompleted(e.target.checked)}
+            onChange={(e) => {
+              setHideCompleted(e.target.checked);
+              saveHideCompleted(e.target.checked);
+            }}
           />
           <span>Ocultar concluídos</span>
         </label>
@@ -1168,13 +1240,15 @@ function Inventory() {
           />
         </div>
         {rows.map((m) => {
-          const required = getRequired(m.id, profile.target);
+          // `inPlan` é a meta do catálogo; `required`, o que sobra depois das peças prontas.
+          const inPlan = getRequired(m.id, profile.target);
+          const required = getPlanRequired(profile, m.id);
           const missing = getMissing(profile, m.id);
-          const pct = required ? materialCompletion(profile, m.id) * 100 : 0;
+          const pct = inPlan ? materialCompletion(profile, m.id) * 100 : 0;
           const estimate = materialEstimate(profile, m.id, context);
           return (
             <article
-              className={`inventory-material-row ${required > 0 && missing === 0 ? "complete" : ""}`}
+              className={`inventory-material-row ${isMaterialDone(m) ? "complete" : ""}`}
               key={m.id}
             >
               <div className="inventory-item">
@@ -1196,7 +1270,15 @@ function Inventory() {
                   {categoryLabel[m.category]}
                 </Badge>
               </span>
-              <strong>{required ? number(required) : "—"}</strong>
+              <strong
+                title={
+                  inPlan > required
+                    ? `${number(inPlan - required)} já usados nas peças prontas`
+                    : undefined
+                }
+              >
+                {inPlan ? number(required) : "—"}
+              </strong>
               <input
                 aria-label={`Estoque de ${m.name}`}
                 className="qty-input"
@@ -1207,18 +1289,16 @@ function Inventory() {
               />
               <strong
                 className={
-                  missing === 0 && required > 0
-                    ? "inventory-done"
-                    : "inventory-missing"
+                  isMaterialDone(m) ? "inventory-done" : "inventory-missing"
                 }
               >
-                {required ? number(missing) : "—"}
+                {inPlan ? number(missing) : "—"}
               </strong>
               <span
                 className="inventory-eta"
-                title={required ? materialEtaTitle(estimate) : undefined}
+                title={inPlan ? materialEtaTitle(estimate) : undefined}
               >
-                {required ? materialEtaText(estimate) : "—"}
+                {inPlan ? materialEtaText(estimate) : "—"}
               </span>
             </article>
           );
@@ -1420,7 +1500,9 @@ function AcquisitionCatalog() {
                   <span>
                     Meta{" "}
                     <strong>
-                      {required ? number(required) : "Aprimoramento"}
+                      {required
+                        ? number(getPlanRequired(profile, m.id))
+                        : "Aprimoramento"}
                     </strong>
                   </span>
                   <span>
