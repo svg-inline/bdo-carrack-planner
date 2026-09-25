@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createInitialProfile, normalizeGear, normalizePersistedState, normalizeProfile } from "@/lib/profile";
-import { bottlenecks, carrackGearCompletion, overallCompletion, questResetKey } from "@/lib/planner";
-import { CARRACK_GEAR_SETS } from "@/lib/data";
+import { bottlenecks, carrackGearCompletion, getMissing, getPlanRequired, getRequired, materialCompletion, overallCompletion, questResetKey } from "@/lib/planner";
+import { CARRACK_GEAR_SETS, GEAR_SETS } from "@/lib/data";
 
 describe("profile normalization", () => {
   it("repairs untrusted persisted values and migrates the old target", () => {
@@ -74,6 +74,41 @@ describe("equipamento de Shiro da Carraca", () => {
     expect(cannon.permit).toBe("Permissão de alteração de peça da Carraca de Epheria: Bravura");
     expect(cannon.materials).toEqual({ shiroCannonBlueprint: 10, violentWavePlywood: 100, polishedSupport: 100, waveAdhesive: 100 });
     expect(CARRACK_GEAR_SETS.ascensao.sail.permit).toContain("Emergência");
+  });
+});
+
+describe("peças prontas saem do cálculo", () => {
+  it("desconta da meta os materiais de uma peça azul pronta", () => {
+    const profile = createInitialProfile("gradual");
+    profile.gear.caravel.figurehead = normalizeGear({ crafted: true });
+    const figurehead = GEAR_SETS.caravel.figurehead.materials;
+    expect(getPlanRequired(profile, "redSeaGold")).toBe(getRequired("redSeaGold", "gradual") - figurehead.redSeaGold!);
+    expect(getPlanRequired(profile, "enhancedPlywood")).toBe(0);
+    expect(getMissing(profile, "enhancedPlywood")).toBe(0);
+    expect(materialCompletion(profile, "enhancedPlywood")).toBe(1);
+    // Material de outra peça continua com a meta inteira.
+    expect(getPlanRequired(profile, "purePearl")).toBe(getRequired("purePearl", "gradual"));
+  });
+
+  it("só considera as peças do navio de origem da Carraca escolhida", () => {
+    const profile = createInitialProfile("gradual");
+    profile.gear.galleass.figurehead = normalizeGear({ crafted: true });
+    expect(getPlanRequired(profile, "enhancedPlywood")).toBe(getRequired("enhancedPlywood", "gradual"));
+  });
+
+  it("desconta as peças de Shiro prontas", () => {
+    const profile = createInitialProfile("bravura");
+    profile.carrackGear.cannon = normalizeGear({ crafted: true });
+    const cannon = CARRACK_GEAR_SETS.bravura.cannon;
+    expect(getPlanRequired(profile, cannon.blueprint)).toBe(0);
+    expect(getPlanRequired(profile, "waveAdhesive")).toBe(getRequired("waveAdhesive", "bravura") - cannon.materials.waveAdhesive!);
+  });
+
+  it("não fala de falta de um material que as peças prontas já consumiram", () => {
+    const profile = createInitialProfile("bravura");
+    for (const key of Object.keys(profile.gear.galleass) as (keyof typeof profile.gear.galleass)[])
+      profile.gear.galleass[key] = normalizeGear({ crafted: true });
+    expect(bottlenecks(profile).some((material) => material.category === "blue-gear")).toBe(false);
   });
 });
 
