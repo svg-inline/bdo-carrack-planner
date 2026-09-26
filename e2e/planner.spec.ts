@@ -41,6 +41,21 @@ test("works as a useful guide without JavaScript, one page per section", async (
   await context.close();
 });
 
+test("answers how to get each material on its own page", async ({ browser }) => {
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+  await page.goto("/como-obter");
+  await page.getByText("Barra de Cobalto Brilhante").first().click();
+  await page.getByRole("link", { name: "Tudo sobre Barra de Cobalto Brilhante" }).click();
+  await expect(page).toHaveURL(/\/material\/barra-de-cobalto-brilhante$/);
+  await expect(page).toHaveTitle(/^Como conseguir Barra de Cobalto Brilhante/);
+  await expect(page.getByRole("heading", { level: 1, name: "Como conseguir Barra de Cobalto Brilhante" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Onde conseguir" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Quanto cada Carraca pede" })).toBeVisible();
+  await expect(page.getByRole("img", { name: "Barra de Cobalto Brilhante" })).toBeVisible();
+  await context.close();
+});
+
 test("gives each section of the planner its own URL", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: /Bravura/ }).click();

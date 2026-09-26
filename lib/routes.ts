@@ -1,3 +1,4 @@
+import { MATERIAL_SLUGS } from "@/lib/materials";
 import type { CarrackTarget } from "@/types";
 
 /**
@@ -86,7 +87,11 @@ export function pageOfTab(tab: PlannerTab): PlannerPage {
 
 /** Todas as páginas públicas, na ordem do sitemap. */
 export function publicPaths(): string[] {
-  return [...PLANNER_PAGES.map((page) => page.path), ...Object.values(CARRACK_SLUGS).map((slug) => `/carraca/${slug}`)];
+  return [
+    ...PLANNER_PAGES.map((page) => page.path),
+    ...Object.values(CARRACK_SLUGS).map((slug) => `/carraca/${slug}`),
+    ...Object.values(MATERIAL_SLUGS).map((slug) => `/material/${slug}`),
+  ];
 }
 
 /**

@@ -5,6 +5,7 @@ import {
   CADENCE_BY_ID,
   CARRACKS,
   CATEGORY_LABELS,
+  SOURCE_TYPE_LABELS,
   CARRACK_GEAR_SETS,
   CARRACK_ORDER,
   CARRACK_PART_COUNT,
@@ -120,16 +121,6 @@ type InventorySort = {
   dir: "asc" | "desc";
 };
 
-const sourceLabel: Record<AcquisitionType, string> = {
-  daily: "Missão diária",
-  weekly: "Missão semanal",
-  barter: "Permuta",
-  crow: "Comprar",
-  hunt: "Drop / caça",
-  processing: "Processar",
-  workers: "Trabalhadores",
-  market: "Mercado",
-};
 /** Atividades de farm que o preset pode tirar da conta. Processar segue a caça, que traz a matéria-prima. */
 const FARM_ROUTINE_OPTIONS: { id: FarmActivity; title: string; detail: string }[] = [
   {
@@ -1596,7 +1587,7 @@ function SourceCard({
     <div
       className={`source-card source-${source.type} ${inactive ? "source-inactive" : ""}`.trim()}
     >
-      <Badge kind={source.type}>{sourceLabel[source.type]}</Badge>
+      <Badge kind={source.type}>{SOURCE_TYPE_LABELS[source.type]}</Badge>
       {inactive && <Badge kind="red">FORA DO CÁLCULO</Badge>}
       <strong>
         <TextWithItemIcons text={source.label} />
@@ -2876,7 +2867,7 @@ function Strategy() {
                 <div className="source-chips">
                   {m.sources.slice(0, 4).map((s, i) => (
                     <Badge key={i} kind={s.type}>
-                      {sourceLabel[s.type]}
+                      {SOURCE_TYPE_LABELS[s.type]}
                     </Badge>
                   ))}
                 </div>

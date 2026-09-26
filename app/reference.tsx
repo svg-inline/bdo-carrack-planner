@@ -2,10 +2,11 @@ import Image from "next/image";
 import Link from "next/link";
 import AccountBar, { type AccountBarProps } from "./account-bar";
 import JsonLd from "./json-ld";
-import { CADENCE_BY_ID, CARRACK_GEAR_SETS, CARRACK_ORDER, CARRACKS, CATEGORY_LABELS, FALASI_PERMIT_SELLER, FALASI_PERMIT_SILVER, FALASI_WORKSHOP, GEAR_SETS, LYNGBAKR_HORN_EXCHANGE, MATERIALS, MATERIAL_BY_ID, QUESTS, QUEST_CADENCES, QUEST_GROUPS, SOURCES, YELLOW_ENHANCEMENT, YELLOW_GEAR_SETS, YELLOW_PROCESSING, YELLOW_ROUTE_ITEMS } from "@/lib/data";
-import { carrackGearSetEstimate, formatDuration, materialEstimate, shipEstimate } from "@/lib/estimate";
+import { CADENCE_BY_ID, CARRACK_GEAR_SETS, CARRACK_ORDER, CARRACKS, CATEGORY_LABELS, FALASI_PERMIT_SELLER, FALASI_PERMIT_SILVER, FALASI_WORKSHOP, GEAR_SETS, LYNGBAKR_HORN_EXCHANGE, MATERIALS, MATERIAL_BY_ID, QUESTS, QUEST_CADENCES, QUEST_GROUPS, SOURCE_TYPE_LABELS, SOURCES, YELLOW_ENHANCEMENT, YELLOW_GEAR_SETS, YELLOW_PROCESSING, YELLOW_ROUTE_ITEMS } from "@/lib/data";
+import { carrackGearSetEstimate, formatDuration, formatRate, materialEstimate, materialRate, shipEstimate } from "@/lib/estimate";
+import { materialPath, materialUses } from "@/lib/materials";
 import { getGoal } from "@/lib/planner";
-import { questsOfGroup } from "@/lib/quests";
+import { isQuestAcquisition, questsOfGroup } from "@/lib/quests";
 import { createInitialProfile } from "@/lib/profile";
 import { carrackPath, PLANNER_PAGES, type PlannerPage } from "@/lib/routes";
 import { breadcrumbJsonLd } from "@/lib/site";
@@ -24,9 +25,11 @@ function eta(days: number) {
   return days > 0 ? `≈ ${formatDuration(days)}` : formatDuration(days);
 }
 
-function Item({ id }: { id: MaterialId }) {
+/** Ícone e nome do material. Com `link`, o nome leva à página do material. */
+function Item({ id, link = false }: { id: MaterialId; link?: boolean }) {
   const material = MATERIAL_BY_ID[id];
-  return <span className="item-label"><Image className="item-icon" src={material.icon} alt="" width={28} height={28} /><span>{material.name}</span></span>;
+  const label = <span className="item-label"><Image className="item-icon" src={material.icon} alt="" width={28} height={28} /><span>{material.name}</span></span>;
+  return link ? <Link className="text-gold-bright" href={materialPath(id)}>{label}</Link> : label;
 }
 
 function GuideNav() {
@@ -82,7 +85,7 @@ export function CarrackGuide({ id }: { id: CarrackTarget }) {
     <h2>Rota e prazo</h2><p>{carrack.sourceShip} → {carrack.shortName} · {carrack.role}</p><p>{carrack.description}</p>
     <p>Partindo do zero, os materiais da rota levam <strong>{eta(ship.days)}</strong> e o conjunto de Shiro, mais <strong>{eta(shiroSet.days)}</strong>. Veja <Link className="text-gold-bright" href="/estrategia">como o tempo é estimado</Link>.</p>
     <details open><summary className="cursor-pointer text-gold-bright">Materiais e quantidades para {carrack.shortName}</summary>
-      <ul className="my-4 space-y-2">{MATERIALS.filter((m) => getGoal(profile, m.id) > 0).map((m) => <li className="flex flex-wrap items-center justify-between gap-2" key={m.id}><Item id={m.id} /><strong>{m.required[id]} · {eta(materialEstimate(profile, m.id).days)}</strong></li>)}</ul>
+      <ul className="my-4 space-y-2">{MATERIALS.filter((m) => getGoal(profile, m.id) > 0).map((m) => <li className="flex flex-wrap items-center justify-between gap-2" key={m.id}><Item id={m.id} link /><strong>{m.required[id]} · {eta(materialEstimate(profile, m.id).days)}</strong></li>)}</ul>
     </details>
     <details open><summary className="cursor-pointer text-gold-bright">Receitas dos quatro equipamentos azuis +10</summary>
       <div className="my-4 space-y-4">{(Object.keys(gearSet) as GearKey[]).map((key) => <article key={key}>
@@ -113,7 +116,7 @@ export function MaterialsTable() {
       <table className="w-full text-left">
         <thead><tr><th scope="col">Material</th><th scope="col">Uso</th>{CARRACK_ORDER.map((id) => <th scope="col" key={id}>{CARRACKS[id].shortName}</th>)}</tr></thead>
         <tbody>{MATERIALS.filter((m) => CARRACK_ORDER.some((id) => m.required[id] > 0)).map((m) => <tr key={m.id}>
-          <th scope="row"><Item id={m.id} /></th><td>{CATEGORY_LABELS[m.category]}</td>
+          <th scope="row"><Item id={m.id} link /></th><td>{CATEGORY_LABELS[m.category]}</td>
           {CARRACK_ORDER.map((id) => <td key={id}>{m.required[id] || "—"}</td>)}
         </tr>)}</tbody>
       </table>
@@ -155,6 +158,7 @@ export function SourcesGuide() {
     <div className="mt-4 space-y-4">{MATERIALS.map((m) => <details key={m.id}>
       <summary className="cursor-pointer"><Item id={m.id} /></summary>
       <ul className="my-3 space-y-2">{m.sources.map((source, index) => <li key={index}><strong>{source.label}</strong>{source.detail && <p>{source.detail}</p>}</li>)}</ul>
+      <p><Link className="text-gold-bright" href={materialPath(m.id)}>Tudo sobre {m.name}</Link></p>
     </details>)}</div>
   </section>;
 }
@@ -207,5 +211,50 @@ export function GuidePage({ page, notice, children }: { page: PlannerPage; notic
     <GuideNotice notice={notice} />
     <GuideIntro title={page.title}><p>{page.description}</p></GuideIntro>
     {children}
+  </>;
+}
+
+/**
+ * Tudo sobre um material: onde conseguir, quanto cada Carraca pede, em quanto tempo sai
+ * partindo do zero e em que peças ele entra. É a resposta para "como conseguir <material>".
+ */
+export function MaterialGuide({ id }: { id: MaterialId }) {
+  const material = MATERIAL_BY_ID[id];
+  const uses = materialUses(id);
+  const questRate = materialRate(EMPTY_PROFILES.gradual, id).perDay;
+  const needed = CARRACK_ORDER.filter((carrack) => material.required[carrack] > 0);
+  const related = MATERIALS.filter((m) => m.category === material.category && m.id !== id);
+  return <>
+    <section className="panel"><h2>Onde conseguir</h2>
+      <ul className="my-4 space-y-3">{material.sources.map((source, index) => <li key={index}>
+        <strong>{SOURCE_TYPE_LABELS[source.type]} · {source.label}</strong>
+        {source.detail && <p>{source.detail}</p>}
+        {isQuestAcquisition(source) && <p><Link className="text-gold-bright" href="/missoes">Ver a missão no catálogo de missões</Link></p>}
+      </li>)}</ul>
+      <p>{questRate > 0
+        ? <>Com as missões padrão do planner, as recompensas rendem <strong>{formatRate(questRate)}</strong>. Permuta, caça e processamento somam</>
+        : <>Nenhuma missão padrão entrega este material. Permuta, caça, processamento e escavação valem</>} uma estimativa por dificuldade ({material.difficulty}/5); veja <Link className="text-gold-bright" href="/estrategia">como o tempo é estimado</Link>.</p>
+    </section>
+    <section className="panel"><h2>Quanto cada Carraca pede</h2>
+      {needed.length
+        ? <div className="mt-4 overflow-x-auto"><table className="w-full text-left">
+            <thead><tr><th scope="col">Carraca</th><th scope="col">Quantidade</th><th scope="col">Partindo do zero</th></tr></thead>
+            <tbody>{needed.map((carrack) => <tr key={carrack}>
+              <th scope="row"><Link className="text-gold-bright" href={carrackPath(carrack)}>{CARRACKS[carrack].shortName}</Link></th>
+              <td>{material.required[carrack]}</td>
+              <td>{getGoal(EMPTY_PROFILES[carrack], id) > 0 ? eta(materialEstimate(EMPTY_PROFILES[carrack], id).days) : "fora do cálculo padrão"}</td>
+            </tr>)}</tbody>
+          </table></div>
+        : <p>Nenhuma receita da Carraca pede este material: ele é usado no aprimoramento dos equipamentos de navio.</p>}
+      {material.category === "yellow-gear" && <p>O equipamento amarelo de Falasi começa fora do cálculo do planner; ligue-o no preset para este material ganhar meta e prazo. Veja o <Link className="text-gold-bright" href="/equipamento-amarelo">guia do equipamento amarelo</Link>.</p>}
+    </section>
+    {uses.length > 0 && <section className="panel"><h2>Onde é usado</h2>
+      <ul className="my-4 space-y-2">{uses.map((use) => <li key={`${use.name}-${use.qty}`}>
+        <strong>{use.name}</strong> · {use.qty} · {use.carracks.map((carrack) => CARRACKS[carrack].shortName).join(", ")}
+      </li>)}</ul>
+    </section>}
+    {related.length > 0 && <section className="panel"><h2>Outros materiais de {CATEGORY_LABELS[material.category]}</h2>
+      <ul className="mt-4 flex flex-wrap gap-4">{related.map((m) => <li key={m.id}><Item id={m.id} link /></li>)}</ul>
+    </section>}
   </>;
 }

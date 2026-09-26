@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CARRACK_ORDER } from "@/lib/data";
+import { CARRACK_ORDER, MATERIALS } from "@/lib/data";
 import { accountNotice } from "@/lib/notices";
 import { carrackFromSlug, carrackPath, PLANNER_PAGES, publicPaths, returnPath, tabOfPath } from "@/lib/routes";
 
@@ -23,9 +23,10 @@ describe("páginas do planner", () => {
     expect(carrackFromSlug("ascensao")).toBeNull();
   });
 
-  it("publica no sitemap as seis abas e as quatro Carracas", () => {
-    expect(publicPaths()).toHaveLength(10);
-    expect(new Set(publicPaths()).size).toBe(10);
+  it("publica no sitemap as seis abas, as quatro Carracas e cada material", () => {
+    expect(publicPaths()).toHaveLength(10 + MATERIALS.length);
+    expect(new Set(publicPaths()).size).toBe(publicPaths().length);
+    expect(publicPaths()).toContain("/material/barra-de-cobalto-brilhante");
   });
 });
 
@@ -33,6 +34,7 @@ describe("retorno do login", () => {
   it("devolve à página conhecida de onde o jogador veio", () => {
     expect(returnPath(`${ORIGIN}/missoes?conta=saiu`, ORIGIN)).toBe("/missoes");
     expect(returnPath(`${ORIGIN}/carraca/bravura`, ORIGIN)).toBe("/carraca/bravura");
+    expect(returnPath(`${ORIGIN}/material/olho-abissal`, ORIGIN)).toBe("/material/olho-abissal");
     expect(returnPath("/estrategia", ORIGIN)).toBe("/estrategia");
   });
 

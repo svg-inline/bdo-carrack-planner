@@ -19,6 +19,6 @@ O planner inteiro vivia em `/`. As abas eram estado do React: recarregar voltava
 
 ## Consequências
 
-- Cada página pode ranquear para a própria busca, e o `sitemap.xml` lista as dez.
+- Cada página pode ranquear para a própria busca, e o `sitemap.xml` lista todas — as dez desta decisão e, desde então, a página de cada material.
 - Os links do menu geram até cinco pré-carregamentos por visita. É o custo de manter a troca de aba sem espera enquanto as páginas forem dinâmicas.
 - Uma página nova do planner exige uma entrada em `PLANNER_PAGES`, a pasta em `app/(planner)` e o componente da aba; o menu, os metadados e o sitemap seguem a lista.
