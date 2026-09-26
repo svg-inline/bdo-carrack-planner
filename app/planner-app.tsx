@@ -81,6 +81,7 @@ import {
   tabOfPath,
   type PlannerTab,
 } from "@/lib/routes";
+import { materialPath } from "@/lib/materials";
 import { planImport, shouldOfferImport } from "@/lib/sync";
 import type {
   Account,
@@ -170,19 +171,23 @@ function escapeRegExp(value: string) {
  */
 const CROW_COIN_ICON = "/assets/items/ravencoin.png";
 
-const itemAliasPairs: Array<[string, { label: string; icon: string }]> = [
+/** Item citado em texto. Material traz o `id`, e a menção vira link para a página dele. */
+type ItemMention = { label: string; icon: string; id?: MaterialId };
+
+const itemAliasPairs: Array<[string, ItemMention]> = [
   ...MATERIALS.flatMap(
     (item) =>
       [
-        [item.name, { label: item.name, icon: item.icon }],
-        [item.shortName, { label: item.name, icon: item.icon }],
-      ] as Array<[string, { label: string; icon: string }]>,
+        [item.name, { label: item.name, icon: item.icon, id: item.id }],
+        [item.shortName, { label: item.name, icon: item.icon, id: item.id }],
+      ] as Array<[string, ItemMention]>,
   ),
   [
     "Artefato Cox (Combate)",
     {
       label: MATERIAL_BY_ID.coxCombat.name,
       icon: MATERIAL_BY_ID.coxCombat.icon,
+      id: "coxCombat",
     },
   ],
   [
@@ -190,13 +195,14 @@ const itemAliasPairs: Array<[string, { label: string; icon: string }]> = [
     {
       label: MATERIAL_BY_ID.coxCombat.name,
       icon: MATERIAL_BY_ID.coxCombat.icon,
+      id: "coxCombat",
     },
   ],
   ...Object.values(YELLOW_ROUTE_ITEMS).map(
     (item) =>
       [item.name, { label: item.name, icon: item.icon }] as [
         string,
-        { label: string; icon: string },
+        ItemMention,
       ],
   ),
   // O plural vem primeiro por clareza; o padrão ordena por tamanho, então "Moedas" vence sozinho.
@@ -204,7 +210,7 @@ const itemAliasPairs: Array<[string, { label: string; icon: string }]> = [
   ["Moeda Corvo", { label: "Moeda Corvo", icon: CROW_COIN_ICON }],
 ];
 
-const ITEM_MENTION_MAP = new Map<string, { label: string; icon: string }>();
+const ITEM_MENTION_MAP = new Map<string, ItemMention>();
 for (const [alias, data] of itemAliasPairs)
   ITEM_MENTION_MAP.set(alias.toLowerCase(), data);
 const itemMentionPattern = new RegExp(
@@ -422,6 +428,11 @@ function ShipImage({
   );
 }
 
+/**
+ * Ícone e nome do material, levando à página dele. O link carrega as classes do rótulo, para
+ * o estilo de cada tela continuar valendo, e o ícone fica decorativo, porque o nome já é o
+ * texto do link. Sem pré-carregamento: o inventário tem um link por material.
+ */
 function MaterialLabel({
   id,
   size = 28,
@@ -433,10 +444,14 @@ function MaterialLabel({
 }) {
   const item = MATERIAL_BY_ID[id];
   return (
-    <span className={`item-label ${className}`.trim()}>
-      <ItemIcon src={item.icon} alt={item.name} size={size} />
+    <Link
+      className={`item-label material-link ${className}`.trim()}
+      href={materialPath(id)}
+      prefetch={false}
+    >
+      <ItemIcon src={item.icon} alt="" size={size} />
       <span className="item-label-text">{item.name}</span>
-    </span>
+    </Link>
   );
 }
 
@@ -560,6 +575,18 @@ function TextWithItemIcons({ text }: { text: string }) {
       {parts.map((part, index) => {
         const match = ITEM_MENTION_MAP.get(part.toLowerCase());
         if (!match) return <span key={`${part}-${index}`}>{part}</span>;
+        if (match.id)
+          return (
+            <Link
+              className="inline-item-mention material-link"
+              href={materialPath(match.id)}
+              prefetch={false}
+              key={`${part}-${index}`}
+            >
+              <ItemIcon src={match.icon} alt="" size={22} />
+              <span className="item-label-text">{match.label}</span>
+            </Link>
+          );
         return (
           <span className="inline-item-mention" key={`${part}-${index}`}>
             <ItemIcon src={match.icon} alt={match.label} size={22} />

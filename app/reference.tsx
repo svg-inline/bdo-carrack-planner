@@ -29,7 +29,19 @@ function eta(days: number) {
 function Item({ id, link = false }: { id: MaterialId; link?: boolean }) {
   const material = MATERIAL_BY_ID[id];
   const label = <span className="item-label"><Image className="item-icon" src={material.icon} alt="" width={28} height={28} /><span>{material.name}</span></span>;
-  return link ? <Link className="text-gold-bright" href={materialPath(id)}>{label}</Link> : label;
+  // Sem pré-carregamento: a tabela do guia tem um link por material, e pré-carregar todos
+  // dispararia dezenas de requisições a cada visita.
+  return link ? <Link className="text-gold-bright" href={materialPath(id)} prefetch={false}>{label}</Link> : label;
+}
+
+/** Nome do material como link, no meio de uma frase. */
+function MaterialName({ id }: { id: MaterialId }) {
+  return <Link className="text-gold-bright" href={materialPath(id)} prefetch={false}>{MATERIAL_BY_ID[id].name}</Link>;
+}
+
+/** Junta elementos numa frase: "a, b e c" ou com outro separador. */
+function joinNodes(nodes: React.ReactNode[], separator = ", ", last = " e "): React.ReactNode[] {
+  return nodes.flatMap((node, index) => index === 0 ? [node] : [index === nodes.length - 1 ? last : separator, node]);
 }
 
 function GuideNav() {
@@ -90,7 +102,7 @@ export function CarrackGuide({ id }: { id: CarrackTarget }) {
     <details open><summary className="cursor-pointer text-gold-bright">Receitas dos quatro equipamentos azuis +10</summary>
       <div className="my-4 space-y-4">{(Object.keys(gearSet) as GearKey[]).map((key) => <article key={key}>
         <h3>{gearSet[key].name}</h3><p>Base: {gearSet[key].base}</p>
-        <ul className="space-y-2">{(Object.entries(gearSet[key].materials) as [MaterialId, number][]).map(([material, qty]) => <li key={material}><Item id={material} /> · {qty}</li>)}</ul>
+        <ul className="space-y-2">{(Object.entries(gearSet[key].materials) as [MaterialId, number][]).map(([material, qty]) => <li key={material}><Item id={material} link /> · {qty}</li>)}</ul>
       </article>)}</div>
     </details>
     <details open><summary className="cursor-pointer text-gold-bright">Equipamento azul de Shiro da {carrack.shortName}</summary>
@@ -100,7 +112,7 @@ export function CarrackGuide({ id }: { id: CarrackTarget }) {
         <p>Oficina: {carrackGearSet[key].workshop}</p>
         <p>Planta de construção: {carrackGearSet[key].blueprintSource}</p>
         <p>Permissão: {carrackGearSet[key].permit}</p>
-        <ul className="space-y-2">{(Object.entries(carrackGearSet[key].materials) as [MaterialId, number][]).map(([material, qty]) => <li key={material}><Item id={material} /> · {qty}</li>)}</ul>
+        <ul className="space-y-2">{(Object.entries(carrackGearSet[key].materials) as [MaterialId, number][]).map(([material, qty]) => <li key={material}><Item id={material} link /> · {qty}</li>)}</ul>
       </article>)}</div>
     </details>
     <p>O equipamento amarelo de Falasi da {carrack.shortName} está no <Link className="text-gold-bright" href="/equipamento-amarelo">guia do equipamento amarelo</Link>.</p>
@@ -129,10 +141,10 @@ export function YellowGuide() {
     <p>O grau mais alto das Carracas. Cada Carraca tem as suas quatro peças de Falasi, feitas a partir da peça de Shiro da mesma posição em +10. No planner, o equipamento amarelo começa fora do cálculo e você decide, por preset, se ele entra na meta e no prazo.</p>
     <ol className="my-4 list-decimal space-y-2 pl-6">
       <li>Leve a peça de Shiro da mesma posição a +10: ela é consumida na receita.</li>
-      <li>Cace na Colônia de Lyngbakr, na Terra do Amanhecer, por {Object.values(YELLOW_ROUTE_ITEMS).slice(0, 4).map((item) => item.name).join(", ")} e Essência de Coral Crepuscular.</li>
-      <li>Processe cada espólio com {YELLOW_ROUTE_ITEMS.hardener.name} x1 e {YELLOW_ROUTE_ITEMS.emulsifier.name} x1: {YELLOW_PROCESSING.map((step) => `${YELLOW_ROUTE_ITEMS[step.input].name} → ${MATERIAL_BY_ID[step.output].name} (${step.method})`).join("; ")}.</li>
-      <li>Troque o Chifre de Lyngbakr por um destes, à escolha: {(Object.entries(LYNGBAKR_HORN_EXCHANGE) as [MaterialId, number][]).map(([material, qty]) => `${MATERIAL_BY_ID[material].name} x${qty}`).join(", ")} — a receita de uma peça inteira.</li>
-      <li>Troque Essência de Coral Crepuscular x2 por uma planta com {FALASI_PERMIT_SELLER}; cada peça pede 10.</li>
+      <li>Cace na Colônia de Lyngbakr, na Terra do Amanhecer, por {Object.values(YELLOW_ROUTE_ITEMS).slice(0, 4).map((item) => item.name).join(", ")} e <MaterialName id="twilightCoralEssence" />.</li>
+      <li>Processe cada espólio com {YELLOW_ROUTE_ITEMS.hardener.name} x1 e {YELLOW_ROUTE_ITEMS.emulsifier.name} x1: {joinNodes(YELLOW_PROCESSING.map((step) => <span key={step.output}>{YELLOW_ROUTE_ITEMS[step.input].name} → <MaterialName id={step.output} /> ({step.method})</span>), "; ", "; ")}.</li>
+      <li>Troque o Chifre de Lyngbakr por um destes, à escolha: {joinNodes((Object.entries(LYNGBAKR_HORN_EXCHANGE) as [MaterialId, number][]).map(([material, qty]) => <span key={material}><MaterialName id={material} /> x{qty}</span>), ", ", ", ")} — a receita de uma peça inteira.</li>
+      <li>Troque <MaterialName id="twilightCoralEssence" /> x2 por uma planta com {FALASI_PERMIT_SELLER}; cada peça pede 10.</li>
       <li>Compre a permissão por {new Intl.NumberFormat("pt-BR").format(FALASI_PERMIT_SILVER)} de prata com {FALASI_PERMIT_SELLER} e fabrique na {FALASI_WORKSHOP}.</li>
     </ol>
     {CARRACK_ORDER.map((id) => {
@@ -142,12 +154,12 @@ export function YellowGuide() {
           <h3 className="item-label"><Image className="item-icon" src={yellowSet[key].icon} alt="" width={28} height={28} /><span>{yellowSet[key].name}</span></h3>
           <p>Base: {yellowSet[key].base}</p>
           <p>Permissão: {yellowSet[key].permit}</p>
-          <ul className="space-y-2">{(Object.entries(yellowSet[key].materials) as [MaterialId, number][]).map(([material, qty]) => <li key={material}><Item id={material} /> · {qty}</li>)}</ul>
+          <ul className="space-y-2">{(Object.entries(yellowSet[key].materials) as [MaterialId, number][]).map(([material, qty]) => <li key={material}><Item id={material} link /> · {qty}</li>)}</ul>
         </article>)}</div>
       </details>;
     })}
     <details><summary className="cursor-pointer text-gold-bright">Aprimoramento com Pedra Negra da Onda Crepuscular</summary>
-      <p>Cada tentativa gasta uma Pedra Negra da Onda Crepuscular (Essência de Coral Crepuscular x1 + Pedra Negra da Onda x100, em Aquecimento). Na falha, a peça perde durabilidade e cai de nível, a menos que se use Pedras Cron.</p>
+      <p>Cada tentativa gasta uma <MaterialName id="twilightWaveStone" /> (<MaterialName id="twilightCoralEssence" /> x1 + <MaterialName id="waveStone" /> x100, em Aquecimento). Na falha, a peça perde durabilidade e cai de nível, a menos que se use Pedras Cron.</p>
       <ul className="my-4 space-y-2">{YELLOW_ENHANCEMENT.map((step) => <li key={step.level}>+{step.level}: {step.withStacks}% com {step.stacks} acúmulos ({step.base}% sem) · {step.cron ? `${step.cron} Pedras Cron` : "sem Pedra Cron"}</li>)}</ul>
     </details>
   </section>;

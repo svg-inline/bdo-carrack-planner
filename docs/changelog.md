@@ -7,7 +7,7 @@ Todas as mudanças relevantes para usuários são registradas em `Unreleased`, n
 ### Added
 
 - Cada seção do planner tem o próprio endereço: `/inventario`, `/como-obter`, `/equipamento-amarelo`, `/missoes` e `/estrategia`, além da Visão geral em `/`. Recarregar, compartilhar o link ou usar o voltar do navegador mantém a seção, e cada página tem título e descrição próprios nos buscadores.
-- Página de cada material em `/material/<nome>`, como `/material/barra-de-cobalto-brilhante`: onde conseguir, o ritmo das missões, quanto cada Carraca pede, o prazo partindo do zero, em que peças ele entra e os outros materiais da mesma categoria. Os materiais de "Como obter", do inventário e do guia de cada Carraca levam a elas.
+- Página de cada material em `/material/<nome>`, como `/material/barra-de-cobalto-brilhante`: onde conseguir, o ritmo das missões, quanto cada Carraca pede, o prazo partindo do zero, em que peças ele entra e os outros materiais da mesma categoria. Todo nome de material leva a elas: no planner (inventário, "Como obter", gargalos, recompensas das missões, equipamento amarelo e compra sugerida) e no guia (tabelas, receitas e a rota de Falasi).
 - Página de guia de cada Carraca em `/carraca/gradual`, `/carraca/equilibrio`, `/carraca/emergencia` e `/carraca/bravura`, com materiais, receitas e prazo partindo do zero.
 - Sem preset salvo, as páginas de seção mostram o guia do assunto com um convite para escolher a Carraca, e a tela de escolha da Carraca traz links para o guia.
 - `robots.txt`, `sitemap.xml` com todas as páginas, URL canônica, cartão de compartilhamento e verificação do Google Search Console e do Bing Webmaster Tools.

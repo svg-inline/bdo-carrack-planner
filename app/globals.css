@@ -99,6 +99,7 @@ p { line-height:1.65; }
 .item-icon{display:block;border-radius:4px;image-rendering:auto;flex:0 0 auto}
 .item-label{display:inline-flex;align-items:center;gap:8px;min-width:0;vertical-align:middle}
 .item-label-text{display:inline-block;min-width:0;line-height:1.35}
+.material-link{text-decoration:none}.material-link:hover .item-label-text,.material-link:focus-visible .item-label-text{color:var(--gold-bright);text-decoration:underline;text-underline-offset:3px}
 .item-heading{font-size:11px;font-weight:700;color:#eee6d8;line-height:1.35}
 .inline-item-copy{display:inline-flex;margin:0 3px;transform:translateY(1px)}
 .inline-item-mention{display:inline-flex;align-items:center;gap:5px;vertical-align:middle;margin:0 2px}
