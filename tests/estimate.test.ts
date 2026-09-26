@@ -5,8 +5,9 @@ import { isCarrackBuildMaterial } from "@/lib/planner";
 import { setQuestActive, setQuestChoice } from "@/lib/quests";
 import {
   carrackGearEstimate, carrackGearSetEstimate, categoryEstimate, choiceCompetitors, coinPlan, contextWithoutCoins, crowCoinsPerDay, daysForUnits,
-  effectiveChoices, estimateContext, FARM_UNITS_PER_DAY, formatDuration, formatRate, gearEstimate, materialEstimate, materialRate,
+  effectiveChoices, estimateContext, estimatedFarmPerDay, FARM_UNITS_PER_DAY, formatDuration, formatRate, gearEstimate, materialEstimate, materialRate,
   partPurchase, questContext, questCrowCoins, questRatePerDay, recommendedChoiceOption, shipEstimate, stalledRoute,
+  yellowGearEstimate, yellowGearSetEstimate,
 } from "@/lib/estimate";
 import type { MaterialId, PlannerProfile } from "@/types";
 
@@ -568,5 +569,74 @@ describe("item escolhido na recompensa de escolha", () => {
     expect(recommendedChoiceOption(profile, CHARITY)).toBe("tideTimber");
 
     expect(recommendedChoiceOption(profile, "weekly-okilua-young-otters")).toBeNull();
+  });
+});
+
+describe("prazo do equipamento amarelo", () => {
+  it("só tem prazo quando entra na conta, e não mexe no prazo da Carraca", () => {
+    const profile = createInitialProfile("bravura");
+    const ship = shipEstimate(profile);
+    expect(yellowGearSetEstimate(profile).days).toBe(0);
+
+    profile.yellowGear.included = true;
+    const set = yellowGearSetEstimate(profile);
+    expect(set.days).toBeGreaterThan(0);
+    expect(set).toEqual(categoryEstimate(profile, "yellow-gear"));
+    expect(shipEstimate(profile)).toEqual(ship);
+  });
+
+  it("depende da caça no oceano, que traz os espólios do Lyngbakr", () => {
+    const profile = createInitialProfile("bravura");
+    profile.yellowGear.included = true;
+    profile.farmRoutine.hunt = false;
+    expect(yellowGearSetEstimate(profile).days).toBe(Number.POSITIVE_INFINITY);
+  });
+
+  it("zera o prazo da peça pronta e usa a receita de uma peça nas outras", () => {
+    const profile = createInitialProfile("gradual");
+    profile.yellowGear.crafted.figurehead = true;
+    expect(yellowGearEstimate(profile, "figurehead").days).toBe(0);
+    const sail = yellowGearEstimate(profile, "sail");
+    expect(sail.slowest).toBe("solidCoralSupport");
+    expect(sail.days).toBeCloseTo(daysForUnits(125, materialRate(profile, "solidCoralSupport").perDay));
+  });
+});
+
+describe("média de drop informada pelo jogador", () => {
+  it("substitui a estimativa por dificuldade e soma com as missões", () => {
+    const profile = createInitialProfile("bravura");
+    const before = materialRate(profile, "seaweedStalk");
+    profile.farmRates.seaweedStalk = 2.5;
+    const rate = materialRate(profile, "seaweedStalk");
+    expect(rate.customFarm).toBe(true);
+    expect(rate.farmPerDay).toBe(2.5);
+    expect(rate.questPerDay).toBeCloseTo(before.questPerDay);
+    expect(rate.perDay).toBeCloseTo(before.questPerDay + 2.5);
+    expect(estimatedFarmPerDay(profile, "seaweedStalk")).toBe(before.farmPerDay);
+  });
+
+  it("vale mesmo com a atividade fora da rotina", () => {
+    const profile = createInitialProfile("bravura");
+    profile.farmRoutine = { barter: false, hunt: false, workers: false };
+    expect(materialRate(profile, "luminousCobalt").farmPerDay).toBe(0);
+    profile.farmRates.luminousCobalt = 1;
+    expect(materialRate(profile, "luminousCobalt").farmPerDay).toBe(1);
+  });
+
+  it("zero diz que o jogador não consegue o item fora das missões", () => {
+    const profile = soSaldo(createInitialProfile("bravura"));
+    profile.farmRates.luminousCobalt = 0;
+    expect(materialRate(profile, "luminousCobalt").perDay).toBe(0);
+    expect(materialEstimate(profile, "luminousCobalt", contextWithoutCoins(estimateContext(profile))).days).toBe(Number.POSITIVE_INFINITY);
+  });
+
+  it("muda o prazo do material conforme a média", () => {
+    const profile = createInitialProfile("bravura");
+    profile.farmRates.luminousCobalt = 3;
+    const slow = materialEstimate(profile, "luminousCobalt", contextWithoutCoins(estimateContext(profile))).days;
+    profile.farmRates.luminousCobalt = 6;
+    const fast = materialEstimate(profile, "luminousCobalt", contextWithoutCoins(estimateContext(profile))).days;
+    expect(slow).toBeCloseTo(30 / 3);
+    expect(fast).toBeCloseTo(30 / 6);
   });
 });

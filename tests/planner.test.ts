@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { createInitialProfile, normalizeGear, normalizePersistedState, normalizeProfile } from "@/lib/profile";
-import { bottlenecks, carrackGearCompletion, categoryCompletion, getMissing, getPlanRequired, getRequired, materialCompletion, overallCompletion, questResetKey, toPercent } from "@/lib/planner";
-import { CARRACK_GEAR_SETS, GEAR_SETS, MATERIALS } from "@/lib/data";
+import { createInitialProfile, MAX_FARM_RATE, normalizeFarmRates, normalizeGear, normalizePersistedState, normalizeProfile } from "@/lib/profile";
+import { bottlenecks, carrackGearCompletion, categoryCompletion, getGoal, getMissing, getPlanRequired, getRequired, materialCompletion, overallCompletion, questResetKey, toPercent } from "@/lib/planner";
+import { CARRACK_GEAR_SETS, GEAR_SETS, MATERIALS, YELLOW_GEAR_SETS } from "@/lib/data";
 
 describe("profile normalization", () => {
   it("repairs untrusted persisted values and migrates the old target", () => {
@@ -138,5 +138,81 @@ describe("quest reset keys", () => {
     const date = new Date("2026-09-13T23:00:00Z");
     expect(questResetKey("daily", date)).toBe("2026-09-13");
     expect(questResetKey("weekly", date)).toBe("week-2026-09-07");
+  });
+});
+
+describe("equipamento amarelo de Falasi", () => {
+  const yellow = MATERIALS.filter((material) => material.category === "yellow-gear");
+
+  it("começa fora do cálculo: estoque guardado, sem meta nem falta", () => {
+    const profile = createInitialProfile("bravura");
+    profile.materials.solidCoralSupport = 40;
+    expect(profile.yellowGear.included).toBe(false);
+    for (const material of yellow) {
+      expect(getGoal(profile, material.id)).toBe(0);
+      expect(getMissing(profile, material.id)).toBe(0);
+    }
+    expect(profile.materials.solidCoralSupport).toBe(40);
+  });
+
+  it("ganha a meta do conjunto inteiro quando entra na conta", () => {
+    const profile = createInitialProfile("gradual");
+    profile.yellowGear.included = true;
+    expect(getPlanRequired(profile, "solidCoralSupport")).toBe(500);
+    expect(getPlanRequired(profile, "strongWavePlywood")).toBe(300);
+    expect(getPlanRequired(profile, "crimsonCoralAdhesive")).toBe(200);
+    expect(getPlanRequired(profile, "falasiCannonBlueprint")).toBe(10);
+  });
+
+  it("desconta a receita da peça de Falasi marcada como pronta", () => {
+    const profile = createInitialProfile("ascensao");
+    profile.yellowGear.included = true;
+    profile.yellowGear.crafted.cannon = true;
+    expect(getPlanRequired(profile, "solidCoralSupport")).toBe(375);
+    expect(getPlanRequired(profile, "falasiCannonBlueprint")).toBe(0);
+    expect(getPlanRequired(profile, "falasiSailBlueprint")).toBe(10);
+  });
+
+  it("não mexe na rota até a Carraca nem nos gargalos", () => {
+    const profile = createInitialProfile("bravura");
+    const before = overallCompletion(profile);
+    profile.yellowGear.included = true;
+    expect(overallCompletion(profile)).toBe(before);
+    expect(bottlenecks(profile).some((material) => material.category === "yellow-gear")).toBe(false);
+  });
+
+  it("repara o que vem salvo e começa desligado em presets antigos", () => {
+    expect(normalizeProfile({ target: "bravura" }).yellowGear).toEqual({
+      included: false,
+      crafted: { figurehead: false, plating: false, cannon: false, sail: false },
+    });
+    expect(normalizeProfile({ yellowGear: { included: "sim", crafted: { sail: true, cannon: 1, extra: true } } }).yellowGear).toEqual({
+      included: false,
+      crafted: { figurehead: false, plating: false, cannon: false, sail: true },
+    });
+  });
+
+  it("cada Carraca tem as suas quatro peças, partindo do Shiro +10 da mesma posição", () => {
+    for (const target of ["gradual", "equilibrio", "ascensao", "bravura"] as const) {
+      for (const key of ["figurehead", "plating", "cannon", "sail"] as const) {
+        const piece = YELLOW_GEAR_SETS[target][key];
+        expect(piece.base).toBe(`${CARRACK_GEAR_SETS[target][key].name} +10`);
+        expect(piece.materials[piece.blueprint]).toBe(10);
+      }
+    }
+  });
+});
+
+describe("média de drop no preset", () => {
+  it("aceita frações e zero, e descarta o que não é média válida", () => {
+    expect(normalizeFarmRates({
+      seaweedStalk: 2.555, luminousCobalt: 0, redSeaGold: -1, coxHigh: Number.NaN,
+      purePearl: "3", inexistente: 5, abyssalEye: 10_000_000,
+    })).toEqual({ seaweedStalk: 2.56, luminousCobalt: 0, abyssalEye: MAX_FARM_RATE });
+  });
+
+  it("começa vazia, inclusive em presets antigos", () => {
+    expect(createInitialProfile().farmRates).toEqual({});
+    expect(normalizeProfile({ target: "gradual" }).farmRates).toEqual({});
   });
 });

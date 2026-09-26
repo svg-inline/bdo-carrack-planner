@@ -1,6 +1,6 @@
 import { CARRACK_ORDER, CARRACK_PART_COUNT, CARRACKS, MATERIALS, QUESTS } from "@/lib/data";
 import { defaultActiveQuests, normalizeActiveQuests, normalizeQuestChoices } from "@/lib/quests";
-import type { BranchGearState, CarrackTarget, CrowSpendPlan, FarmRoutine, GearKey, GearState, MaterialId, PlannerPreset, PlannerProfile, ShipBranch } from "@/types";
+import type { BranchGearState, CarrackTarget, CrowSpendPlan, FarmRoutine, GearKey, GearState, MaterialId, PlannerPreset, PlannerProfile, ShipBranch, YellowGearPlan } from "@/types";
 
 export function nonNegativeInteger(value: unknown, maximum = Number.MAX_SAFE_INTEGER): number {
   return typeof value === "number" && Number.isFinite(value)
@@ -51,6 +51,42 @@ export function normalizeFarmRoutine(value: unknown): FarmRoutine {
   };
 }
 
+/**
+ * O equipamento amarelo começa fora da conta: ele só existe depois do conjunto de Shiro em +10 e
+ * custa 20 bilhões de prata em permissões, e ligá-lo sozinho encheria o inventário de falta que
+ * o jogador ainda não persegue. Presets salvos antes dele recebem o mesmo padrão.
+ */
+export function normalizeYellowGear(value: unknown): YellowGearPlan {
+  const plan = record(value);
+  const crafted = record(plan.crafted);
+  return {
+    included: plan.included === true,
+    crafted: {
+      figurehead: crafted.figurehead === true, plating: crafted.plating === true,
+      cannon: crafted.cannon === true, sail: crafted.sail === true,
+    },
+  };
+}
+
+/** Maior média diária aceita: acima disso é erro de digitação, não ritmo de jogo. */
+export const MAX_FARM_RATE = 100_000;
+
+/**
+ * Médias de drop informadas pelo jogador. Aceita frações — meia essência por dia é um ritmo
+ * real —, arredondadas a centésimos, e descarta material desconhecido ou valor inválido. Zero é
+ * uma resposta válida: o jogador diz que não consegue aquele item fora das missões.
+ */
+export function normalizeFarmRates(value: unknown): Partial<Record<MaterialId, number>> {
+  const rates = record(value);
+  const result: Partial<Record<MaterialId, number>> = {};
+  for (const material of MATERIALS) {
+    const rate = rates[material.id];
+    if (typeof rate !== "number" || !Number.isFinite(rate) || rate < 0) continue;
+    result[material.id] = Math.min(MAX_FARM_RATE, Math.round(rate * 100) / 100);
+  }
+  return result;
+}
+
 export function createInitialProfile(target: CarrackTarget = "bravura"): PlannerProfile {
   const emptySet = (): Record<GearKey, GearState> => ({
     figurehead: normalizeGear(null), plating: normalizeGear(null),
@@ -60,9 +96,11 @@ export function createInitialProfile(target: CarrackTarget = "bravura"): Planner
     target, crowCoins: 0,
     crowSpend: normalizeCrowSpend(null),
     farmRoutine: normalizeFarmRoutine(null),
+    farmRates: {},
     materials: Object.fromEntries(MATERIALS.map((m) => [m.id, 0])) as Record<MaterialId, number>,
     gear: { caravel: emptySet(), galleass: emptySet() },
     carrackGear: emptySet(),
+    yellowGear: normalizeYellowGear(null),
     activeQuests: defaultActiveQuests(),
     questChoices: {},
   };
@@ -89,9 +127,11 @@ export function normalizeProfile(value: unknown): PlannerProfile {
     crowCoins: nonNegativeInteger(raw.crowCoins),
     crowSpend: normalizeCrowSpend(raw.crowSpend),
     farmRoutine: normalizeFarmRoutine(raw.farmRoutine),
+    farmRates: normalizeFarmRates(raw.farmRates),
     materials: Object.fromEntries(MATERIALS.map((m) => [m.id, nonNegativeInteger(materials[m.id])])) as Record<MaterialId, number>,
     gear,
     carrackGear,
+    yellowGear: normalizeYellowGear(raw.yellowGear),
     activeQuests: normalizeActiveQuests(raw.activeQuests),
     questChoices: normalizeQuestChoices(raw.questChoices),
   };

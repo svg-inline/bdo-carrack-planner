@@ -1,7 +1,8 @@
 import Image from "next/image";
 import AccountBar, { type AccountBarProps } from "./account-bar";
-import { CADENCE_BY_ID, CARRACK_GEAR_SETS, CARRACK_ORDER, CARRACKS, GEAR_SETS, MATERIALS, MATERIAL_BY_ID, QUESTS, QUEST_CADENCES, QUEST_GROUPS, SOURCES } from "@/lib/data";
+import { CADENCE_BY_ID, CARRACK_GEAR_SETS, CARRACK_ORDER, CARRACKS, FALASI_PERMIT_SELLER, FALASI_PERMIT_SILVER, FALASI_WORKSHOP, GEAR_SETS, LYNGBAKR_HORN_EXCHANGE, MATERIALS, MATERIAL_BY_ID, QUESTS, QUEST_CADENCES, QUEST_GROUPS, SOURCES, YELLOW_ENHANCEMENT, YELLOW_GEAR_SETS, YELLOW_PROCESSING, YELLOW_ROUTE_ITEMS } from "@/lib/data";
 import { carrackGearSetEstimate, formatDuration, materialEstimate, shipEstimate } from "@/lib/estimate";
+import { getGoal } from "@/lib/planner";
 import { questsOfGroup } from "@/lib/quests";
 import { createInitialProfile } from "@/lib/profile";
 import type { CarrackTarget, GearKey, MaterialId } from "@/types";
@@ -27,7 +28,7 @@ export default function Reference({ account, accountEnabled, notice }: { account
       <AccountBar account={account} enabled={accountEnabled} notice={notice} />
       <nav aria-label="Guia de Carracas" className="flex flex-wrap gap-4 text-gold-bright">
         {CARRACK_ORDER.map((id) => <a key={id} href={`#guia-${id}`}>{CARRACKS[id].shortName}</a>)}
-        <a href="#guia-materiais">Como obter</a><a href="#guia-missoes">Missões</a><a href="#guia-tempo">Tempo estimado</a><a href="#guia-fontes">Fontes</a>
+        <a href="#guia-amarelo">Equip. amarelo</a><a href="#guia-materiais">Como obter</a><a href="#guia-missoes">Missões</a><a href="#guia-tempo">Tempo estimado</a><a href="#guia-fontes">Fontes</a>
       </nav>
     </header>
     {CARRACK_ORDER.map((id) => {
@@ -41,7 +42,7 @@ export default function Reference({ account, accountEnabled, notice }: { account
         <h2>{carrack.name}</h2><p>{carrack.sourceShip} → {carrack.shortName} · {carrack.role}</p><p>{carrack.description}</p>
         <p>Partindo do zero, os materiais da rota levam <strong>{eta(ship.days)}</strong> e o conjunto de Shiro, mais <strong>{eta(shiroSet.days)}</strong>. Veja <a className="text-gold-bright" href="#guia-tempo">como o tempo é estimado</a>.</p>
         <details><summary className="cursor-pointer text-gold-bright">Materiais e quantidades para {carrack.shortName}</summary>
-          <ul className="my-4 space-y-2">{MATERIALS.filter((m) => m.required[id] > 0).map((m) => <li className="flex flex-wrap items-center justify-between gap-2" key={m.id}><Item id={m.id} /><strong>{m.required[id]} · {eta(materialEstimate(profile, m.id).days)}</strong></li>)}</ul>
+          <ul className="my-4 space-y-2">{MATERIALS.filter((m) => getGoal(profile, m.id) > 0).map((m) => <li className="flex flex-wrap items-center justify-between gap-2" key={m.id}><Item id={m.id} /><strong>{m.required[id]} · {eta(materialEstimate(profile, m.id).days)}</strong></li>)}</ul>
         </details>
         <details><summary className="cursor-pointer text-gold-bright">Receitas dos quatro equipamentos azuis +10</summary>
           <div className="my-4 space-y-4">{(Object.keys(gearSet) as GearKey[]).map((key) => <article key={key}>
@@ -61,6 +62,32 @@ export default function Reference({ account, accountEnabled, notice }: { account
         </details>
       </section>;
     })}
+    <section id="guia-amarelo" className="panel scroll-mt-4"><h2>Equipamento amarelo de Falasi</h2>
+      <p>O grau mais alto das Carracas. Cada Carraca tem as suas quatro peças de Falasi, feitas a partir da peça de Shiro da mesma posição em +10. No planner, o equipamento amarelo começa fora do cálculo e você decide, por preset, se ele entra na meta e no prazo.</p>
+      <ol className="my-4 list-decimal space-y-2 pl-6">
+        <li>Leve a peça de Shiro da mesma posição a +10: ela é consumida na receita.</li>
+        <li>Cace na Colônia de Lyngbakr, na Terra do Amanhecer, por {Object.values(YELLOW_ROUTE_ITEMS).slice(0, 4).map((item) => item.name).join(", ")} e Essência de Coral Crepuscular.</li>
+        <li>Processe cada espólio com {YELLOW_ROUTE_ITEMS.hardener.name} x1 e {YELLOW_ROUTE_ITEMS.emulsifier.name} x1: {YELLOW_PROCESSING.map((step) => `${YELLOW_ROUTE_ITEMS[step.input].name} → ${MATERIAL_BY_ID[step.output].name} (${step.method})`).join("; ")}.</li>
+        <li>Troque o Chifre de Lyngbakr por um destes, à escolha: {(Object.entries(LYNGBAKR_HORN_EXCHANGE) as [MaterialId, number][]).map(([material, qty]) => `${MATERIAL_BY_ID[material].name} x${qty}`).join(", ")} — a receita de uma peça inteira.</li>
+        <li>Troque Essência de Coral Crepuscular x2 por uma planta com {FALASI_PERMIT_SELLER}; cada peça pede 10.</li>
+        <li>Compre a permissão por {new Intl.NumberFormat("pt-BR").format(FALASI_PERMIT_SILVER)} de prata com {FALASI_PERMIT_SELLER} e fabrique na {FALASI_WORKSHOP}.</li>
+      </ol>
+      {CARRACK_ORDER.map((id) => {
+        const yellowSet = YELLOW_GEAR_SETS[id];
+        return <details key={id}><summary className="cursor-pointer text-gold-bright">Peças de Falasi da {CARRACKS[id].shortName}</summary>
+          <div className="my-4 space-y-4">{(Object.keys(yellowSet) as GearKey[]).map((key) => <article key={key}>
+            <h3 className="item-label"><Image className="item-icon" src={yellowSet[key].icon} alt="" width={28} height={28} /><span>{yellowSet[key].name}</span></h3>
+            <p>Base: {yellowSet[key].base}</p>
+            <p>Permissão: {yellowSet[key].permit}</p>
+            <ul className="space-y-2">{(Object.entries(yellowSet[key].materials) as [MaterialId, number][]).map(([material, qty]) => <li key={material}><Item id={material} /> · {qty}</li>)}</ul>
+          </article>)}</div>
+        </details>;
+      })}
+      <details><summary className="cursor-pointer text-gold-bright">Aprimoramento com Pedra Negra da Onda Crepuscular</summary>
+        <p>Cada tentativa gasta uma Pedra Negra da Onda Crepuscular (Essência de Coral Crepuscular x1 + Pedra Negra da Onda x100, em Aquecimento). Na falha, a peça perde durabilidade e cai de nível, a menos que se use Pedras Cron.</p>
+        <ul className="my-4 space-y-2">{YELLOW_ENHANCEMENT.map((step) => <li key={step.level}>+{step.level}: {step.withStacks}% com {step.stacks} acúmulos ({step.base}% sem) · {step.cron ? `${step.cron} Pedras Cron` : "sem Pedra Cron"}</li>)}</ul>
+      </details>
+    </section>
     <section id="guia-materiais" className="panel scroll-mt-4"><h2>Materiais e onde conseguir</h2>
       <div className="mt-4 space-y-4">{MATERIALS.map((m) => <details key={m.id}>
         <summary className="cursor-pointer"><Item id={m.id} /></summary>

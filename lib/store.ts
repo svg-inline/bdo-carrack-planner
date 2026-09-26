@@ -7,7 +7,7 @@ import { createPreset, normalizeGear, normalizePersistedState, normalizeProfile 
 import { setQuestActive, setQuestChoice } from "@/lib/quests";
 import { PRESET_SCHEMA_VERSION } from "@/lib/schema";
 import { LOCAL_STORAGE_KEY, mergePending, storageKeyFor } from "@/lib/sync";
-import type { CarrackTarget, CrowSpendPlan, FarmRoutine, GearKey, GearState, MaterialId, PlannerPreset, PlannerProfile, ShipBranch } from "@/types";
+import type { CarrackTarget, CrowSpendPlan, FarmRoutine, GearKey, GearState, MaterialId, PlannerPreset, PlannerProfile, ShipBranch, YellowGearPlan } from "@/types";
 
 /**
  * Situação do envio para a conta. `off` é o planner sem conta, que continua sendo o modo
@@ -36,8 +36,11 @@ interface PlannerStore {
   setMaterial: (id: MaterialId, value: number) => void;
   setCrowSpend: (patch: Partial<CrowSpendPlan>) => void;
   setFarmRoutine: (patch: Partial<FarmRoutine>) => void;
+  /** Média diária de drop do material; `null` volta para a estimativa do planner. */
+  setFarmRate: (id: MaterialId, value: number | null) => void;
   setGear: (branch: ShipBranch, key: GearKey, patch: Partial<GearState>) => void;
   setCarrackGear: (key: GearKey, patch: Partial<GearState>) => void;
+  setYellowGear: (patch: { included?: boolean; crafted?: Partial<YellowGearPlan["crafted"]> }) => void;
   toggleQuest: (id: string, resetKey: string) => void;
   setQuestActive: (id: string, active: boolean) => void;
   setQuestChoice: (id: string, optionId: string | null) => void;
@@ -169,6 +172,12 @@ export const usePlannerStore = create<PlannerStore>()(
         ...preset,
         profile: normalizeProfile({ ...preset.profile, farmRoutine: { ...preset.profile.farmRoutine, ...patch } }),
       }))),
+      setFarmRate: (id, value) => set((state) => updateActivePreset(state, (preset) => {
+        const farmRates = { ...preset.profile.farmRates };
+        if (value === null) delete farmRates[id];
+        else farmRates[id] = value;
+        return { ...preset, profile: normalizeProfile({ ...preset.profile, farmRates }) };
+      })),
       setGear: (branch, key, patch) => set((state) => updateActivePreset(state, (preset) => ({
         ...preset,
         profile: {
@@ -192,6 +201,16 @@ export const usePlannerStore = create<PlannerStore>()(
           },
         },
       }))),
+      setYellowGear: (patch) => set((state) => updateActivePreset(state, (preset) => {
+        const current = preset.profile.yellowGear;
+        return {
+          ...preset,
+          profile: normalizeProfile({
+            ...preset.profile,
+            yellowGear: { included: patch.included ?? current.included, crafted: { ...current.crafted, ...patch.crafted } },
+          }),
+        };
+      })),
       toggleQuest: (id, resetKey) => set((state) => updateActivePreset(state, (preset) => ({
         ...preset,
         completedQuests: { ...preset.completedQuests, [id]: preset.completedQuests[id] === resetKey ? "" : resetKey },

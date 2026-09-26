@@ -30,6 +30,36 @@ describe("preset store", () => {
     expect(usePlannerStore.getState().presets.at(-1)?.profile.carrackGear.cannon.crafted).toBe(false);
   });
 
+  it("guarda o equipamento amarelo de cada preset separadamente", () => {
+    usePlannerStore.getState().addPreset("gradual");
+    const comFalasi = usePlannerStore.getState().activePresetId!;
+    usePlannerStore.getState().setYellowGear({ included: true });
+    usePlannerStore.getState().setYellowGear({ crafted: { sail: true } });
+    usePlannerStore.getState().setYellowGear({ crafted: { cannon: true } });
+
+    usePlannerStore.getState().addPreset("gradual");
+    const presets = usePlannerStore.getState().presets;
+    expect(presets.find((preset) => preset.id === comFalasi)?.profile.yellowGear).toEqual({
+      included: true,
+      crafted: { figurehead: false, plating: false, cannon: true, sail: true },
+    });
+    expect(presets.at(-1)?.profile.yellowGear.included).toBe(false);
+  });
+
+  it("guarda a média de drop do preset e volta à estimativa ao apagar", () => {
+    usePlannerStore.getState().addPreset("bravura");
+    usePlannerStore.getState().setFarmRate("seaweedStalk", 2.5);
+    usePlannerStore.getState().setFarmRate("luminousCobalt", 0);
+    const preset = () => usePlannerStore.getState().presets.at(-1)!;
+    expect(preset().profile.farmRates).toEqual({ seaweedStalk: 2.5, luminousCobalt: 0 });
+
+    usePlannerStore.getState().setFarmRate("seaweedStalk", null);
+    expect(preset().profile.farmRates).toEqual({ luminousCobalt: 0 });
+
+    usePlannerStore.getState().addPreset("bravura");
+    expect(preset().profile.farmRates).toEqual({});
+  });
+
   it("removes a preset added by mistake and keeps the remaining progress", () => {
     usePlannerStore.getState().addPreset("bravura");
     const keptId = usePlannerStore.getState().activePresetId!;

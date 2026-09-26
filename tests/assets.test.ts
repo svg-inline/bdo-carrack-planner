@@ -1,7 +1,7 @@
 import { existsSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { CARRACK_GEAR_SETS, GEAR_SETS, MATERIALS } from "@/lib/data";
+import { CARRACK_GEAR_SETS, GEAR_SETS, MATERIALS, YELLOW_GEAR_SETS, YELLOW_ROUTE_ITEMS } from "@/lib/data";
 
 const standaloneImages = [
   "/assets/epheria-caravel.png",
@@ -20,7 +20,11 @@ describe("local image assets", () => {
     const carrackGearImages = Object.values(CARRACK_GEAR_SETS).flatMap((gearSet) =>
       Object.values(gearSet).flatMap((gear) => [gear.icon, gear.baseIcon]),
     );
-    const sources = [...standaloneImages, ...MATERIALS.map((material) => material.icon), ...gearImages, ...carrackGearImages];
+    const yellowGearImages = Object.values(YELLOW_GEAR_SETS).flatMap((gearSet) =>
+      Object.values(gearSet).flatMap((gear) => [gear.icon, gear.baseIcon, gear.permitIcon]),
+    );
+    const routeImages = Object.values(YELLOW_ROUTE_ITEMS).map((item) => item.icon);
+    const sources = [...standaloneImages, ...MATERIALS.map((material) => material.icon), ...gearImages, ...carrackGearImages, ...yellowGearImages, ...routeImages];
 
     for (const src of new Set(sources)) {
       const path = publicPath(src);

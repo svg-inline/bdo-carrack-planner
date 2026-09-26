@@ -11,6 +11,7 @@ test("works as a useful guide without JavaScript", async ({ browser }) => {
   await expect(page.getByText("Diária · [Permuta][Diário] Ilha de Iliya Agitada")).toBeVisible();
   await expect(page.getByText("Semanal · [Semanal] Investigar a ecologia da área de Lyngbakr")).toBeVisible();
   await expect(page.getByText(/Ilha de Iliya Agitada (I|II|III)$/)).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Equipamento amarelo de Falasi" })).toBeVisible();
   await context.close();
 });
 
@@ -258,4 +259,62 @@ test("lets the player choose where the crow coins are spent", async ({ page }) =
   await page.reload();
   await page.getByRole("button", { name: "Estratégia" }).click();
   await expect(blueGear).not.toBeChecked();
+});
+
+test("uses the player's own daily drop average in the estimate", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /Bravura/ }).click();
+  await page.getByRole("button", { name: "Inventário" }).click();
+
+  const cobaltRow = page.locator(".inventory-material-row").filter({ hasText: "Barra de Cobalto Brilhante" });
+  const drop = page.getByRole("textbox", { name: "Drop por dia de Barra de Cobalto Brilhante" });
+  await expect(drop).toHaveAttribute("placeholder", /≈ \d/);
+
+  // A compra com Moeda Corvo das missões também encurta o prazo, então só a ordem de grandeza é fixa.
+  await drop.fill("1,5");
+  await expect(cobaltRow.locator(".inventory-eta")).toHaveText(/≈ \d+ (dias|semanas)/);
+  await drop.fill("30");
+  await expect(cobaltRow.locator(".inventory-eta")).toHaveText("≈ 1 dia");
+
+  await page.reload();
+  await page.getByRole("button", { name: "Inventário" }).click();
+  await expect(drop).toHaveValue("30");
+  await drop.fill("");
+  await expect(cobaltRow.locator(".inventory-eta")).not.toHaveText("≈ 1 dia");
+});
+
+test("puts the yellow Falasi gear in the calculation only when asked", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /Gradual/ }).click();
+  // O inventário também tem um filtro "Equip. amarelo"; o primeiro botão é o do menu lateral.
+  await page.getByRole("button", { name: "Equip. amarelo" }).first().click();
+  await expect(page.getByRole("heading", { name: "Equipamento amarelo de Falasi" })).toBeVisible();
+
+  const falasiIcons = page.locator(".yellow-piece-head .item-icon");
+  await expect(falasiIcons).toHaveCount(4);
+  await expect.poll(() => falasiIcons.evaluateAll((images: HTMLImageElement[]) => images.every((image) => image.complete && image.naturalWidth > 0))).toBe(true);
+
+  const setTime = page.locator(".yellow-hero-stats div").filter({ hasText: "Tempo dos materiais" }).locator("strong");
+  await expect(setTime).toHaveText("fora do cálculo");
+
+  await page.getByRole("button", { name: "Inventário" }).click();
+  await page.locator(".segmented").getByRole("button", { name: "Equip. amarelo" }).click();
+  const supportRow = page.locator(".inventory-material-row").filter({ hasText: "Suporte de Coral Sólido" });
+  await expect(page.locator(".yellow-excluded-note")).toBeVisible();
+  await expect(supportRow.locator(".inventory-eta")).toHaveText("—");
+
+  await page.getByRole("checkbox", { name: "Contar o equipamento amarelo no cálculo deste preset" }).check();
+  await expect(page.locator(".yellow-excluded-note")).toHaveCount(0);
+  await expect(supportRow.locator("strong").first()).toHaveText("500");
+  await expect(supportRow.locator(".inventory-eta")).toHaveText(/≈/);
+
+  await page.getByRole("button", { name: "Visão geral" }).click();
+  await page.getByRole("checkbox", { name: "Carraca de Epheria Gradual: Canhão de Falasi pronta, fora do cálculo" }).check();
+  await page.getByRole("button", { name: "Inventário" }).click();
+  await page.locator(".segmented").getByRole("button", { name: "Equip. amarelo" }).click();
+  await expect(supportRow.locator("strong").first()).toHaveText("375");
+
+  await page.reload();
+  await page.getByRole("button", { name: "Equip. amarelo" }).first().click();
+  await expect(setTime).toHaveText(/≈/);
 });
