@@ -35,3 +35,10 @@ export function authCodeFrom(params: Record<string, string | string[] | undefine
   const code = params.code;
   return typeof code === "string" && code.trim() ? code : null;
 }
+
+/**
+ * Página onde o login começou. O Discord devolve o jogador ao callback, e é este cookie que
+ * leva de volta à página em que ele estava. O caminho vai em cookie, e não na URL de retorno,
+ * porque a lista de Redirect URLs do Supabase precisaria aceitar cada variação dela.
+ */
+export const RETURN_COOKIE = "carrack-retorno";
