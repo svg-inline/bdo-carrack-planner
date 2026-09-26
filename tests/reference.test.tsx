@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
-import { CarrackGuide, CarrackSummaries, GuidePage, GuideShell, MaterialsTable, QuestsGuide, EstimateGuide, SourcesGuide, YellowGuide } from "@/app/reference";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { CarrackGuide, CarrackSummaries, GuidePage, GuideShell, MaterialGuide, MaterialsTable, QuestsGuide, EstimateGuide, SourcesGuide, YellowGuide } from "@/app/reference";
 import { pageOfTab } from "@/lib/routes";
 
 vi.mock("next/image", () => ({
@@ -10,6 +10,9 @@ vi.mock("next/image", () => ({
 }));
 
 describe("static planner guide", () => {
+  // Sem `globals` no Vitest, o Testing Library não desmonta sozinho entre um teste e outro.
+  afterEach(cleanup);
+
   it("liga todas as páginas do guia no menu", () => {
     render(<GuideShell account={null} accountEnabled={false}><p>conteúdo</p></GuideShell>);
     const nav = screen.getByRole("navigation", { name: "Guia de Carracas" });
@@ -48,6 +51,26 @@ describe("static planner guide", () => {
     expect(screen.getByText("Materiais e quantidades para Gradual")).toBeInTheDocument();
     expect(screen.getByText("Receitas dos quatro equipamentos azuis +10")).toBeInTheDocument();
     expect(screen.getByText("Equipamento azul de Shiro da Gradual")).toBeInTheDocument();
+  });
+
+  it("mostra fontes, quantidades e usos na página de um material", () => {
+    render(<MaterialGuide id="luminousCobalt" />);
+    expect(screen.getByRole("heading", { name: "Onde conseguir" })).toBeInTheDocument();
+    expect(screen.getByText(/Comprar · Loja de Moeda Corvo/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Bravura" })).toHaveAttribute("href", "/carraca/bravura");
+    expect(screen.getByRole("heading", { name: "Onde é usado" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Outros materiais de Equip. azul" })).toBeInTheDocument();
+  });
+
+  it("explica o material que nenhuma receita da Carraca pede", () => {
+    render(<MaterialGuide id="waveStone" />);
+    expect(screen.getByText(/usado no aprimoramento/)).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Onde é usado" })).not.toBeInTheDocument();
+  });
+
+  it("liga os materiais do guia às páginas deles", () => {
+    render(<MaterialsTable />);
+    expect(screen.getByRole("link", { name: "Olho Abissal" })).toHaveAttribute("href", "/material/olho-abissal");
   });
 
   it("omite a barra de conta quando a sincronização não está configurada", () => {

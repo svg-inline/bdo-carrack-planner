@@ -1,12 +1,15 @@
 import Image from "next/image";
 import Link from "next/link";
 import AccountBar, { type AccountBarProps } from "./account-bar";
-import { CADENCE_BY_ID, CARRACK_GEAR_SETS, CARRACK_ORDER, CARRACKS, CATEGORY_LABELS, FALASI_PERMIT_SELLER, FALASI_PERMIT_SILVER, FALASI_WORKSHOP, GEAR_SETS, LYNGBAKR_HORN_EXCHANGE, MATERIALS, MATERIAL_BY_ID, QUESTS, QUEST_CADENCES, QUEST_GROUPS, SOURCES, YELLOW_ENHANCEMENT, YELLOW_GEAR_SETS, YELLOW_PROCESSING, YELLOW_ROUTE_ITEMS } from "@/lib/data";
-import { carrackGearSetEstimate, formatDuration, materialEstimate, shipEstimate } from "@/lib/estimate";
+import JsonLd from "./json-ld";
+import { CADENCE_BY_ID, CARRACK_GEAR_SETS, CARRACK_ORDER, CARRACKS, CATEGORY_LABELS, FALASI_PERMIT_SELLER, FALASI_PERMIT_SILVER, FALASI_WORKSHOP, GEAR_SETS, LYNGBAKR_HORN_EXCHANGE, MATERIALS, MATERIAL_BY_ID, QUESTS, QUEST_CADENCES, QUEST_GROUPS, SOURCE_TYPE_LABELS, SOURCES, YELLOW_ENHANCEMENT, YELLOW_GEAR_SETS, YELLOW_PROCESSING, YELLOW_ROUTE_ITEMS } from "@/lib/data";
+import { carrackGearSetEstimate, formatDuration, formatRate, materialEstimate, materialRate, shipEstimate } from "@/lib/estimate";
+import { materialPath, materialUses } from "@/lib/materials";
 import { getGoal } from "@/lib/planner";
-import { questsOfGroup } from "@/lib/quests";
+import { isQuestAcquisition, questsOfGroup } from "@/lib/quests";
 import { createInitialProfile } from "@/lib/profile";
 import { carrackPath, PLANNER_PAGES, type PlannerPage } from "@/lib/routes";
+import { breadcrumbJsonLd } from "@/lib/site";
 import type { CarrackTarget, GearKey, MaterialId } from "@/types";
 
 /**
@@ -22,9 +25,23 @@ function eta(days: number) {
   return days > 0 ? `≈ ${formatDuration(days)}` : formatDuration(days);
 }
 
-function Item({ id }: { id: MaterialId }) {
+/** Ícone e nome do material. Com `link`, o nome leva à página do material. */
+function Item({ id, link = false }: { id: MaterialId; link?: boolean }) {
   const material = MATERIAL_BY_ID[id];
-  return <span className="item-label"><Image className="item-icon" src={material.icon} alt="" width={28} height={28} /><span>{material.name}</span></span>;
+  const label = <span className="item-label"><Image className="item-icon" src={material.icon} alt="" width={28} height={28} /><span>{material.name}</span></span>;
+  // Sem pré-carregamento: a tabela do guia tem um link por material, e pré-carregar todos
+  // dispararia dezenas de requisições a cada visita.
+  return link ? <Link className="text-gold-bright" href={materialPath(id)} prefetch={false}>{label}</Link> : label;
+}
+
+/** Nome do material como link, no meio de uma frase. */
+function MaterialName({ id }: { id: MaterialId }) {
+  return <Link className="text-gold-bright" href={materialPath(id)} prefetch={false}>{MATERIAL_BY_ID[id].name}</Link>;
+}
+
+/** Junta elementos numa frase: "a, b e c" ou com outro separador. */
+function joinNodes(nodes: React.ReactNode[], separator = ", ", last = " e "): React.ReactNode[] {
+  return nodes.flatMap((node, index) => index === 0 ? [node] : [index === nodes.length - 1 ? last : separator, node]);
 }
 
 function GuideNav() {
@@ -79,23 +96,23 @@ export function CarrackGuide({ id }: { id: CarrackTarget }) {
   return <section className="panel">
     <h2>Rota e prazo</h2><p>{carrack.sourceShip} → {carrack.shortName} · {carrack.role}</p><p>{carrack.description}</p>
     <p>Partindo do zero, os materiais da rota levam <strong>{eta(ship.days)}</strong> e o conjunto de Shiro, mais <strong>{eta(shiroSet.days)}</strong>. Veja <Link className="text-gold-bright" href="/estrategia">como o tempo é estimado</Link>.</p>
-    <details><summary className="cursor-pointer text-gold-bright">Materiais e quantidades para {carrack.shortName}</summary>
-      <ul className="my-4 space-y-2">{MATERIALS.filter((m) => getGoal(profile, m.id) > 0).map((m) => <li className="flex flex-wrap items-center justify-between gap-2" key={m.id}><Item id={m.id} /><strong>{m.required[id]} · {eta(materialEstimate(profile, m.id).days)}</strong></li>)}</ul>
+    <details open><summary className="cursor-pointer text-gold-bright">Materiais e quantidades para {carrack.shortName}</summary>
+      <ul className="my-4 space-y-2">{MATERIALS.filter((m) => getGoal(profile, m.id) > 0).map((m) => <li className="flex flex-wrap items-center justify-between gap-2" key={m.id}><Item id={m.id} link /><strong>{m.required[id]} · {eta(materialEstimate(profile, m.id).days)}</strong></li>)}</ul>
     </details>
-    <details><summary className="cursor-pointer text-gold-bright">Receitas dos quatro equipamentos azuis +10</summary>
+    <details open><summary className="cursor-pointer text-gold-bright">Receitas dos quatro equipamentos azuis +10</summary>
       <div className="my-4 space-y-4">{(Object.keys(gearSet) as GearKey[]).map((key) => <article key={key}>
         <h3>{gearSet[key].name}</h3><p>Base: {gearSet[key].base}</p>
-        <ul className="space-y-2">{(Object.entries(gearSet[key].materials) as [MaterialId, number][]).map(([material, qty]) => <li key={material}><Item id={material} /> · {qty}</li>)}</ul>
+        <ul className="space-y-2">{(Object.entries(gearSet[key].materials) as [MaterialId, number][]).map(([material, qty]) => <li key={material}><Item id={material} link /> · {qty}</li>)}</ul>
       </article>)}</div>
     </details>
-    <details><summary className="cursor-pointer text-gold-bright">Equipamento azul de Shiro da {carrack.shortName}</summary>
+    <details open><summary className="cursor-pointer text-gold-bright">Equipamento azul de Shiro da {carrack.shortName}</summary>
       <p>Conjunto fabricado depois que a Carraca existe. Cada peça parte da peça verde de Toro em +10, comprada com Lavinia no Ninho do Corvo.</p>
       <div className="my-4 space-y-4">{(Object.keys(carrackGearSet) as GearKey[]).map((key) => <article key={key}>
         <h3>{carrackGearSet[key].name}</h3><p>Base: {carrackGearSet[key].base}</p>
         <p>Oficina: {carrackGearSet[key].workshop}</p>
         <p>Planta de construção: {carrackGearSet[key].blueprintSource}</p>
         <p>Permissão: {carrackGearSet[key].permit}</p>
-        <ul className="space-y-2">{(Object.entries(carrackGearSet[key].materials) as [MaterialId, number][]).map(([material, qty]) => <li key={material}><Item id={material} /> · {qty}</li>)}</ul>
+        <ul className="space-y-2">{(Object.entries(carrackGearSet[key].materials) as [MaterialId, number][]).map(([material, qty]) => <li key={material}><Item id={material} link /> · {qty}</li>)}</ul>
       </article>)}</div>
     </details>
     <p>O equipamento amarelo de Falasi da {carrack.shortName} está no <Link className="text-gold-bright" href="/equipamento-amarelo">guia do equipamento amarelo</Link>.</p>
@@ -111,7 +128,7 @@ export function MaterialsTable() {
       <table className="w-full text-left">
         <thead><tr><th scope="col">Material</th><th scope="col">Uso</th>{CARRACK_ORDER.map((id) => <th scope="col" key={id}>{CARRACKS[id].shortName}</th>)}</tr></thead>
         <tbody>{MATERIALS.filter((m) => CARRACK_ORDER.some((id) => m.required[id] > 0)).map((m) => <tr key={m.id}>
-          <th scope="row"><Item id={m.id} /></th><td>{CATEGORY_LABELS[m.category]}</td>
+          <th scope="row"><Item id={m.id} link /></th><td>{CATEGORY_LABELS[m.category]}</td>
           {CARRACK_ORDER.map((id) => <td key={id}>{m.required[id] || "—"}</td>)}
         </tr>)}</tbody>
       </table>
@@ -124,10 +141,10 @@ export function YellowGuide() {
     <p>O grau mais alto das Carracas. Cada Carraca tem as suas quatro peças de Falasi, feitas a partir da peça de Shiro da mesma posição em +10. No planner, o equipamento amarelo começa fora do cálculo e você decide, por preset, se ele entra na meta e no prazo.</p>
     <ol className="my-4 list-decimal space-y-2 pl-6">
       <li>Leve a peça de Shiro da mesma posição a +10: ela é consumida na receita.</li>
-      <li>Cace na Colônia de Lyngbakr, na Terra do Amanhecer, por {Object.values(YELLOW_ROUTE_ITEMS).slice(0, 4).map((item) => item.name).join(", ")} e Essência de Coral Crepuscular.</li>
-      <li>Processe cada espólio com {YELLOW_ROUTE_ITEMS.hardener.name} x1 e {YELLOW_ROUTE_ITEMS.emulsifier.name} x1: {YELLOW_PROCESSING.map((step) => `${YELLOW_ROUTE_ITEMS[step.input].name} → ${MATERIAL_BY_ID[step.output].name} (${step.method})`).join("; ")}.</li>
-      <li>Troque o Chifre de Lyngbakr por um destes, à escolha: {(Object.entries(LYNGBAKR_HORN_EXCHANGE) as [MaterialId, number][]).map(([material, qty]) => `${MATERIAL_BY_ID[material].name} x${qty}`).join(", ")} — a receita de uma peça inteira.</li>
-      <li>Troque Essência de Coral Crepuscular x2 por uma planta com {FALASI_PERMIT_SELLER}; cada peça pede 10.</li>
+      <li>Cace na Colônia de Lyngbakr, na Terra do Amanhecer, por {Object.values(YELLOW_ROUTE_ITEMS).slice(0, 4).map((item) => item.name).join(", ")} e <MaterialName id="twilightCoralEssence" />.</li>
+      <li>Processe cada espólio com {YELLOW_ROUTE_ITEMS.hardener.name} x1 e {YELLOW_ROUTE_ITEMS.emulsifier.name} x1: {joinNodes(YELLOW_PROCESSING.map((step) => <span key={step.output}>{YELLOW_ROUTE_ITEMS[step.input].name} → <MaterialName id={step.output} /> ({step.method})</span>), "; ", "; ")}.</li>
+      <li>Troque o Chifre de Lyngbakr por um destes, à escolha: {joinNodes((Object.entries(LYNGBAKR_HORN_EXCHANGE) as [MaterialId, number][]).map(([material, qty]) => <span key={material}><MaterialName id={material} /> x{qty}</span>), ", ", ", ")} — a receita de uma peça inteira.</li>
+      <li>Troque <MaterialName id="twilightCoralEssence" /> x2 por uma planta com {FALASI_PERMIT_SELLER}; cada peça pede 10.</li>
       <li>Compre a permissão por {new Intl.NumberFormat("pt-BR").format(FALASI_PERMIT_SILVER)} de prata com {FALASI_PERMIT_SELLER} e fabrique na {FALASI_WORKSHOP}.</li>
     </ol>
     {CARRACK_ORDER.map((id) => {
@@ -137,12 +154,12 @@ export function YellowGuide() {
           <h3 className="item-label"><Image className="item-icon" src={yellowSet[key].icon} alt="" width={28} height={28} /><span>{yellowSet[key].name}</span></h3>
           <p>Base: {yellowSet[key].base}</p>
           <p>Permissão: {yellowSet[key].permit}</p>
-          <ul className="space-y-2">{(Object.entries(yellowSet[key].materials) as [MaterialId, number][]).map(([material, qty]) => <li key={material}><Item id={material} /> · {qty}</li>)}</ul>
+          <ul className="space-y-2">{(Object.entries(yellowSet[key].materials) as [MaterialId, number][]).map(([material, qty]) => <li key={material}><Item id={material} link /> · {qty}</li>)}</ul>
         </article>)}</div>
       </details>;
     })}
     <details><summary className="cursor-pointer text-gold-bright">Aprimoramento com Pedra Negra da Onda Crepuscular</summary>
-      <p>Cada tentativa gasta uma Pedra Negra da Onda Crepuscular (Essência de Coral Crepuscular x1 + Pedra Negra da Onda x100, em Aquecimento). Na falha, a peça perde durabilidade e cai de nível, a menos que se use Pedras Cron.</p>
+      <p>Cada tentativa gasta uma <MaterialName id="twilightWaveStone" /> (<MaterialName id="twilightCoralEssence" /> x1 + <MaterialName id="waveStone" /> x100, em Aquecimento). Na falha, a peça perde durabilidade e cai de nível, a menos que se use Pedras Cron.</p>
       <ul className="my-4 space-y-2">{YELLOW_ENHANCEMENT.map((step) => <li key={step.level}>+{step.level}: {step.withStacks}% com {step.stacks} acúmulos ({step.base}% sem) · {step.cron ? `${step.cron} Pedras Cron` : "sem Pedra Cron"}</li>)}</ul>
     </details>
   </section>;
@@ -153,6 +170,7 @@ export function SourcesGuide() {
     <div className="mt-4 space-y-4">{MATERIALS.map((m) => <details key={m.id}>
       <summary className="cursor-pointer"><Item id={m.id} /></summary>
       <ul className="my-3 space-y-2">{m.sources.map((source, index) => <li key={index}><strong>{source.label}</strong>{source.detail && <p>{source.detail}</p>}</li>)}</ul>
+      <p><Link className="text-gold-bright" href={materialPath(m.id)}>Tudo sobre {m.name}</Link></p>
     </details>)}</div>
   </section>;
 }
@@ -201,8 +219,54 @@ export function DataSources() {
 /** Topo comum das páginas do planner: aviso de conta e o título com a descrição da página. */
 export function GuidePage({ page, notice, children }: { page: PlannerPage; notice: string | null; children: React.ReactNode }) {
   return <>
+    {page.path !== "/" && <JsonLd data={breadcrumbJsonLd([{ name: "Início", path: "/" }, { name: page.label, path: page.path }])} />}
     <GuideNotice notice={notice} />
     <GuideIntro title={page.title}><p>{page.description}</p></GuideIntro>
     {children}
+  </>;
+}
+
+/**
+ * Tudo sobre um material: onde conseguir, quanto cada Carraca pede, em quanto tempo sai
+ * partindo do zero e em que peças ele entra. É a resposta para "como conseguir <material>".
+ */
+export function MaterialGuide({ id }: { id: MaterialId }) {
+  const material = MATERIAL_BY_ID[id];
+  const uses = materialUses(id);
+  const questRate = materialRate(EMPTY_PROFILES.gradual, id).perDay;
+  const needed = CARRACK_ORDER.filter((carrack) => material.required[carrack] > 0);
+  const related = MATERIALS.filter((m) => m.category === material.category && m.id !== id);
+  return <>
+    <section className="panel"><h2>Onde conseguir</h2>
+      <ul className="my-4 space-y-3">{material.sources.map((source, index) => <li key={index}>
+        <strong>{SOURCE_TYPE_LABELS[source.type]} · {source.label}</strong>
+        {source.detail && <p>{source.detail}</p>}
+        {isQuestAcquisition(source) && <p><Link className="text-gold-bright" href="/missoes">Ver a missão no catálogo de missões</Link></p>}
+      </li>)}</ul>
+      <p>{questRate > 0
+        ? <>Com as missões padrão do planner, as recompensas rendem <strong>{formatRate(questRate)}</strong>. Permuta, caça e processamento somam</>
+        : <>Nenhuma missão padrão entrega este material. Permuta, caça, processamento e escavação valem</>} uma estimativa por dificuldade ({material.difficulty}/5); veja <Link className="text-gold-bright" href="/estrategia">como o tempo é estimado</Link>.</p>
+    </section>
+    <section className="panel"><h2>Quanto cada Carraca pede</h2>
+      {needed.length
+        ? <div className="mt-4 overflow-x-auto"><table className="w-full text-left">
+            <thead><tr><th scope="col">Carraca</th><th scope="col">Quantidade</th><th scope="col">Partindo do zero</th></tr></thead>
+            <tbody>{needed.map((carrack) => <tr key={carrack}>
+              <th scope="row"><Link className="text-gold-bright" href={carrackPath(carrack)}>{CARRACKS[carrack].shortName}</Link></th>
+              <td>{material.required[carrack]}</td>
+              <td>{getGoal(EMPTY_PROFILES[carrack], id) > 0 ? eta(materialEstimate(EMPTY_PROFILES[carrack], id).days) : "fora do cálculo padrão"}</td>
+            </tr>)}</tbody>
+          </table></div>
+        : <p>Nenhuma receita da Carraca pede este material: ele é usado no aprimoramento dos equipamentos de navio.</p>}
+      {material.category === "yellow-gear" && <p>O equipamento amarelo de Falasi começa fora do cálculo do planner; ligue-o no preset para este material ganhar meta e prazo. Veja o <Link className="text-gold-bright" href="/equipamento-amarelo">guia do equipamento amarelo</Link>.</p>}
+    </section>
+    {uses.length > 0 && <section className="panel"><h2>Onde é usado</h2>
+      <ul className="my-4 space-y-2">{uses.map((use) => <li key={`${use.name}-${use.qty}`}>
+        <strong>{use.name}</strong> · {use.qty} · {use.carracks.map((carrack) => CARRACKS[carrack].shortName).join(", ")}
+      </li>)}</ul>
+    </section>}
+    {related.length > 0 && <section className="panel"><h2>Outros materiais de {CATEGORY_LABELS[material.category]}</h2>
+      <ul className="mt-4 flex flex-wrap gap-4">{related.map((m) => <li key={m.id}><Item id={m.id} link /></li>)}</ul>
+    </section>}
   </>;
 }

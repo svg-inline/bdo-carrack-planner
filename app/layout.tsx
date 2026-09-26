@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { SITE_NAME, SITE_URL } from "@/lib/site";
+import JsonLd from "./json-ld";
+import { SITE_NAME, SITE_URL, siteJsonLd } from "@/lib/site";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR">
-      <body><a href="#main-content" className="skip-link">Pular para o conteúdo</a>{children}</body>
+      <body><JsonLd data={siteJsonLd()} /><a href="#main-content" className="skip-link">Pular para o conteúdo</a>{children}</body>
     </html>
   );
 }

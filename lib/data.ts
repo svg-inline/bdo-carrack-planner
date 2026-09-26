@@ -1,4 +1,4 @@
-import type { CarrackDefinition, CarrackGearDefinition, CarrackTarget, GearDefinition, GearKey, MaterialCategory, MaterialDefinition, MaterialId, QuestCadence, QuestCadenceDefinition, QuestDefinition, QuestGroupDefinition, ShipBranch, ShipSetStats, YellowGearDefinition } from "@/types";
+import type { AcquisitionType, CarrackDefinition, CarrackGearDefinition, CarrackTarget, GearDefinition, GearKey, MaterialCategory, MaterialDefinition, MaterialId, QuestCadence, QuestCadenceDefinition, QuestDefinition, QuestGroupDefinition, ShipBranch, ShipSetStats, YellowGearDefinition } from "@/types";
 
 const req = (gradual: number, equilibrio: number, ascensao: number, bravura: number): Record<CarrackTarget, number> => ({ gradual, equilibrio, ascensao, bravura });
 
@@ -28,7 +28,7 @@ export const CARRACKS: Record<CarrackTarget, CarrackDefinition> = {
     branch: "galleass",
     sourceShip: "Contratorpedeiro de Epheria",
     role: "Velocidade / manobra",
-    description: "Linha veloz do Contratorpedeiro. O ID interno é 'ascensao' por compatibilidade; o nome exibido no jogo é Emergência.",
+    description: "Linha veloz do Contratorpedeiro, com foco em velocidade e manobra para cruzar o oceano mais rápido.",
   },
   bravura: {
     id: "bravura",
@@ -50,6 +50,18 @@ export const CATEGORY_LABELS: Record<MaterialCategory, string> = {
   "carrack-gear": "Equip. Carraca",
   "yellow-gear": "Equip. amarelo",
   enhancement: "Aprimoramento",
+};
+
+/** Nome de cada tipo de fonte de material, o mesmo no planner e no guia. */
+export const SOURCE_TYPE_LABELS: Record<AcquisitionType, string> = {
+  daily: "Missão diária",
+  weekly: "Missão semanal",
+  barter: "Permuta",
+  crow: "Comprar",
+  hunt: "Drop / caça",
+  processing: "Processar",
+  workers: "Trabalhadores",
+  market: "Mercado",
 };
 
 export const MATERIALS: MaterialDefinition[] = [

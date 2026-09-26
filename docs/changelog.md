@@ -7,9 +7,13 @@ Todas as mudanças relevantes para usuários são registradas em `Unreleased`, n
 ### Added
 
 - Cada seção do planner tem o próprio endereço: `/inventario`, `/como-obter`, `/equipamento-amarelo`, `/missoes` e `/estrategia`, além da Visão geral em `/`. Recarregar, compartilhar o link ou usar o voltar do navegador mantém a seção, e cada página tem título e descrição próprios nos buscadores.
+- Página de cada material em `/material/<nome>`, como `/material/barra-de-cobalto-brilhante`: onde conseguir, o ritmo das missões, quanto cada Carraca pede, o prazo partindo do zero, em que peças ele entra e os outros materiais da mesma categoria. Todo nome de material leva a elas: no planner (inventário, "Como obter", gargalos, recompensas das missões, equipamento amarelo e compra sugerida) e no guia (tabelas, receitas e a rota de Falasi).
 - Página de guia de cada Carraca em `/carraca/gradual`, `/carraca/equilibrio`, `/carraca/emergencia` e `/carraca/bravura`, com materiais, receitas e prazo partindo do zero.
 - Sem preset salvo, as páginas de seção mostram o guia do assunto com um convite para escolher a Carraca, e a tela de escolha da Carraca traz links para o guia.
 - `robots.txt`, `sitemap.xml` com todas as páginas, URL canônica, cartão de compartilhamento e verificação do Google Search Console e do Bing Webmaster Tools.
+- Ícone do site (o timão da marca) na aba do navegador, nos resultados de busca e na tela inicial do celular.
+- Imagem de prévia nos links compartilhados no Discord, WhatsApp e redes, com a arte oficial do Navio Mercante de Epheria.
+- Dados estruturados para buscadores: o site descrito como planejador gratuito em português, e a trilha de navegação de cada página.
 
 - Média de drop por dia de cada material, informada pelo jogador na coluna "Drop/dia" do inventário ou no cartão do material em "Como obter". A média substitui a estimativa do planner para aquele material — mesmo com a atividade fora da rotina — e se soma às missões no ritmo e no prazo. Aceita vírgula e frações (ex.: 0,5); zero diz que o item não sai fora das missões; campo vazio volta à estimativa, que aparece como dica. A média pertence ao preset.
 
@@ -49,6 +53,8 @@ Todas as mudanças relevantes para usuários são registradas em `Unreleased`, n
 
 - Entrar com o Discord e sair da conta devolvem o jogador à página em que ele estava, em vez da página inicial.
 - O guia sem JavaScript foi dividido pelas mesmas páginas do planner, cada uma com o próprio conteúdo, e o menu dele navega entre elas.
+- O guia de cada Carraca abre já com os materiais, as receitas azuis +10 e o conjunto de Shiro à mostra.
+- A descrição da Carraca Emergência deixou de mostrar o identificador interno usado pelo planner.
 
 - A Pedra Negra da Onda ganhou a troca dos espólios de Lyngbakr no Comerciante de Moeda Corvo como fonte.
 
