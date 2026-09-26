@@ -62,6 +62,7 @@ Todas as mudanças relevantes para usuários são registradas em `Unreleased`, n
 
 ### Fixed
 
+- Os percentuais da Visão geral (progresso geral, materiais azuis, materiais Carraca e conjunto de Shiro) passam a arredondar para baixo. Antes mostravam 100% com material ainda faltando, como 141 de 150 Ferros Forjados Rígidos do Oceano (99,5%).
 - "Ocultar concluídos" no inventário passou a ficar salvo neste navegador; antes voltava desligado a cada troca de aba ou recarga.
 - Progresso dos equipamentos ignora aprimoramento azul antes da fabricação da peça.
 - O tempo estimado não soma mais missões que o jogo não deixa aceitar juntas, o que deixava os prazos de Olho Abissal, Escama da Lua, Suporte Elaborado e Cola com Traços de Onda otimistas demais.

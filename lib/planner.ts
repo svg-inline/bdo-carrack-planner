@@ -1,5 +1,5 @@
 import { CADENCE_BY_ID, CARRACK_GEAR_SETS, CARRACKS, GEAR_SETS, MATERIALS, MATERIAL_BY_ID } from "@/lib/data";
-import type { CarrackTarget, GearKey, GearState, MaterialDefinition, MaterialId, PlannerProfile, QuestCadence } from "@/types";
+import type { CarrackTarget, GearKey, GearState, MaterialCategory, MaterialDefinition, MaterialId, PlannerProfile, QuestCadence } from "@/types";
 
 // Materiais consumidos para chegar até a Carraca. O conjunto de Shiro é equipamento posterior
 // e tem progresso próprio, por isso fica fora dos gargalos e do percentual da rota.
@@ -51,17 +51,33 @@ export function materialCompletion(profile: PlannerProfile, id: MaterialId) {
   return Math.min(1, (profile.materials[id] || 0) / required);
 }
 
+/**
+ * Percentual inteiro arredondado para baixo: 100% só aparece quando nada falta. Arredondar para o
+ * mais próximo mostrava 100% com 9 unidades faltando (99,5%). A folga absorve o erro de ponto
+ * flutuante, já que 0,29 × 100 dá 28,999….
+ */
+export function toPercent(ratio: number) {
+  return Math.floor(ratio * 100 + 1e-9);
+}
+
+/** Progresso médio dos materiais de uma categoria, com cada material pesando igual. */
+export function categoryCompletion(profile: PlannerProfile, category: MaterialCategory) {
+  const materials = MATERIALS.filter((m) => m.category === category);
+  if (!materials.length) return 0;
+  return toPercent(materials.reduce((sum, m) => sum + materialCompletion(profile, m.id), 0) / materials.length);
+}
+
 export function overallCompletion(profile: PlannerProfile) {
   const relevant = MATERIALS.filter((m) => isCarrackBuildMaterial(m) && m.required[profile.target] > 0);
   const materialScore = relevant.length ? relevant.reduce((sum, m) => sum + materialCompletion(profile, m.id), 0) / relevant.length : 0;
   const branch = CARRACKS[profile.target].branch;
   const branchGearScore = Object.values(profile.gear[branch]).reduce((sum, gear) => sum + gearScore(gear), 0) / 4;
-  return Math.round((materialScore * 0.68 + branchGearScore * 0.32) * 100);
+  return toPercent(materialScore * 0.68 + branchGearScore * 0.32);
 }
 
 export function carrackGearCompletion(profile: PlannerProfile) {
   const pieces = Object.values(profile.carrackGear);
-  return Math.round(pieces.reduce((sum, gear) => sum + gearScore(gear), 0) / pieces.length * 100);
+  return toPercent(pieces.reduce((sum, gear) => sum + gearScore(gear), 0) / pieces.length);
 }
 
 export function bottlenecks(profile: PlannerProfile) {
