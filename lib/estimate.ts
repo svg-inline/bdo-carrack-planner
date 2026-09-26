@@ -1,5 +1,5 @@
-import { CADENCE_BY_ID, CARRACK_GEAR_SETS, CARRACK_PART_COUNT, CARRACK_PART_CROW_PRICE, GEAR_SETS, MATERIALS, MATERIAL_BY_ID, QUESTS } from "@/lib/data";
-import { getMissing, isCarrackBuildMaterial } from "@/lib/planner";
+import { CADENCE_BY_ID, CARRACK_GEAR_SETS, CARRACK_PART_COUNT, CARRACK_PART_CROW_PRICE, GEAR_SETS, MATERIALS, MATERIAL_BY_ID, QUESTS, YELLOW_GEAR_SETS } from "@/lib/data";
+import { getGoal, getMissing, isCarrackBuildMaterial } from "@/lib/planner";
 import { activeQuestIds, isQuestAcquisition, questChoiceOf } from "@/lib/quests";
 import type { Acquisition, AcquisitionType, CrowSpendPlan, FarmActivity, FarmRoutine, GearKey, MaterialCategory, MaterialDefinition, MaterialId, PlannerProfile, QuestAcquisition, QuestDefinition, ShipBranch } from "@/types";
 
@@ -136,8 +136,8 @@ export interface CoinPlan {
 }
 
 /**
- * Categoria liberada pelo jogador para a compra que acelera o farm. O conjunto de Shiro e a
- * Pedra Negra da Onda não têm preço na loja, então nunca disputam o saldo.
+ * Categoria liberada pelo jogador para a compra que acelera o farm. Os conjuntos de Shiro e de
+ * Falasi e a Pedra Negra da Onda não têm preço na loja, então nunca disputam o saldo.
  */
 export function acceleratesCategory(spend: CrowSpendPlan, category: MaterialCategory) {
   if (category === "blue-gear") return spend.blueGear;
@@ -317,6 +317,8 @@ export interface MaterialRate {
   questPerDay: number;
   /** Parte vinda de permuta, caça, processamento ou escavação. */
   farmPerDay: number;
+  /** A parte de farm é a média informada pelo jogador, e não a estimativa por dificuldade. */
+  customFarm: boolean;
   quests: QuestRate[];
 }
 
@@ -333,6 +335,13 @@ export function questRatePerDay(source: Acquisition, quests: QuestContext, mater
   return (source.yield * share) / CADENCE_BY_ID[source.type].periodDays;
 }
 
+/** Estimativa do planner para o farm do material, sem a média informada pelo jogador. */
+export function estimatedFarmPerDay(profile: PlannerProfile, id: MaterialId) {
+  const material = MATERIAL_BY_ID[id];
+  return material.sources.some((source) => isRoutineFarmSource(source, profile.farmRoutine))
+    ? FARM_UNITS_PER_DAY[material.difficulty] : 0;
+}
+
 export function materialRate(profile: PlannerProfile, id: MaterialId, quests = questContext(profile)): MaterialRate {
   const material = MATERIAL_BY_ID[id];
   const sources = material.sources.filter(isQuestSource).map((source) => ({
@@ -344,10 +353,12 @@ export function materialRate(profile: PlannerProfile, id: MaterialId, quests = q
   }));
   const questPerDay = sources.reduce((sum, quest) => sum + quest.perDay, 0);
   // Permuta, caça e processamento são alternativas do mesmo tempo de jogo: contam uma vez só,
-  // e nenhuma vez quando o jogador não faz nenhuma delas.
-  const farmPerDay = material.sources.some((source) => isRoutineFarmSource(source, profile.farmRoutine))
-    ? FARM_UNITS_PER_DAY[material.difficulty] : 0;
-  return { perDay: questPerDay + farmPerDay, questPerDay, farmPerDay, quests: sources };
+  // e nenhuma vez quando o jogador não faz nenhuma delas. A média que o jogador informa vale
+  // mais que qualquer estimativa, inclusive a rotina: quem diz que dropa 5 por dia está
+  // dizendo que faz a atividade.
+  const custom = profile.farmRates[id];
+  const farmPerDay = custom !== undefined ? custom : estimatedFarmPerDay(profile, id);
+  return { perDay: questPerDay + farmPerDay, questPerDay, farmPerDay, customFarm: custom !== undefined, quests: sources };
 }
 
 export function daysForUnits(units: number, perDay: number) {
@@ -509,8 +520,14 @@ export function stalledRoute(profile: PlannerProfile, context = estimateContext(
  * obtidos em paralelo, o prazo da categoria é o do material mais demorado dela.
  */
 export function categoryEstimate(profile: PlannerProfile, category: MaterialCategory, context = estimateContext(profile)): PartEstimate {
-  const group = MATERIALS.filter((material) => material.category === category && material.required[profile.target] > 0);
+  const group = MATERIALS.filter((material) => material.category === category && getGoal(profile, material.id) > 0);
   return slowestOf(group.map((material) => materialEstimate(profile, material.id, context)));
+}
+
+/** Peça amarela de Falasi da Carraca do plano ativo. */
+export function yellowGearEstimate(profile: PlannerProfile, key: GearKey, context = estimateContext(profile)): PartEstimate {
+  if (profile.yellowGear.crafted[key]) return { days: 0, slowest: null, pending: 0, covered: 0 };
+  return recipeEstimate(profile, YELLOW_GEAR_SETS[profile.target][key].materials, context);
 }
 
 /**
@@ -519,6 +536,14 @@ export function categoryEstimate(profile: PlannerProfile, category: MaterialCate
  */
 export function carrackGearSetEstimate(profile: PlannerProfile, context = estimateContext(profile)): PartEstimate {
   return categoryEstimate(profile, "carrack-gear", context);
+}
+
+/**
+ * Tempo para juntar o conjunto de Falasi inteiro, pela mesma regra do conjunto de Shiro. Fora do
+ * cálculo não há meta, e o prazo é zero: quem mostra o prazo deve checar `yellowGear.included`.
+ */
+export function yellowGearSetEstimate(profile: PlannerProfile, context = estimateContext(profile)): PartEstimate {
+  return categoryEstimate(profile, "yellow-gear", context);
 }
 
 const decimal = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });

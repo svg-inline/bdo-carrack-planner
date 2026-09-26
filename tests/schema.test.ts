@@ -55,6 +55,19 @@ describe("formato do preset na nuvem", () => {
     expect(rowToPreset(row, 0)!.profile.farmRoutine).toEqual({ barter: true, hunt: true, workers: true });
   });
 
+  it("deixa o equipamento amarelo fora da conta de quem foi salvo antes dele", () => {
+    const row = {
+      id: "88888888-8888-4888-8888-888888888888",
+      name: "Bravura antiga",
+      schema_version: PRESET_SCHEMA_VERSION - 1,
+      data: { profile: { materials: { solidCoralSupport: 30 } }, completedQuests: {} },
+    };
+
+    const profile = rowToPreset(row, 0)!.profile;
+    expect(profile.yellowGear.included).toBe(false);
+    expect(profile.materials.solidCoralSupport).toBe(30);
+  });
+
   it("guarda a rotina de farm escolhida no preset", () => {
     const row = {
       id: "77777777-7777-4777-8777-777777777777",

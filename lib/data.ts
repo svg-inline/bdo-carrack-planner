@@ -1,4 +1,4 @@
-import type { CarrackDefinition, CarrackGearDefinition, CarrackTarget, GearDefinition, GearKey, MaterialDefinition, MaterialId, QuestCadence, QuestCadenceDefinition, QuestDefinition, QuestGroupDefinition, ShipBranch } from "@/types";
+import type { CarrackDefinition, CarrackGearDefinition, CarrackTarget, GearDefinition, GearKey, MaterialDefinition, MaterialId, QuestCadence, QuestCadenceDefinition, QuestDefinition, QuestGroupDefinition, ShipBranch, ShipSetStats, YellowGearDefinition } from "@/types";
 
 const req = (gradual: number, equilibrio: number, ascensao: number, bravura: number): Record<CarrackTarget, number> => ({ gradual, equilibrio, ascensao, bravura });
 
@@ -336,6 +336,7 @@ export const MATERIALS: MaterialDefinition[] = [
       { type: "weekly", label: "[Semanal] Caçador de Kandidum", detail: "Escolha de recompensa x60.", yield: 60, group: "semanal-cacador-de-kandidum", questId: "weekly-okilua-kandidum" },
       { type: "weekly", label: "[Semanal] Caçador de Nineshark", detail: "Escolha de recompensa x60.", yield: 60, group: "semanal-cacador-de-nineshark", questId: "weekly-okilua-nineshark" },
       { type: "weekly", label: "[Semanal] Caçador de Dente de Aço Negro", detail: "Escolha de recompensa x60.", yield: 60, group: "semanal-cacador-de-dente-de-aco-negro", questId: "weekly-okilua-black-rust" },
+      { type: "hunt", label: "Troca dos espólios de Lyngbakr", detail: "No Comerciante de Moeda Corvo: Osso de Lyngbakr x1 → 8, Escama de Lyngbakr x1 → 12, Essência de Lyngbakr x1 → 20." },
       { type: "crow", label: "Loja de Moeda Corvo", detail: "Baús/pacotes semanais conforme a loja atual." },
     ],
   },
@@ -435,6 +436,92 @@ export const MATERIALS: MaterialDefinition[] = [
     difficulty: 5,
     sources: [
       { type: "workers", label: "Escavação na Ilha de Racid", detail: "Enviar trabalhadores ao nó da ilha." },
+    ],
+  },
+  {
+    id: "solidCoralSupport",
+    name: "Suporte de Coral Sólido",
+    shortName: "Suporte de Coral Sólido",
+    icon: "/assets/items/solid-coral-support.png",
+    category: "yellow-gear",
+    required: req(500, 500, 500, 500),
+    difficulty: 4,
+    sources: [
+      { type: "processing", label: "Fábrica — Osso de Lyngbakr", detail: "Osso de Lyngbakr x1 + Endurecedor de Luz Estrelar x1 + Emulsificante Luz Estrelar x1 → 1 unidade." },
+      { type: "hunt", label: "Troca do Chifre de Lyngbakr", detail: "Cada Chifre de Lyngbakr vale x125 — a receita de uma peça inteira. A troca é de escolha: o mesmo chifre também pode virar Madeira Compensada Gravada de Onda Forte x75 ou Adesivo de Coral Carmesim Adormecido x50." },
+      { type: "hunt", label: "Colônia de Lyngbakr", detail: "Origem do Osso de Lyngbakr usado na fábrica." },
+    ],
+  },
+  {
+    id: "strongWavePlywood",
+    name: "Madeira Compensada Gravada de Onda Forte",
+    shortName: "Madeira Compensada Gravada de Onda Forte",
+    icon: "/assets/items/strong-wave-plywood.png",
+    category: "yellow-gear",
+    required: req(300, 300, 300, 300),
+    difficulty: 4,
+    sources: [
+      { type: "processing", label: "Fábrica — Escama de Lyngbakr", detail: "Escama de Lyngbakr x1 + Endurecedor de Luz Estrelar x1 + Emulsificante Luz Estrelar x1 → 1 unidade." },
+      { type: "hunt", label: "Troca do Chifre de Lyngbakr", detail: "Cada Chifre de Lyngbakr vale x75, a receita de uma peça inteira. Troca de escolha com o Suporte de Coral Sólido e o Adesivo de Coral Carmesim Adormecido." },
+      { type: "hunt", label: "Colônia de Lyngbakr", detail: "Origem da Escama de Lyngbakr usada na fábrica." },
+    ],
+  },
+  {
+    id: "crimsonCoralAdhesive",
+    name: "Adesivo de Coral Carmesim Adormecido",
+    shortName: "Adesivo de Coral Carmesim Adormecido",
+    icon: "/assets/items/crimson-coral-adhesive.png",
+    category: "yellow-gear",
+    required: req(200, 200, 200, 200),
+    difficulty: 4,
+    sources: [
+      { type: "processing", label: "Alquimia Simples — Essência de Lyngbakr", detail: "Essência de Lyngbakr x1 + Endurecedor de Luz Estrelar x1 + Emulsificante Luz Estrelar x1 → 1 unidade." },
+      { type: "hunt", label: "Troca do Chifre de Lyngbakr", detail: "Cada Chifre de Lyngbakr vale x50, a receita de uma peça inteira. Troca de escolha com o Suporte de Coral Sólido e a Madeira Compensada Gravada de Onda Forte." },
+      { type: "hunt", label: "Colônia de Lyngbakr", detail: "Origem da Essência de Lyngbakr usada na alquimia." },
+    ],
+  },
+  // As quatro plantas de Falasi só mudam de nome e ícone: todas saem da mesma troca.
+  ...([
+    ["figurehead", "falasiFigureheadBlueprint", "Proa"],
+    ["plating", "falasiPlatingBlueprint", "Casco"],
+    ["cannon", "falasiCannonBlueprint", "Canhão"],
+    ["sail", "falasiSailBlueprint", "Vela"],
+  ] as const).map(([key, id, piece]): MaterialDefinition => {
+    return {
+      id,
+      name: `Planta de Construção: ${piece} de Falasi`,
+      shortName: `Planta de Construção: ${piece} de Falasi`,
+      icon: `/assets/items/blueprint-falasi-${key}.png`,
+      category: "yellow-gear",
+      required: req(10, 10, 10, 10),
+      difficulty: 5,
+      sources: [
+        { type: "hunt", label: "Troca com Philaberto Falasi — Porto de Epheria", detail: "Essência de Coral Crepuscular x2 → 1 planta. A essência sai da Colônia de Lyngbakr." },
+      ],
+    };
+  }),
+  {
+    id: "twilightCoralEssence",
+    name: "Essência de Coral Crepuscular",
+    shortName: "Essência de Coral Crepuscular",
+    icon: "/assets/items/twilight-coral-essence.png",
+    category: "enhancement",
+    required: req(0, 0, 0, 0),
+    difficulty: 5,
+    sources: [
+      { type: "hunt", label: "Colônia de Lyngbakr", detail: "Espólio do Lyngbakr. Duas essências viram uma planta de Falasi, e uma entra em cada Pedra Negra da Onda Crepuscular." },
+    ],
+  },
+  {
+    id: "twilightWaveStone",
+    name: "Pedra Negra da Onda Crepuscular",
+    shortName: "Pedra Negra da Onda Crepuscular",
+    icon: "/assets/items/twilight-wave-stone.png",
+    category: "enhancement",
+    required: req(0, 0, 0, 0),
+    difficulty: 5,
+    sources: [
+      { type: "processing", label: "Aquecimento — Essência de Coral Crepuscular", detail: "Essência de Coral Crepuscular x1 + Pedra Negra da Onda x100 → 1 unidade. Aprimora só o equipamento amarelo." },
     ],
   },
 ];
@@ -558,6 +645,134 @@ function carrackGearSet(target: CarrackTarget): Record<GearKey, CarrackGearDefin
 export const CARRACK_GEAR_SETS = Object.fromEntries(
   CARRACK_ORDER.map((target) => [target, carrackGearSet(target)]),
 ) as Record<CarrackTarget, Record<GearKey, CarrackGearDefinition>>;
+
+// Equipamento amarelo de Falasi (Notas da Atualização de 27/08/2026). Cada peça parte da peça de
+// Shiro da mesma Carraca em +10 e pede a própria planta, a mesma receita de materiais do
+// Lyngbakr e uma permissão comprada com prata.
+const FALASI_PIECES: Record<GearKey, { piece: string; blueprint: MaterialId }> = {
+  figurehead: { piece: "Proa de Falasi", blueprint: "falasiFigureheadBlueprint" },
+  plating: { piece: "Casco de Falasi", blueprint: "falasiPlatingBlueprint" },
+  cannon: { piece: "Canhão de Falasi", blueprint: "falasiCannonBlueprint" },
+  sail: { piece: "Vela de Falasi", blueprint: "falasiSailBlueprint" },
+};
+
+// Diferente da permissão de Shiro, a de Falasi já usa o nome novo da linha veloz no anúncio.
+const FALASI_PERMIT_NAME: Record<CarrackTarget, string> = { gradual: "Gradual", equilibrio: "Equilíbrio", ascensao: "Ascensão", bravura: "Bravura" };
+
+/** Preço de cada permissão de Falasi com Philaberto Falasi, em moedas de prata. */
+export const FALASI_PERMIT_SILVER = 5_000_000_000;
+export const FALASI_PERMIT_SELLER = "Philaberto Falasi — Porto de Epheria";
+export const FALASI_WORKSHOP = "Oficina de Peças de Navios Nv.2 — Ilha de Iliya nº 3";
+
+/** O Chifre de Lyngbakr troca por um destes itens, à escolha: cada opção é a receita de uma peça. */
+export const LYNGBAKR_HORN_EXCHANGE: Partial<Record<MaterialId, number>> = {
+  solidCoralSupport: 125,
+  strongWavePlywood: 75,
+  crimsonCoralAdhesive: 50,
+};
+
+/**
+ * Itens da rota amarela que o planner cita mas não acompanha no inventário: são passagem para os
+ * materiais, e não meta. Ficam aqui para o guia e a aba do equipamento usarem o mesmo ícone.
+ */
+export const YELLOW_ROUTE_ITEMS = {
+  horn: { name: "Chifre de Lyngbakr", icon: "/assets/items/lyngbakr-horn.png" },
+  bone: { name: "Osso de Lyngbakr", icon: "/assets/items/lyngbakr-bone.png" },
+  scale: { name: "Escama de Lyngbakr", icon: "/assets/items/lyngbakr-scale.png" },
+  essence: { name: "Essência de Lyngbakr", icon: "/assets/items/lyngbakr-essence.png" },
+  hardener: { name: "Endurecedor de Luz Estrelar", icon: "/assets/items/starlight-hardener.png" },
+  emulsifier: { name: "Emulsificante Luz Estrelar", icon: "/assets/items/starlight-emulsifier.png" },
+} as const;
+
+/** Processamento que transforma cada espólio do Lyngbakr em material de Falasi, um para um. */
+export const YELLOW_PROCESSING: { input: keyof typeof YELLOW_ROUTE_ITEMS; method: string; output: MaterialId }[] = [
+  { input: "bone", method: "Fábrica", output: "solidCoralSupport" },
+  { input: "scale", method: "Fábrica", output: "strongWavePlywood" },
+  { input: "essence", method: "Alquimia Simples", output: "crimsonCoralAdhesive" },
+];
+
+function yellowGearSet(target: CarrackTarget): Record<GearKey, YellowGearDefinition> {
+  const entries = SHIRO_GEAR_KEYS.map((key) => {
+    const piece = FALASI_PIECES[key];
+    const shiro = CARRACK_GEAR_SETS[target][key];
+    const definition: YellowGearDefinition = {
+      name: `Carraca de Epheria ${CARRACKS[target].shortName}: ${piece.piece}`,
+      icon: `/assets/gear/falasi/falasi-${target}-${key}.png`,
+      base: `${shiro.name} +10`,
+      baseIcon: shiro.icon,
+      workshop: FALASI_WORKSHOP,
+      blueprint: piece.blueprint,
+      blueprintSource: MATERIAL_BY_ID[piece.blueprint].sources[0].label,
+      permit: `Permissão de alteração de peça da Carraca de Epheria de Falasi: ${FALASI_PERMIT_NAME[target]}`,
+      permitIcon: `/assets/gear/falasi/permit-${target}.png`,
+      materials: { [piece.blueprint]: 10, solidCoralSupport: 125, strongWavePlywood: 75, crimsonCoralAdhesive: 50 },
+    };
+    return [key, definition] as const;
+  });
+  return Object.fromEntries(entries) as Record<GearKey, YellowGearDefinition>;
+}
+
+export const YELLOW_GEAR_SETS = Object.fromEntries(
+  CARRACK_ORDER.map((target) => [target, yellowGearSet(target)]),
+) as Record<CarrackTarget, Record<GearKey, YellowGearDefinition>>;
+
+const stats = (speed: number, acceleration: number, turn: number, brake: number, damage: number, weight: number, damageReduction: number, defense: number, durability: number, provisions: number, equipmentDurability: number): ShipSetStats =>
+  ({ speed, acceleration, turn, brake, damage, weight, damageReduction, defense, durability, provisions, equipmentDurability });
+
+/** Atributos com as quatro peças em +10, da tabela "Capacidade ao equipar Equipamento de Navio". */
+export const SET_STATS: Record<CarrackTarget, { shiro: ShipSetStats; falasi: ShipSetStats; cannonReload?: string }> = {
+  gradual: {
+    shiro: stats(20, 10, 15, 15, 35_620, 8_000, 26.8, 130, 200_000, 150_000, 100),
+    falasi: stats(23, 15, 21, 21, 55_220, 10_500, 38.6, 190, 350_000, 250_000, 200),
+  },
+  equilibrio: {
+    shiro: stats(20, 15, 20, 20, 39_000, 6_000, 26.8, 130, 150_000, 200_000, 100),
+    falasi: stats(23.5, 20, 23, 23, 60_500, 8_500, 38.6, 190, 300_000, 300_000, 200),
+  },
+  ascensao: {
+    shiro: stats(25, 15, 15, 15, 42_900, 5_500, 26.8, 130, 150_000, 150_000, 100),
+    falasi: stats(28, 20, 18, 18, 66_490, 7_500, 38.6, 190, 300_000, 250_000, 200),
+    cannonReload: "−1 s",
+  },
+  bravura: {
+    shiro: stats(22, 12, 15, 15, 46_800, 5_500, 26.8, 130, 150_000, 200_000, 100),
+    falasi: stats(25, 17, 18, 18, 72_600, 7_500, 38.6, 190, 300_000, 300_000, 200),
+    cannonReload: "−2 s",
+  },
+};
+
+export interface YellowEnhancementStep {
+  level: number;
+  /** Chance sem acúmulos, em %. */
+  base: number;
+  /** Acúmulos base recomendados. */
+  stacks: number;
+  /** Chance com os acúmulos base, em %. */
+  withStacks: number;
+  agris: number;
+  /** Pedras Cron para não cair de nível numa falha. */
+  cron: number;
+}
+
+/** Aprimoramento do equipamento amarelo, com uma Pedra Negra da Onda Crepuscular por tentativa. */
+export const YELLOW_ENHANCEMENT: YellowEnhancementStep[] = [
+  { level: 1, base: 3, stacks: 70, withStacks: 24, agris: 8, cron: 0 },
+  { level: 2, base: 2, stacks: 100, withStacks: 22, agris: 9, cron: 290 },
+  { level: 3, base: 1.5, stacks: 125, withStacks: 20.25, agris: 9, cron: 360 },
+  { level: 4, base: 1.25, stacks: 130, withStacks: 17.5, agris: 11, cron: 380 },
+  { level: 5, base: 1, stacks: 145, withStacks: 15.5, agris: 12, cron: 400 },
+  { level: 6, base: 0.85, stacks: 150, withStacks: 13.6, agris: 14, cron: 420 },
+  { level: 7, base: 0.7, stacks: 155, withStacks: 11.55, agris: 17, cron: 440 },
+  { level: 8, base: 0.55, stacks: 165, withStacks: 9.63, agris: 20, cron: 460 },
+  { level: 9, base: 0.4, stacks: 185, withStacks: 7.8, agris: 25, cron: 480 },
+  { level: 10, base: 0.25, stacks: 240, withStacks: 6.25, agris: 30, cron: 540 },
+];
+
+/** Faixa de preço de uma peça de Falasi no Mercado Mundial, por nível, em moedas de prata. */
+export const YELLOW_MARKET_PRICES: { level: number; min: number; max: number }[] = [
+  [53, 78], [57, 83], [61, 89.5], [67.5, 99], [75, 109], [83, 122],
+  [93.5, 137], [105, 153], [119, 174], [138, 201], [166, 242],
+].map(([min, max], level) => ({ level, min: min * 1e9, max: max * 1e9 }));
 
 /**
  * Frequências reconhecidas pelo planner. Uma missão de evento entra somando o identificador
@@ -822,7 +1037,7 @@ export const QUEST_BY_ID = Object.fromEntries(QUESTS.map((quest) => [quest.id, q
 export const SOURCES = [
   { label: "Atualização — Missões marítimas de 2025", href: "https://www.sa.playblackdesert.com/pt-br/News/Detail?groupContentNo=5779" },
   { label: "Atualização — Ilha de Iliya Agitada consolidada", href: "https://www.sa.playblackdesert.com/pt-br/News/Detail?countryType=pt-br&groupContentNo=6198" },
-  { label: "Pearl Abyss — 4 Carracas (27/08/2026)", href: "https://www.sa.playblackdesert.com/pt-br/News/Detail?countryType=pt-br&groupContentNo=8511" },
+  { label: "Pearl Abyss — 4 Carracas, Falasi e Lyngbakr (27/08/2026)", href: "https://www.sa.playblackdesert.com/pt-br/News/Detail?countryType=pt-br&groupContentNo=8511" },
   { label: "Guia oficial — Melhorias em Navios", href: "https://www.sa.playblackdesert.com/pt-br/Wiki?wikiNo=291" },
   { label: "Atualização — Loja Corvo 21/05/2026", href: "https://www.sa.playblackdesert.com/pt-BR/News/Detail?groupContentNo=7988" },
   { label: "BDO Codex — banco de itens, receitas e missões", href: "https://bdocodex.com/pt/" },

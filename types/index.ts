@@ -1,7 +1,7 @@
 export type CarrackTarget = "gradual" | "equilibrio" | "ascensao" | "bravura";
 export type ShipBranch = "caravel" | "galleass";
 export type GearKey = "figurehead" | "plating" | "cannon" | "sail";
-export type MaterialCategory = "carrack" | "blue-gear" | "carrack-gear" | "enhancement";
+export type MaterialCategory = "carrack" | "blue-gear" | "carrack-gear" | "yellow-gear" | "enhancement";
 
 /**
  * Frequência de uma missão recorrente. Para acrescentar missões de evento, some o novo
@@ -51,7 +51,16 @@ export type MaterialId =
   | "shiroFigureheadBlueprint"
   | "shiroPlatingBlueprint"
   | "shiroCannonBlueprint"
-  | "shiroSailBlueprint";
+  | "shiroSailBlueprint"
+  | "solidCoralSupport"
+  | "strongWavePlywood"
+  | "crimsonCoralAdhesive"
+  | "falasiFigureheadBlueprint"
+  | "falasiPlatingBlueprint"
+  | "falasiCannonBlueprint"
+  | "falasiSailBlueprint"
+  | "twilightCoralEssence"
+  | "twilightWaveStone";
 
 /** Recompensa de uma missão do catálogo. O vínculo com `questId` é obrigatório. */
 export interface QuestAcquisition {
@@ -106,6 +115,35 @@ export interface CarrackGearDefinition {
   materials: Partial<Record<MaterialId, number>>;
 }
 
+/** Peça amarela de Falasi. A base é a peça de Shiro da mesma Carraca em +10. */
+export interface YellowGearDefinition {
+  name: string;
+  icon: string;
+  base: string;
+  baseIcon: string;
+  workshop: string;
+  blueprint: MaterialId;
+  blueprintSource: string;
+  permit: string;
+  permitIcon: string;
+  materials: Partial<Record<MaterialId, number>>;
+}
+
+/** Atributos do navio com as quatro peças de um conjunto em +10, como o anúncio os publica. */
+export interface ShipSetStats {
+  speed: number;
+  acceleration: number;
+  turn: number;
+  brake: number;
+  damage: number;
+  weight: number;
+  damageReduction: number;
+  defense: number;
+  durability: number;
+  provisions: number;
+  equipmentDurability: number;
+}
+
 export interface CarrackDefinition {
   id: CarrackTarget;
   name: string;
@@ -154,6 +192,18 @@ export type FarmActivity = "barter" | "hunt" | "workers";
  */
 export type FarmRoutine = Record<FarmActivity, boolean>;
 
+/**
+ * Equipamento amarelo de Falasi no preset. Ele vem depois do conjunto de Shiro em +10 e custa
+ * 5 bilhões de prata por permissão, então nem todo jogador o persegue: fora do cálculo, os
+ * materiais dele continuam no inventário, mas sem meta, sem falta e sem prazo.
+ */
+export interface YellowGearPlan {
+  /** Os materiais de Falasi entram na meta, no que falta e no prazo. */
+  included: boolean;
+  /** Peças de Falasi já fabricadas: a receita delas sai da meta. */
+  crafted: Record<GearKey, boolean>;
+}
+
 export interface PlannerProfile {
   target: CarrackTarget;
   crowCoins: number;
@@ -161,9 +211,17 @@ export interface PlannerProfile {
   crowSpend: CrowSpendPlan;
   /** Atividades fora das missões que entram no ritmo estimado. */
   farmRoutine: FarmRoutine;
+  /**
+   * Média de unidades por dia que o jogador diz conseguir de cada material fora das missões
+   * (drop, processamento, permuta, escavação). Substitui a estimativa por dificuldade só nos
+   * materiais informados; material ausente segue a estimativa do planner.
+   */
+  farmRates: Partial<Record<MaterialId, number>>;
   materials: Record<MaterialId, number>;
   gear: BranchGearState;
   carrackGear: Record<GearKey, GearState>;
+  /** Equipamento amarelo de Falasi: se entra na conta e quais peças já estão prontas. */
+  yellowGear: YellowGearPlan;
   /** Missões que o jogador mantém na rotina e que, por isso, entram no ritmo estimado. */
   activeQuests: Record<string, boolean>;
   /**

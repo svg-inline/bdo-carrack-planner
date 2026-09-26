@@ -6,6 +6,13 @@ Todas as mudanças relevantes para usuários são registradas em `Unreleased`, n
 
 ### Added
 
+- Média de drop por dia de cada material, informada pelo jogador na coluna "Drop/dia" do inventário ou no cartão do material em "Como obter". A média substitui a estimativa do planner para aquele material — mesmo com a atividade fora da rotina — e se soma às missões no ritmo e no prazo. Aceita vírgula e frações (ex.: 0,5); zero diz que o item não sai fora das missões; campo vazio volta à estimativa, que aparece como dica. A média pertence ao preset.
+
+- Aba "Equip. amarelo" com o equipamento de Falasi da Carraca do preset: as quatro peças com receita, base de Shiro +10 e permissão; o passo a passo para conseguir cada item (Colônia de Lyngbakr, processamento dos espólios, troca do Chifre de Lyngbakr, plantas com Philaberto Falasi e permissão de 5 bilhões de prata); o que falta juntar; a comparação de atributos entre Shiro +10 e Falasi +10; a tabela de aprimoramento com Pedra Negra da Onda Crepuscular; e o preço no Mercado Mundial. Ícones oficiais do anúncio de 27/08/2026.
+- Opção "Contar o equipamento amarelo no cálculo", por preset, na aba nova e no inventário. Desligada — o padrão, inclusive em presets antigos —, os materiais de Falasi ficam guardados sem meta, falta ou prazo. Ligada, eles ganham meta, falta e prazo no inventário e em "Como obter", e a Visão geral mostra as quatro peças com a marcação "Pronta · fora do cálculo".
+- Filtro "Equip. amarelo" no inventário, com os materiais de Falasi, as quatro plantas, e a Essência de Coral Crepuscular e a Pedra Negra da Onda Crepuscular em Aprimoramento.
+- Guia sem JavaScript com a seção do equipamento amarelo: a rota de obtenção, as peças de cada Carraca e a tabela de aprimoramento.
+
 - Marcação "Pronta · fora do cálculo" em cada peça do equipamento azul do Navio Mercante ou do Contratorpedeiro e do conjunto de Shiro, na Visão geral. Os materiais da peça marcada saem da meta, do que falta, dos gargalos e do prazo — o estoque que caiu depois da fabricação deixa de voltar como falta. A marcação pertence ao preset e é salva no navegador e na conta.
 
 - A compra sugerida de Moeda Corvo passa a contar a moeda que as missões marcadas rendem por dia. Todos os itens da fila aparecem, cada um com o prazo em que fica pago ("agora", "≈ 5 dias", "≈ 3 semanas"), e o saldo após o plano pode ficar negativo, mostrando quanto falta juntar. Materiais que só saem da loja deixam de aparecer "sem estimativa" e ganham prazo; dos que também vêm de missão, o plano compra só a diferença que as missões não cobrem a tempo.
@@ -34,6 +41,8 @@ Todas as mudanças relevantes para usuários são registradas em `Unreleased`, n
 - Regra de trilha única do jogo: aceitar a caçada ao Rei do Mar Jovem bloqueia as três caçadas da Guilda Lua Minguante do Ravikel, e vice-versa. O planner deixa de somar alternativas que não podem ser aceitas no mesmo dia. O Ravikel é o único NPC do catálogo com essa exclusividade.
 
 ### Changed
+
+- A Pedra Negra da Onda ganhou a troca dos espólios de Lyngbakr no Comerciante de Moeda Corvo como fonte.
 
 - O catálogo "Como obter" avisa quando a recompensa de uma missão está escolhida em outro item, para explicar por que aquela fonte parou de render.
 - Fontes de obtenção completadas com as opções que faltavam nas recompensas de escolha: a Madeira Compensada Revestida de Rubus Aprimorada da Pequena Retribuição I e a Pedra Negra da Onda das três caçadas diárias da Guilda Lua Minguante.

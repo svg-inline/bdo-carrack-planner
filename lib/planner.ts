@@ -1,4 +1,4 @@
-import { CADENCE_BY_ID, CARRACK_GEAR_SETS, CARRACKS, GEAR_SETS, MATERIALS, MATERIAL_BY_ID } from "@/lib/data";
+import { CADENCE_BY_ID, CARRACK_GEAR_SETS, CARRACKS, GEAR_SETS, MATERIALS, MATERIAL_BY_ID, YELLOW_GEAR_SETS } from "@/lib/data";
 import type { CarrackTarget, GearKey, GearState, MaterialCategory, MaterialDefinition, MaterialId, PlannerProfile, QuestCadence } from "@/types";
 
 // Materiais consumidos para chegar até a Carraca. O conjunto de Shiro é equipamento posterior
@@ -19,6 +19,17 @@ export function getRequired(id: MaterialId, target: CarrackTarget) {
   return MATERIAL_BY_ID[id].required[target];
 }
 
+/**
+ * Meta do catálogo que este preset acompanha. O equipamento amarelo só conta quando o jogador o
+ * coloca na conta: fora dela, os materiais de Falasi ficam no inventário como estoque, sem meta,
+ * sem falta e sem prazo — do mesmo jeito que a Pedra Negra da Onda.
+ */
+export function getGoal(profile: PlannerProfile, id: MaterialId) {
+  const material = MATERIAL_BY_ID[id];
+  if (material.category === "yellow-gear" && !profile.yellowGear.included) return 0;
+  return material.required[profile.target];
+}
+
 /** Peças do plano ativo, com a receita de cada uma e se o jogador já as fabricou. */
 function planPieces(profile: PlannerProfile) {
   const branch = CARRACKS[profile.target].branch;
@@ -26,6 +37,7 @@ function planPieces(profile: PlannerProfile) {
   return [
     ...keys.map((key) => ({ crafted: profile.gear[branch][key].crafted, materials: GEAR_SETS[branch][key].materials })),
     ...keys.map((key) => ({ crafted: profile.carrackGear[key].crafted, materials: CARRACK_GEAR_SETS[profile.target][key].materials })),
+    ...keys.map((key) => ({ crafted: profile.yellowGear.crafted[key], materials: YELLOW_GEAR_SETS[profile.target][key].materials })),
   ];
 }
 
@@ -38,7 +50,7 @@ export function getPlanRequired(profile: PlannerProfile, id: MaterialId) {
   const used = planPieces(profile)
     .filter((piece) => piece.crafted)
     .reduce((sum, piece) => sum + (piece.materials[id] || 0), 0);
-  return Math.max(0, getRequired(id, profile.target) - used);
+  return Math.max(0, getGoal(profile, id) - used);
 }
 
 export function getMissing(profile: PlannerProfile, id: MaterialId) {

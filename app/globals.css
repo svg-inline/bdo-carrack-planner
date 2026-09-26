@@ -153,7 +153,7 @@ footer>div{display:flex;gap:14px}
 .inventory-toolbar{gap:14px}.inventory-search{min-width:250px;background:#0b0f12;border:1px solid #374047;color:#e7dfd1;padding:9px 12px;font-size:10px}.inventory-search:focus{border-color:#846f3d}
 .hide-completed-toggle{display:flex;align-items:center;gap:7px;white-space:nowrap;color:#8d959b;font-size:9px;cursor:pointer;user-select:none}.hide-completed-toggle input{accent-color:#b8974e;width:15px;height:15px;cursor:pointer}.hide-completed-toggle:hover{color:#dec678}
 .inventory-table{border:1px solid #343c42;background:#0f1418}
-.inventory-head,.inventory-material-row{display:grid;grid-template-columns:minmax(290px,1.5fr) 112px 94px 96px 78px 96px;align-items:center;gap:12px}
+.inventory-head,.inventory-material-row{display:grid;grid-template-columns:minmax(290px,1.5fr) 112px 94px 96px 78px 84px 96px;align-items:center;gap:12px}
 .inventory-head{padding:11px 14px;border-bottom:1px solid #3a4147;color:#78828a;font-size:9px;text-transform:uppercase;letter-spacing:.11em}
 .inventory-sort{display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;padding:0;color:inherit;font:inherit;text-transform:inherit;letter-spacing:inherit;cursor:pointer}
 .inventory-sort:hover{color:#d8c186}.inventory-sort.active{color:#e1c56f}
@@ -205,7 +205,7 @@ footer>div{display:flex;gap:14px}
   .carrack-stats-strip{grid-template-columns:repeat(4,1fr)}
   .carrack-stats-strip>div:nth-child(4){border-right:0}
   .acquisition-card{grid-template-columns:1fr 1fr}.acquisition-sources{grid-column:1/3}
-  .inventory-head,.inventory-material-row{grid-template-columns:minmax(210px,1.3fr) 92px 88px 84px 70px 86px}
+  .inventory-head,.inventory-material-row{grid-template-columns:minmax(210px,1.3fr) 92px 88px 84px 70px 76px 86px}
 }
 @media (max-width:780px){
   .carrack-selector{grid-template-columns:1fr}
@@ -292,3 +292,71 @@ footer,footer button{font-size:10px}
 .import-actions{display:flex;flex-wrap:wrap;gap:10px}
 @media (max-width: 780px){.account-bar{flex-direction:column;align-items:flex-start}}
 .gear-mini label.gear-ready-toggle{display:flex;align-items:center;gap:7px;margin:9px 0 0 42px;color:#8d959b;font-size:11px;cursor:pointer;user-select:none}.gear-ready-toggle input{accent-color:#b8974e;width:15px;height:15px;margin:0;cursor:pointer}.gear-ready-toggle:hover{color:#dec678}.gear-mini.done .gear-ready-toggle{color:#75ad8c}
+
+/* Equipamento amarelo de Falasi */
+.badge-yellow{color:#f0d25a;border-color:#7a6a26;background:#221f0e}
+.yellow-excluded-note{margin:0 0 12px;padding:10px 12px;border-left:2px solid #8c7440;background:#171710;color:#c6b889;font-size:12px;line-height:1.5}
+.yellow-include-toggle{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;margin:16px 0 4px;padding:12px 14px;border:1px solid #5f5134;background:#15130c;cursor:pointer}
+.yellow-include-toggle input{accent-color:#e0bd4a;width:18px;height:18px;margin:2px 0 0;cursor:pointer}
+.yellow-include-toggle strong{display:block;color:#f0d25a;font-size:13px}
+.yellow-include-toggle small{display:block;margin-top:4px;color:#8f96a0;font-size:12px;line-height:1.5}
+.yellow-hero{display:grid;grid-template-columns:150px minmax(0,1fr);gap:26px;align-items:center;margin-bottom:16px;background:radial-gradient(circle at 10% 20%,rgba(224,189,74,.12),transparent 45%),var(--panel)}
+.yellow-hero-icons{display:grid;grid-template-columns:repeat(2,56px);gap:10px;justify-content:center}
+.yellow-hero-icons .item-icon{border:1px solid #7a6a26;background:#0d0f10;box-shadow:0 0 18px rgba(224,189,74,.18)}
+.yellow-hero-copy h2{margin:10px 0 6px;font:500 32px Georgia,serif;color:#f0d25a}
+.yellow-hero-copy>p{margin:0;color:#aab0b6;font-size:14px;line-height:1.55}
+.yellow-hero-stats{display:flex;flex-wrap:wrap;gap:24px;margin-top:14px}
+.yellow-hero-stats span{display:block;color:#697279;font-size:10px;text-transform:uppercase;letter-spacing:.1em}
+.yellow-hero-stats strong{display:block;margin-top:4px;font:500 20px Georgia,serif;color:#e1c56f}
+.yellow-piece-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.yellow-piece{border:1px solid #30383e;background:#0d1216;padding:14px}
+.yellow-piece.done{border-color:#355b46;background:rgba(58,91,70,.08)}
+.yellow-piece-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;font-size:14px;font-weight:700}
+.yellow-piece-head em{font-style:normal;font-size:10px;letter-spacing:.1em;color:#a38c55;white-space:nowrap}
+.yellow-piece.done .yellow-piece-head em{color:#79ae8e}
+.yellow-recipe,.yellow-totals{list-style:none;margin:12px 0 0;padding:0}
+.yellow-recipe li,.yellow-totals li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-top:1px solid #21282d;font-size:12px}
+.yellow-recipe li strong,.yellow-totals li strong{font:500 13px Georgia,serif;color:#cdc3b2;white-space:nowrap}
+.yellow-piece-eta{margin:10px 0 0;color:#a38c55;font-size:12px}
+.yellow-piece label.gear-ready-toggle{display:flex;align-items:center;gap:7px;margin:9px 0 0;color:#8d959b;font-size:12px;cursor:pointer;user-select:none}
+.yellow-piece.done label.gear-ready-toggle{color:#75ad8c}
+.yellow-note{margin:12px 0 0;line-height:1.55}
+.yellow-note .item-label,.yellow-steps p .item-label,.yellow-enhance-recipe .item-label{display:inline-flex;vertical-align:middle;gap:5px;color:#e1c56f}
+.yellow-steps{margin:0;padding-left:22px;color:#aab0b6}
+.yellow-steps>li{padding:10px 0 12px;border-bottom:1px solid #21282d}
+.yellow-steps>li:last-child{border-bottom:0}
+.yellow-steps>li::marker{color:#e1c56f;font-weight:700}
+.yellow-steps strong{color:#e7dfd1;font-size:14px}
+.yellow-steps p{margin:6px 0 0;font-size:13px;line-height:1.6}
+.yellow-drops{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:10px;font-size:12px}
+.yellow-process{display:grid;gap:8px;margin-top:10px}
+.yellow-process>div{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;padding:8px 10px;border:1px solid #262d32;background:#0d1216;font-size:12px}
+.yellow-process i{font-style:normal;color:#96813f}
+.yellow-process small{color:#8f96a0;font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+.yellow-enhance-recipe{margin:0 0 12px;color:#aab0b6;font-size:13px;line-height:1.7}
+.yellow-table-scroll{overflow-x:auto}
+.yellow-table{width:100%;border-collapse:collapse;font-size:12px}
+.yellow-table th,.yellow-table td{padding:8px 10px;border-bottom:1px solid #21282d;text-align:right;white-space:nowrap}
+.yellow-table th:first-child{text-align:left}
+.yellow-table thead th{color:#697279;font-size:10px;text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+.yellow-table tbody th{color:#cdc3b2;font-weight:600}
+.yellow-table td{color:#aab0b6;font-variant-numeric:tabular-nums}
+@media (max-width:780px){
+  .yellow-hero{grid-template-columns:1fr;gap:16px}
+  .yellow-hero-icons{grid-template-columns:repeat(4,56px);justify-content:start}
+  .yellow-hero-copy h2{font-size:27px}
+  .yellow-piece-grid{grid-template-columns:1fr}
+  .yellow-recipe li,.yellow-totals li{align-items:flex-start}
+}
+
+/* Média de drop por dia informada pelo jogador */
+.farm-rate-input::placeholder{color:#5f676e}
+.farm-rate-input.custom{border-color:#846f3d;color:#f0d25a}
+.inventory-rate{display:block}.inventory-rate>span{display:none}
+.acquisition-numbers{flex-wrap:wrap;row-gap:8px}.acquisition-rate{order:10;flex-basis:100%;display:flex;align-items:center;gap:8px;font-size:10px;color:#6f7880;text-transform:uppercase}
+.acquisition-rate .farm-rate-input{width:74px;padding:5px 7px}
+@media (max-width:780px){
+  .inventory-rate{grid-column:1/3;display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .inventory-rate>span{display:inline;color:#78828a;font-size:11px;text-transform:uppercase;letter-spacing:.1em}
+  .inventory-rate .farm-rate-input{width:90px}
+}

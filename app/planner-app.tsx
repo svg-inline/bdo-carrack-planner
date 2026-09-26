@@ -7,13 +7,22 @@ import {
   CARRACK_GEAR_SETS,
   CARRACK_ORDER,
   CARRACK_PART_COUNT,
+  FALASI_PERMIT_SELLER,
+  FALASI_PERMIT_SILVER,
   GEAR_SETS,
+  LYNGBAKR_HORN_EXCHANGE,
   MATERIALS,
   MATERIAL_BY_ID,
   QUESTS,
   QUEST_BY_ID,
   QUEST_CADENCES,
+  SET_STATS,
   SOURCES,
+  YELLOW_ENHANCEMENT,
+  YELLOW_GEAR_SETS,
+  YELLOW_MARKET_PRICES,
+  YELLOW_PROCESSING,
+  YELLOW_ROUTE_ITEMS,
 } from "@/lib/data";
 import type { CoinPlan, EstimateContext, MaterialEstimate } from "@/lib/estimate";
 import {
@@ -21,6 +30,7 @@ import {
   carrackGearSetEstimate,
   categoryEstimate,
   estimateContext,
+  estimatedFarmPerDay,
   formatDuration,
   formatRate,
   gearEstimate,
@@ -32,14 +42,16 @@ import {
   recommendedChoiceOption,
   shipEstimate,
   stalledRoute,
+  yellowGearEstimate,
+  yellowGearSetEstimate,
 } from "@/lib/estimate";
 import {
   bottlenecks,
   carrackGearCompletion,
   categoryCompletion,
+  getGoal,
   getMissing,
   getPlanRequired,
-  getRequired,
   materialCompletion,
   nextActions,
   overallCompletion,
@@ -78,6 +90,7 @@ import type {
   QuestDefinition,
   QuestGroupDefinition,
   ShipBranch,
+  ShipSetStats,
 } from "@/types";
 import { cva, type VariantProps } from "class-variance-authority";
 import Image from "next/image";
@@ -88,6 +101,7 @@ const tabs = [
   ["overview", "Visão geral"],
   ["inventory", "Inventário"],
   ["materials", "Como obter"],
+  ["yellow", "Equip. amarelo"],
   ["quests", "Missões"],
   ["strategy", "Estratégia"],
 ] as const;
@@ -109,6 +123,7 @@ const categoryLabel: Record<MaterialCategory, string> = {
   carrack: "Carraca",
   "blue-gear": "Equip. azul",
   "carrack-gear": "Equip. Carraca",
+  "yellow-gear": "Equip. amarelo",
   enhancement: "Aprimoramento",
 };
 const sourceLabel: Record<AcquisitionType, string> = {
@@ -192,6 +207,13 @@ const itemAliasPairs: Array<[string, { label: string; icon: string }]> = [
       icon: MATERIAL_BY_ID.coxCombat.icon,
     },
   ],
+  ...Object.values(YELLOW_ROUTE_ITEMS).map(
+    (item) =>
+      [item.name, { label: item.name, icon: item.icon }] as [
+        string,
+        { label: string; icon: string },
+      ],
+  ),
   // O plural vem primeiro por clareza; o padrão ordena por tamanho, então "Moedas" vence sozinho.
   ["Moedas Corvo", { label: "Moedas Corvo", icon: CROW_COIN_ICON }],
   ["Moeda Corvo", { label: "Moeda Corvo", icon: CROW_COIN_ICON }],
@@ -243,6 +265,7 @@ const badgeVariants = cva("badge", {
       blue: "badge-blue",
       done: "badge-done",
       shiro: "badge-shiro",
+      yellow: "badge-yellow",
       daily: "badge-daily",
       weekly: "badge-weekly",
       barter: "badge-barter",
@@ -289,10 +312,12 @@ function materialEtaText(estimate: MaterialEstimate) {
         ? "sem fonte"
         : etaText(estimate.days);
 }
-function materialEtaTitle(estimate: MaterialEstimate) {
+function materialEtaTitle(estimate: MaterialEstimate, customFarm = false) {
   if (estimate.remaining > 0 && estimate.perDay <= 0)
-    return "Nenhuma fonte deste material está na sua rotina: marque a missão ou a atividade na aba Estratégia, ou compre com Moeda Corvo";
-  const rate = `Ritmo estimado: ${formatRate(estimate.perDay)}`;
+    return "Nenhuma fonte deste material está na sua rotina: marque a missão ou a atividade na aba Estratégia, informe sua média de drop por dia, ou compre com Moeda Corvo";
+  const rate = customFarm
+    ? `Ritmo: ${formatRate(estimate.perDay)}, com a sua média de drop por dia`
+    : `Ritmo estimado: ${formatRate(estimate.perDay)}`;
   return estimate.covered > 0
     ? `${rate} · ${number(estimate.covered)} un. cobertas pelo saldo de Moeda Corvo`
     : rate;
@@ -314,6 +339,44 @@ function materialEtaLine(
       ? ` · ${number(estimate.covered)} un. com Moeda Corvo`
       : "";
   return `${etaText(estimate.days)} no ritmo de ${formatRate(materialRate(profile, id, context.quests).perDay)}${coins}`;
+}
+
+const rateNumber = new Intl.NumberFormat("pt-BR", {
+  maximumFractionDigits: 2,
+  useGrouping: false,
+});
+
+/**
+ * Média de drop por dia que o jogador informa para um material. É texto com teclado decimal, e
+ * não `type=number`, para aceitar vírgula e não apagar um "0," no meio da digitação. Vazio volta
+ * para a estimativa do planner, que aparece como dica no próprio campo.
+ */
+function FarmRateInput({ id }: { id: MaterialId }) {
+  const profile = useActivePreset().profile;
+  const setFarmRate = usePlannerStore((state) => state.setFarmRate);
+  const [draft, setDraft] = useState<string | null>(null);
+  const value = profile.farmRates[id];
+  const shown = draft ?? (value === undefined ? "" : rateNumber.format(value));
+  return (
+    <input
+      aria-label={`Drop por dia de ${MATERIAL_BY_ID[id].name}`}
+      title="Quantas unidades você consegue por dia fora das missões, em média. Vazio usa a estimativa do planner."
+      className={`qty-input farm-rate-input ${value !== undefined ? "custom" : ""}`.trim()}
+      type="text"
+      inputMode="decimal"
+      placeholder={`≈ ${rateNumber.format(estimatedFarmPerDay(profile, id))}`}
+      value={shown}
+      onChange={(e) => {
+        const text = e.target.value;
+        const normalized = text.trim().replace(",", ".");
+        if (normalized && !/^\d*\.?\d*$/.test(normalized)) return;
+        setDraft(text);
+        if (!normalized) setFarmRate(id, null);
+        else if (normalized !== ".") setFarmRate(id, Number(normalized));
+      }}
+      onBlur={() => setDraft(null)}
+    />
+  );
 }
 
 function StorageStatus() {
@@ -459,6 +522,48 @@ function CarrackGearLabel({
     <span className={`item-label ${className}`.trim()}>
       <ItemIcon src={icon} alt={label} size={size} />
       <span className="item-label-text">{label}</span>
+    </span>
+  );
+}
+
+function YellowGearLabel({
+  target,
+  gearKey,
+  size = 30,
+  className = "",
+}: {
+  target: CarrackTarget;
+  gearKey: GearKey;
+  size?: number;
+  className?: string;
+}) {
+  const gear = YELLOW_GEAR_SETS[target][gearKey];
+  return (
+    <span className={`item-label ${className}`.trim()}>
+      <ItemIcon src={gear.icon} alt={gear.name} size={size} />
+      <span className="item-label-text">{gear.name}</span>
+    </span>
+  );
+}
+
+/** Item da rota amarela que não é material do plano, com o ícone do jogo. */
+function RouteItemLabel({
+  item,
+  suffix = "",
+  size = 26,
+}: {
+  item: keyof typeof YELLOW_ROUTE_ITEMS;
+  suffix?: string;
+  size?: number;
+}) {
+  const data = YELLOW_ROUTE_ITEMS[item];
+  return (
+    <span className="item-label">
+      <ItemIcon src={data.icon} alt={data.name} size={size} />
+      <span className="item-label-text">
+        {data.name}
+        {suffix}
+      </span>
     </span>
   );
 }
@@ -689,11 +794,11 @@ function Header({ title, subtitle }: { title: string; subtitle: string }) {
  */
 function GearReadyToggle({
   name,
-  state,
+  checked,
   onChange,
 }: {
   name: string;
-  state: GearState;
+  checked: boolean;
   onChange: (crafted: boolean) => void;
 }) {
   return (
@@ -701,7 +806,7 @@ function GearReadyToggle({
       <input
         type="checkbox"
         aria-label={`${name} pronta, fora do cálculo`}
-        checked={state.crafted}
+        checked={checked}
         onChange={(e) => onChange(e.target.checked)}
       />
       Pronta · fora do cálculo
@@ -712,6 +817,40 @@ function GearReadyToggle({
 function GearStatus({ state }: { state: GearState }) {
   if (state.crafted && state.blueEnhancement >= 10) return <em>✓ +10</em>;
   return <em>{state.crafted ? "✓ PRONTA" : "PENDENTE"}</em>;
+}
+
+/**
+ * Coloca o equipamento amarelo na conta do preset. É a mesma escolha no inventário e na aba do
+ * equipamento: fora da conta, os materiais de Falasi ficam sem meta, sem falta e sem prazo.
+ */
+function YellowGearInclusionToggle({ compact = false }: { compact?: boolean }) {
+  const included = useActivePreset().profile.yellowGear.included;
+  const setYellowGear = usePlannerStore((state) => state.setYellowGear);
+  return (
+    <label
+      className={compact ? "hide-completed-toggle" : "yellow-include-toggle"}
+      title="Os materiais de Falasi passam a ter meta, falta e prazo neste preset"
+    >
+      <input
+        type="checkbox"
+        aria-label="Contar o equipamento amarelo no cálculo deste preset"
+        checked={included}
+        onChange={(e) => setYellowGear({ included: e.target.checked })}
+      />
+      {compact ? (
+        <span>Contar equip. amarelo</span>
+      ) : (
+        <span>
+          <strong>Contar o equipamento amarelo no cálculo deste preset</strong>
+          <small>
+            Ligado, os materiais de Falasi ganham meta, falta e prazo no
+            inventário, em “Como obter” e na Visão geral. Desligado, o estoque
+            continua guardado, sem entrar em conta nenhuma.
+          </small>
+        </span>
+      )}
+    </label>
+  );
 }
 
 function Overview() {
@@ -892,7 +1031,7 @@ function Overview() {
                   </span>
                   <GearReadyToggle
                     name={gearSet[key].name}
-                    state={state}
+                    checked={state.crafted}
                     onChange={(crafted) =>
                       setGear(carrack.branch, key, { crafted })
                     }
@@ -946,7 +1085,7 @@ function Overview() {
                   </span>
                   <GearReadyToggle
                     name={carrackGearSet[key].name}
-                    state={state}
+                    checked={state.crafted}
                     onChange={(crafted) => setCarrackGear(key, { crafted })}
                   />
                 </div>
@@ -956,7 +1095,75 @@ function Overview() {
           })}
         </div>
       </section>
+
+      {profile.yellowGear.included && <YellowGearOverview />}
     </>
+  );
+}
+
+/** Resumo do conjunto de Falasi na Visão geral, só quando o jogador o colocou na conta. */
+function YellowGearOverview() {
+  const profile = useActivePreset().profile;
+  const setYellowGear = usePlannerStore((state) => state.setYellowGear);
+  const context = estimateContext(profile);
+  const yellowSet = YELLOW_GEAR_SETS[profile.target];
+  const keys = Object.keys(yellowSet) as GearKey[];
+  const ready = keys.filter((key) => profile.yellowGear.crafted[key]).length;
+  const setEta = yellowGearSetEstimate(profile, context);
+  return (
+    <section className="panel gear-overview">
+      <div className="panel-title">
+        <div>
+          <span className="eyebrow">DEPOIS DO SHIRO +10</span>
+          <h3>Equipamento amarelo de Falasi</h3>
+        </div>
+        <div className="panel-title-badges">
+          <Badge kind="yellow">
+            {ready}/{keys.length} PRONTAS
+          </Badge>
+          <Badge kind={etaKind(setEta.days)}>
+            CONJUNTO {etaText(setEta.days)}
+          </Badge>
+        </div>
+      </div>
+      <div className="gear-mini-grid">
+        {keys.map((key) => {
+          const crafted = profile.yellowGear.crafted[key];
+          const eta = yellowGearEstimate(profile, key, context);
+          return (
+            <div className={`gear-mini ${crafted ? "done" : ""}`} key={key}>
+              <div>
+                <div className="item-heading">
+                  <YellowGearLabel
+                    target={profile.target}
+                    gearKey={key}
+                    size={34}
+                  />
+                </div>
+                <span>
+                  {profile.carrackGear[key].crafted
+                    ? "Base de Shiro pronta · leve a +10"
+                    : "Base de Shiro ainda não fabricada"}
+                </span>
+                <span className="gear-mini-eta">
+                  {crafted
+                    ? "Materiais já usados"
+                    : `Materiais desta peça ${etaText(eta.days)}`}
+                </span>
+                <GearReadyToggle
+                  name={yellowSet[key].name}
+                  checked={crafted}
+                  onChange={(value) =>
+                    setYellowGear({ crafted: { [key]: value } })
+                  }
+                />
+              </div>
+              <em>{crafted ? "✓ PRONTA" : "PENDENTE"}</em>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -988,7 +1195,7 @@ function sortValue(
   context: EstimateContext,
 ) {
   if (key === "stock") return profile.materials[id] || 0;
-  if (getRequired(id, profile.target) <= 0) return null;
+  if (getGoal(profile, id) <= 0) return null;
   return key === "missing"
     ? getMissing(profile, id)
     : materialEstimate(profile, id, context).days;
@@ -1095,10 +1302,10 @@ function Inventory() {
   const [hideCompleted, setHideCompleted] = useState(readHideCompleted);
   const context = estimateContext(profile);
   const relevantCount = MATERIALS.filter(
-    (m) => getRequired(m.id, profile.target) > 0,
+    (m) => getGoal(profile, m.id) > 0,
   ).length;
   const isMaterialDone = (m: MaterialDefinition) =>
-    getRequired(m.id, profile.target) > 0 && getMissing(profile, m.id) === 0;
+    getGoal(profile, m.id) > 0 && getMissing(profile, m.id) === 0;
   const completed = MATERIALS.filter(isMaterialDone).length;
   const matches = MATERIALS.filter(
     (m) =>
@@ -1115,9 +1322,11 @@ function Inventory() {
   const hasGoal =
     filter === "all" ||
     MATERIALS.some(
-      (m) => m.category === filter && getRequired(m.id, profile.target) > 0,
+      (m) => m.category === filter && getGoal(profile, m.id) > 0,
     );
   const rows = sortedInventory(matches, sort, profile, context);
+  const yellowExcluded =
+    filter === "yellow-gear" && !profile.yellowGear.included;
 
   return (
     <>
@@ -1180,12 +1389,19 @@ function Inventory() {
             Equip. Carraca
           </button>
           <button
+            className={filter === "yellow-gear" ? "active" : ""}
+            onClick={() => setFilter("yellow-gear")}
+          >
+            Equip. amarelo
+          </button>
+          <button
             className={filter === "enhancement" ? "active" : ""}
             onClick={() => setFilter("enhancement")}
           >
             Aprimoramento
           </button>
         </div>
+        <YellowGearInclusionToggle compact />
         <label className="hide-completed-toggle">
           <input
             type="checkbox"
@@ -1206,6 +1422,13 @@ function Inventory() {
           placeholder="Buscar material..."
         />
       </div>
+      {yellowExcluded && (
+        <p className="yellow-excluded-note" role="status">
+          O equipamento amarelo está fora do cálculo deste preset: o estoque
+          fica guardado, mas sem meta, falta ou prazo. Marque “Contar equip.
+          amarelo” para acompanhar a meta do conjunto de Falasi.
+        </p>
+      )}
       <section className="inventory-table">
         <div className="inventory-head">
           <SortHeader label="Item" column="name" sort={sort} onSort={setSort} />
@@ -1223,6 +1446,9 @@ function Inventory() {
             sort={sort}
             onSort={setSort}
           />
+          <span title="Sua média por dia fora das missões. Vazio usa a estimativa do planner.">
+            Drop/dia
+          </span>
           <SortHeader
             label="Tempo"
             column="days"
@@ -1231,8 +1457,8 @@ function Inventory() {
           />
         </div>
         {rows.map((m) => {
-          // `inPlan` é a meta do catálogo; `required`, o que sobra depois das peças prontas.
-          const inPlan = getRequired(m.id, profile.target);
+          // `inPlan` é a meta que o preset acompanha; `required`, o que sobra depois das peças prontas.
+          const inPlan = getGoal(profile, m.id);
           const required = getPlanRequired(profile, m.id);
           const missing = getMissing(profile, m.id);
           const pct = inPlan ? materialCompletion(profile, m.id) * 100 : 0;
@@ -1255,7 +1481,9 @@ function Inventory() {
                         ? "blue"
                         : m.category === "carrack-gear"
                           ? "shiro"
-                          : "default"
+                          : m.category === "yellow-gear"
+                            ? "yellow"
+                            : "default"
                   }
                 >
                   {categoryLabel[m.category]}
@@ -1285,9 +1513,20 @@ function Inventory() {
               >
                 {inPlan ? number(missing) : "—"}
               </strong>
+              <label className="inventory-rate">
+                <span>Drop/dia</span>
+                <FarmRateInput id={m.id} />
+              </label>
               <span
                 className="inventory-eta"
-                title={inPlan ? materialEtaTitle(estimate) : undefined}
+                title={
+                  inPlan
+                    ? materialEtaTitle(
+                        estimate,
+                        profile.farmRates[m.id] !== undefined,
+                      )
+                    : undefined
+                }
               >
                 {inPlan ? materialEtaText(estimate) : "—"}
               </span>
@@ -1314,6 +1553,7 @@ function SourceCard({
   materialId,
   context,
   farmPerDay,
+  customFarm,
   covered,
   routine,
 }: {
@@ -1321,12 +1561,14 @@ function SourceCard({
   materialId: MaterialId;
   context: EstimateContext;
   farmPerDay: number;
+  /** O jogador informou a própria média de drop: ela vale mesmo com a atividade fora da rotina. */
+  customFarm: boolean;
   covered: number;
   routine: PlannerProfile["farmRoutine"];
 }) {
   const quest = isQuestAcquisition(source) ? QUEST_BY_ID[source.questId] : null;
   const farmOff =
-    !quest && source.type !== "crow" && source.type in FARM_ACTIVITY_LABEL
+    !quest && !customFarm && source.type !== "crow" && source.type in FARM_ACTIVITY_LABEL
       ? !isRoutineFarmSource(source, routine)
       : false;
   const inactive = (quest !== null && !context.quests.active.has(quest.id)) || farmOff;
@@ -1390,8 +1632,9 @@ function SourceCard({
       )}
       {!quest && !farmOff && source.type !== "crow" && farmPerDay > 0 && (
         <small className="source-rate">
-          Entra no ritmo como ≈ {formatRate(farmPerDay)}, contados uma vez entre
-          as rotas livres deste material
+          {customFarm
+            ? `Entra no ritmo pela sua média de drop: ${formatRate(farmPerDay)}, contada uma vez entre as rotas livres deste material`
+            : `Entra no ritmo como ≈ ${formatRate(farmPerDay)}, contados uma vez entre as rotas livres deste material`}
         </small>
       )}
       {source.type === "crow" && covered > 0 && (
@@ -1411,12 +1654,13 @@ function AcquisitionCatalog() {
   const gearSet = GEAR_SETS[carrack.branch];
   const materials = MATERIALS.filter(
     (m) =>
-      m.category === "enhancement" || getRequired(m.id, profile.target) > 0,
+      m.category === "enhancement" || getGoal(profile, m.id) > 0,
   ).filter(
     (m) => filter === "all" || m.sources.some((s) => sourceMatches(s, filter)),
   );
 
   const carrackGearSet = CARRACK_GEAR_SETS[profile.target];
+  const yellowGearSet = YELLOW_GEAR_SETS[profile.target];
   const usedIn = (id: MaterialId) => {
     const labels: string[] = [];
     if (MATERIAL_BY_ID[id].category === "carrack") labels.push(carrack.name);
@@ -1428,6 +1672,10 @@ function AcquisitionCatalog() {
     (Object.keys(carrackGearSet) as GearKey[]).forEach((key) => {
       if (carrackGearSet[key].materials[id])
         labels.push(carrackGearSet[key].name);
+    });
+    (Object.keys(yellowGearSet) as GearKey[]).forEach((key) => {
+      if (yellowGearSet[key].materials[id])
+        labels.push(yellowGearSet[key].name);
     });
     return labels;
   };
@@ -1478,7 +1726,7 @@ function AcquisitionCatalog() {
       </div>
       <div className="acquisition-list">
         {materials.map((m) => {
-          const required = getRequired(m.id, profile.target);
+          const required = getGoal(profile, m.id);
           const missing = getMissing(profile, m.id);
           const sources = m.sources.filter((s) => sourceMatches(s, filter));
           const rate = materialRate(profile, m.id, context.quests);
@@ -1508,6 +1756,10 @@ function AcquisitionCatalog() {
                   <span>
                     Ritmo <strong>{formatRate(rate.perDay)}</strong>
                   </span>
+                  <label className="acquisition-rate">
+                    Drop/dia
+                    <FarmRateInput id={m.id} />
+                  </label>
                   {estimate.covered > 0 && (
                     <span>
                       Com moedas <strong>{number(estimate.covered)}</strong>
@@ -1535,6 +1787,7 @@ function AcquisitionCatalog() {
                     materialId={m.id}
                     context={context}
                     farmPerDay={rate.farmPerDay}
+                    customFarm={rate.customFarm}
                     covered={estimate.covered}
                     routine={profile.farmRoutine}
                   />
@@ -1544,6 +1797,471 @@ function AcquisitionCatalog() {
           );
         })}
       </div>
+    </>
+  );
+}
+
+const twoDecimals = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 });
+function percent(value: number) {
+  return `${twoDecimals.format(value)}%`;
+}
+function silver(value: number) {
+  return `${twoDecimals.format(value / 1e9)} bi de prata`;
+}
+
+// Atributos na ordem da tabela do anúncio. Percentuais comparam em pontos, o resto em unidades.
+const SET_STAT_ROWS: {
+  key: keyof ShipSetStats;
+  label: string;
+  format: (value: number) => string;
+  unit?: string;
+}[] = [
+  { key: "speed", label: "Velocidade", format: percent, unit: "p.p." },
+  { key: "acceleration", label: "Aceleração", format: percent, unit: "p.p." },
+  { key: "turn", label: "Rotação", format: percent, unit: "p.p." },
+  { key: "brake", label: "Freio", format: percent, unit: "p.p." },
+  { key: "damage", label: "Dano adicional", format: number },
+  { key: "weight", label: "Peso (carga)", format: (v) => `${number(v)} LT`, unit: "LT" },
+  { key: "damageReduction", label: "Redução de dano", format: percent, unit: "p.p." },
+  { key: "defense", label: "PD", format: number },
+  { key: "durability", label: "Durabilidade", format: number },
+  { key: "provisions", label: "Provisões", format: number },
+  { key: "equipmentDurability", label: "Durabilidade do equipamento", format: number },
+];
+
+function statDelta(value: number, unit?: string) {
+  const sign = value > 0 ? "+" : value < 0 ? "−" : "";
+  return `${sign}${twoDecimals.format(Math.abs(value))}${unit ? ` ${unit}` : ""}`;
+}
+
+/**
+ * Tudo sobre o equipamento amarelo da Carraca do preset: se entra na conta, o que cada peça
+ * pede, como conseguir cada material, o ganho sobre o Shiro, o aprimoramento e o mercado.
+ * Fabricar e aprimorar dependem de tentativas, então a tabela de chances é referência e não
+ * entra no prazo — a mesma regra do resto do planner.
+ */
+function YellowGear() {
+  const profile = useActivePreset().profile;
+  const setYellowGear = usePlannerStore((state) => state.setYellowGear);
+  const carrack = CARRACKS[profile.target];
+  const yellowSet = YELLOW_GEAR_SETS[profile.target];
+  const keys = Object.keys(yellowSet) as GearKey[];
+  const included = profile.yellowGear.included;
+  const context = estimateContext(profile);
+  const setEta = yellowGearSetEstimate(profile, context);
+  const ready = keys.filter((key) => profile.yellowGear.crafted[key]).length;
+  const pendingKeys = keys.filter((key) => !profile.yellowGear.crafted[key]);
+  const stats = SET_STATS[profile.target];
+  // O que as peças que faltam ainda pedem, somado: é a conta do conjunto, não de uma peça.
+  const totals = new Map<MaterialId, number>();
+  for (const key of pendingKeys)
+    for (const [id, qty] of Object.entries(yellowSet[key].materials) as [MaterialId, number][])
+      totals.set(id, (totals.get(id) || 0) + qty);
+  const blueprintTotal = pendingKeys.length * 10;
+  const hornsForSet = pendingKeys.length * Object.keys(LYNGBAKR_HORN_EXCHANGE).length;
+  const averageTries = YELLOW_ENHANCEMENT.reduce((sum, step) => sum + 100 / step.withStacks, 0);
+  const sourceHref = SOURCES.find((source) => source.href.includes("groupContentNo=8511"))?.href;
+
+  return (
+    <>
+      <Header
+        title="Equipamento amarelo de Falasi"
+        subtitle={`O grau mais alto da ${carrack.shortName}: o que cada peça pede, como conseguir cada item e se ele entra na conta deste preset.`}
+      />
+
+      <section className="panel yellow-hero">
+        <div className="yellow-hero-icons" aria-hidden="true">
+          {keys.map((key) => (
+            <ItemIcon key={key} src={yellowSet[key].icon} alt="" size={56} />
+          ))}
+        </div>
+        <div className="yellow-hero-copy">
+          <Badge kind="yellow">NÍVEL AMARELO</Badge>
+          <h2>Falasi da {carrack.shortName}</h2>
+          <p>
+            Quatro peças exclusivas de cada Carraca, feitas a partir do conjunto
+            de Shiro em +10 com materiais do Lyngbakr, a nova criatura da Terra
+            do Amanhecer. Cada peça também pede uma permissão de{" "}
+            {silver(FALASI_PERMIT_SILVER)}.
+          </p>
+          <YellowGearInclusionToggle />
+          <div className="yellow-hero-stats">
+            <div>
+              <span>Peças prontas</span>
+              <strong>
+                {ready}/{keys.length}
+              </strong>
+            </div>
+            <div>
+              <span>Tempo dos materiais</span>
+              <strong>{included ? etaText(setEta.days) : "fora do cálculo"}</strong>
+            </div>
+            <div>
+              <span>Permissões pendentes</span>
+              <strong>{silver(pendingKeys.length * FALASI_PERMIT_SILVER)}</strong>
+            </div>
+          </div>
+          {included && setEta.slowest && (
+            <p className="hero-eta-note">
+              O prazo é ditado por <MaterialLabel id={setEta.slowest} size={18} />,
+              no ritmo da caça no oceano marcada na aba Estratégia, ou na sua
+              média de drop por dia, se você informou no inventário. A permissão
+              é comprada com prata e fica fora do prazo.
+            </p>
+          )}
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel-title">
+          <div>
+            <span className="eyebrow">{carrack.name.toUpperCase()}</span>
+            <h3>As quatro peças de Falasi</h3>
+          </div>
+        </div>
+        <div className="yellow-piece-grid">
+          {keys.map((key) => {
+            const piece = yellowSet[key];
+            const crafted = profile.yellowGear.crafted[key];
+            const shiroReady = profile.carrackGear[key].crafted;
+            const eta = yellowGearEstimate(profile, key, context);
+            return (
+              <article
+                className={`yellow-piece ${crafted ? "done" : ""}`}
+                key={key}
+              >
+                <div className="yellow-piece-head">
+                  <YellowGearLabel target={profile.target} gearKey={key} size={44} />
+                  <em>{crafted ? "✓ PRONTA" : "PENDENTE"}</em>
+                </div>
+                <ul className="yellow-recipe">
+                  <li>
+                    <span className="item-label">
+                      <ItemIcon src={piece.baseIcon} alt={piece.base} size={26} />
+                      <span className="item-label-text">{piece.base}</span>
+                    </span>
+                    <strong className={shiroReady ? "ok-text" : "warn-text"}>
+                      {shiroReady ? "Shiro pronta" : "Shiro pendente"}
+                    </strong>
+                  </li>
+                  {(Object.entries(piece.materials) as [MaterialId, number][]).map(
+                    ([id, qty]) => {
+                      const have = profile.materials[id] || 0;
+                      return (
+                        <li key={id}>
+                          <MaterialLabel id={id} size={26} />
+                          <strong className={have >= qty ? "ok-text" : undefined}>
+                            {number(Math.min(have, qty))} / {number(qty)}
+                          </strong>
+                        </li>
+                      );
+                    },
+                  )}
+                  <li>
+                    <span className="item-label">
+                      <ItemIcon src={piece.permitIcon} alt={piece.permit} size={26} />
+                      <span className="item-label-text">{piece.permit}</span>
+                    </span>
+                    <strong>{silver(FALASI_PERMIT_SILVER)}</strong>
+                  </li>
+                </ul>
+                <p className="yellow-piece-eta">
+                  {crafted
+                    ? "Materiais já usados na fabricação"
+                    : included
+                      ? `Materiais desta peça ${etaText(eta.days)}`
+                      : "Fora do cálculo · sem prazo"}
+                </p>
+                <GearReadyToggle
+                  name={piece.name}
+                  checked={crafted}
+                  onChange={(value) => setYellowGear({ crafted: { [key]: value } })}
+                />
+              </article>
+            );
+          })}
+        </div>
+        <p className="panel-note yellow-note">
+          Fabricação na {yellowSet.figurehead.workshop}. O estoque é
+          compartilhado entre as peças: cada linha compara o inventário com a
+          receita de uma peça só.
+        </p>
+      </section>
+
+      <section className="panel">
+        <div className="panel-title">
+          <div>
+            <span className="eyebrow">PASSO A PASSO</span>
+            <h3>Como conseguir</h3>
+          </div>
+        </div>
+        <ol className="yellow-steps">
+          <li>
+            <strong>Leve a peça de Shiro da mesma posição a +10.</strong>
+            <p>
+              Ela é consumida na receita: a Proa de Falasi pede a Proa de Shiro
+              +10, e assim por diante. O conjunto de Shiro está na Visão geral.
+            </p>
+          </li>
+          <li>
+            <strong>Cace na Colônia de Lyngbakr, na Terra do Amanhecer.</strong>
+            <p>
+              O Lyngbakr ocupou a antiga área do Crocodilo do Mar e vem
+              escoltado por Lyngburks — é conteúdo difícil, pensado para
+              capitães veteranos. Os espólios que importam para Falasi:
+            </p>
+            <div className="yellow-drops">
+              <RouteItemLabel item="horn" />
+              <RouteItemLabel item="bone" />
+              <RouteItemLabel item="scale" />
+              <RouteItemLabel item="essence" />
+              <MaterialLabel id="twilightCoralEssence" size={26} />
+            </div>
+          </li>
+          <li>
+            <strong>Processe os espólios, um para um.</strong>
+            <p>
+              Cada receita leva também{" "}
+              <RouteItemLabel item="hardener" suffix=" x1" size={20} /> e{" "}
+              <RouteItemLabel item="emulsifier" suffix=" x1" size={20} />. Com
+              Pó de Pedra Negra x1, o processamento em massa faz 10 de uma vez.
+            </p>
+            <div className="yellow-process">
+              {YELLOW_PROCESSING.map((step) => (
+                <div key={step.output}>
+                  <RouteItemLabel item={step.input} suffix=" x1" />
+                  <i aria-hidden="true">→</i>
+                  <small>{step.method}</small>
+                  <i aria-hidden="true">→</i>
+                  <MaterialLabel id={step.output} size={26} />
+                </div>
+              ))}
+            </div>
+          </li>
+          <li>
+            <strong>Troque o Chifre de Lyngbakr pelo material mais atrasado.</strong>
+            <p>
+              Cada chifre vira a quantidade de uma peça inteira de um dos três
+              materiais, à escolha:{" "}
+              {(Object.entries(LYNGBAKR_HORN_EXCHANGE) as [MaterialId, number][])
+                .map(([id, qty]) => `${MATERIAL_BY_ID[id].name} x${qty}`)
+                .join(", ")}
+              .{" "}
+              {pendingKeys.length > 0 &&
+                `Com ${hornsForSet} chifres, os materiais das ${pendingKeys.length} peças pendentes estão fechados.`}
+            </p>
+          </li>
+          <li>
+            <strong>Troque as essências pelas plantas.</strong>
+            <p>
+              Com {FALASI_PERMIT_SELLER}:{" "}
+              <MaterialLabel id="twilightCoralEssence" size={20} /> x2 por
+              planta. Cada peça pede 10 plantas da própria posição
+              {pendingKeys.length > 0 &&
+                ` — faltam ${blueprintTotal} plantas, ou ${blueprintTotal * 2} essências, para as peças pendentes`}
+              .
+            </p>
+          </li>
+          <li>
+            <strong>Compre a permissão e fabrique.</strong>
+            <p>
+              A permissão da {carrack.shortName} custa{" "}
+              {silver(FALASI_PERMIT_SILVER)} com {FALASI_PERMIT_SELLER}. Com
+              tudo em mãos, fabrique na {yellowSet.figurehead.workshop}.
+            </p>
+          </li>
+        </ol>
+        <p className="panel-note yellow-note">
+          Espólio de Lyngbakr que sobrar vira{" "}
+          <MaterialLabel id="waveStone" size={18} /> no Comerciante de Moeda
+          Corvo: Osso x1 → 8, Escama x1 → 12, Essência x1 → 20. A semanal
+          “Investigar a ecologia da área de Lyngbakr”, do Kangman, não entrega
+          material amarelo, mas rende Moeda Corvo x500.
+        </p>
+      </section>
+
+      <div className="strategy-grid">
+        <section className="panel">
+          <div className="panel-title">
+            <div>
+              <span className="eyebrow">
+                {pendingKeys.length === keys.length
+                  ? "CONJUNTO COMPLETO"
+                  : `${pendingKeys.length} PEÇAS PENDENTES`}
+              </span>
+              <h3>O que falta juntar</h3>
+            </div>
+          </div>
+          {pendingKeys.length ? (
+            <ul className="yellow-totals">
+              {[...totals].map(([id, qty]) => {
+                const have = profile.materials[id] || 0;
+                return (
+                  <li key={id}>
+                    <MaterialLabel id={id} size={26} />
+                    <strong className={have >= qty ? "ok-text" : "warn-text"}>
+                      {number(have)} / {number(qty)}
+                    </strong>
+                  </li>
+                );
+              })}
+              <li>
+                <span className="item-label">
+                  <ItemIcon src={yellowSet.figurehead.permitIcon} alt="" size={26} />
+                  <span className="item-label-text">
+                    {pendingKeys.length === 1
+                      ? "1 permissão de Falasi"
+                      : `${pendingKeys.length} permissões de Falasi`}
+                  </span>
+                </span>
+                <strong>{silver(pendingKeys.length * FALASI_PERMIT_SILVER)}</strong>
+              </li>
+            </ul>
+          ) : (
+            <p className="empty-state">As quatro peças de Falasi estão prontas.</p>
+          )}
+        </section>
+
+        <section className="panel">
+          <div className="panel-title">
+            <div>
+              <span className="eyebrow">QUATRO PEÇAS EM +10</span>
+              <h3>Shiro × Falasi</h3>
+            </div>
+          </div>
+          <div className="yellow-table-scroll">
+            <table className="yellow-table">
+              <thead>
+                <tr>
+                  <th scope="col">Atributo</th>
+                  <th scope="col">Shiro +10</th>
+                  <th scope="col">Falasi +10</th>
+                  <th scope="col">Ganho</th>
+                </tr>
+              </thead>
+              <tbody>
+                {SET_STAT_ROWS.map((row) => (
+                  <tr key={row.key}>
+                    <th scope="row">{row.label}</th>
+                    <td>{row.format(stats.shiro[row.key])}</td>
+                    <td>{row.format(stats.falasi[row.key])}</td>
+                    <td className="ok-text">
+                      {statDelta(stats.falasi[row.key] - stats.shiro[row.key], row.unit)}
+                    </td>
+                  </tr>
+                ))}
+                {stats.cannonReload && (
+                  <tr>
+                    <th scope="row">Recarga do canhão</th>
+                    <td>—</td>
+                    <td>{stats.cannonReload}</td>
+                    <td className="ok-text">{stats.cannonReload}</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <section className="panel">
+        <div className="panel-title">
+          <div>
+            <span className="eyebrow">DEPOIS DE FABRICAR</span>
+            <h3>Aprimoramento de +1 a +10</h3>
+          </div>
+          <Badge kind="default">FORA DO PRAZO</Badge>
+        </div>
+        <p className="yellow-enhance-recipe">
+          Cada tentativa gasta{" "}
+          <MaterialLabel id="twilightWaveStone" size={22} /> x1, feita em
+          Aquecimento com <MaterialLabel id="twilightCoralEssence" size={20} />{" "}
+          x1 e <MaterialLabel id="waveStone" size={20} /> x100. Na falha, a peça
+          perde durabilidade e cai um nível, a menos que você use Pedras Cron.
+        </p>
+        <div className="yellow-table-scroll">
+          <table className="yellow-table">
+            <thead>
+              <tr>
+                <th scope="col">Nível</th>
+                <th scope="col">Chance base</th>
+                <th scope="col">Acúmulos base</th>
+                <th scope="col">Chance com acúmulos</th>
+                <th scope="col">Tentativas em média</th>
+                <th scope="col">Essência de Agris</th>
+                <th scope="col">Pedras Cron</th>
+              </tr>
+            </thead>
+            <tbody>
+              {YELLOW_ENHANCEMENT.map((step) => (
+                <tr key={step.level}>
+                  <th scope="row">+{step.level}</th>
+                  <td>{percent(step.base)}</td>
+                  <td>{step.stacks}</td>
+                  <td>{percent(step.withStacks)}</td>
+                  <td>≈ {twoDecimals.format(Math.round(1000 / step.withStacks) / 10)}</td>
+                  <td>{step.agris}</td>
+                  <td>{step.cron ? number(step.cron) : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="panel-note yellow-note">
+          “Tentativas em média” é 100 ÷ a chance com os acúmulos base: uma
+          referência, não uma promessa. Somando os dez níveis, são ≈{" "}
+          {Math.round(averageTries)} Pedras Negras da Onda Crepuscular por peça,
+          com Pedras Cron segurando o nível a cada falha. Você tem{" "}
+          {number(profile.materials.twilightWaveStone)} no inventário.
+        </p>
+      </section>
+
+      <section className="panel">
+        <div className="panel-title">
+          <div>
+            <span className="eyebrow">MERCADO MUNDIAL</span>
+            <h3>Preço de uma peça de Falasi</h3>
+          </div>
+        </div>
+        <div className="yellow-table-scroll">
+          <table className="yellow-table">
+            <thead>
+              <tr>
+                <th scope="col">Nível</th>
+                <th scope="col">Preço mínimo</th>
+                <th scope="col">Preço máximo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {YELLOW_MARKET_PRICES.map((price) => (
+                <tr key={price.level}>
+                  <th scope="row">+{price.level}</th>
+                  <td>{silver(price.min)}</td>
+                  <td>{silver(price.max)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="panel-note yellow-note">
+          Comprar pronta pula a fabricação inteira: a +0 sai a partir de{" "}
+          {silver(YELLOW_MARKET_PRICES[0].min)}, contra{" "}
+          {silver(FALASI_PERMIT_SILVER)} da permissão mais os materiais.
+          {sourceHref && (
+            <>
+              {" "}
+              <a
+                className="text-gold-bright"
+                href={sourceHref}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Fonte: Notas da Atualização de 27/08/2026
+              </a>
+            </>
+          )}
+        </p>
+      </section>
     </>
   );
 }
@@ -2199,7 +2917,9 @@ function Strategy() {
             Permuta, caça, processamento e escavação não têm frequência fixa:
             valem uma estimativa única por dificuldade do material, para um dia
             dedicado ao oceano, e só quando a atividade está marcada na sua
-            rotina, no topo desta aba.
+            rotina, no topo desta aba. Se você informar a sua média de drop por
+            dia de um material, no inventário ou em “Como obter”, ela substitui
+            essa estimativa — mesmo com a atividade desmarcada.
           </li>
           <li>
             A Moeda Corvo soma o saldo de hoje à que as missões marcadas rendem
@@ -2480,6 +3200,7 @@ function App({
               {tab === "overview" && <Overview />}
               {tab === "inventory" && <Inventory />}
               {tab === "materials" && <AcquisitionCatalog />}
+              {tab === "yellow" && <YellowGear />}
               {tab === "quests" && <Quests />}
               {tab === "strategy" && <Strategy />}
             </>

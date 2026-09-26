@@ -10,7 +10,7 @@ import type { PlannerPreset } from "@/types";
  * campos que não conhece, então um cliente antigo que gravasse por cima de um registro novo
  * devolveria o preset sem eles. É isso que a comparação de versão impede.
  */
-export const PRESET_SCHEMA_VERSION = 9;
+export const PRESET_SCHEMA_VERSION = 11;
 
 /** Um preset como ele existe na tabela `presets`. */
 export interface PresetRow {
