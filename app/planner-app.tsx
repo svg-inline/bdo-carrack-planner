@@ -36,6 +36,7 @@ import {
 import {
   bottlenecks,
   carrackGearCompletion,
+  categoryCompletion,
   getMissing,
   getPlanRequired,
   getRequired,
@@ -721,18 +722,8 @@ function Overview() {
   const completion = overallCompletion(profile);
   const hard = bottlenecks(profile).slice(0, 5);
   const actions = nextActions(profile);
-  const blue = MATERIALS.filter((m) => m.category === "blue-gear");
-  const direct = MATERIALS.filter((m) => m.category === "carrack");
-  const bluePct = Math.round(
-    (blue.reduce((s, m) => s + materialCompletion(profile, m.id), 0) /
-      blue.length) *
-      100,
-  );
-  const carrackPct = Math.round(
-    (direct.reduce((s, m) => s + materialCompletion(profile, m.id), 0) /
-      direct.length) *
-      100,
-  );
+  const bluePct = categoryCompletion(profile, "blue-gear");
+  const carrackPct = categoryCompletion(profile, "carrack");
   const gearSet = GEAR_SETS[carrack.branch];
   const carrackGearSet = CARRACK_GEAR_SETS[profile.target];
   const context = estimateContext(profile);

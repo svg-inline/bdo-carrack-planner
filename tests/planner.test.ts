@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createInitialProfile, normalizeGear, normalizePersistedState, normalizeProfile } from "@/lib/profile";
-import { bottlenecks, carrackGearCompletion, getMissing, getPlanRequired, getRequired, materialCompletion, overallCompletion, questResetKey } from "@/lib/planner";
-import { CARRACK_GEAR_SETS, GEAR_SETS } from "@/lib/data";
+import { bottlenecks, carrackGearCompletion, categoryCompletion, getMissing, getPlanRequired, getRequired, materialCompletion, overallCompletion, questResetKey, toPercent } from "@/lib/planner";
+import { CARRACK_GEAR_SETS, GEAR_SETS, MATERIALS } from "@/lib/data";
 
 describe("profile normalization", () => {
   it("repairs untrusted persisted values and migrates the old target", () => {
@@ -74,6 +74,27 @@ describe("equipamento de Shiro da Carraca", () => {
     expect(cannon.permit).toBe("Permissão de alteração de peça da Carraca de Epheria: Bravura");
     expect(cannon.materials).toEqual({ shiroCannonBlueprint: 10, violentWavePlywood: 100, polishedSupport: 100, waveAdhesive: 100 });
     expect(CARRACK_GEAR_SETS.ascensao.sail.permit).toContain("Emergência");
+  });
+});
+
+describe("percentual de progresso", () => {
+  it("não mostra 100% enquanto falta algum material", () => {
+    const profile = createInitialProfile("bravura");
+    for (const m of MATERIALS.filter((item) => item.category === "blue-gear")) {
+      profile.materials[m.id] = getRequired(m.id, "bravura");
+    }
+    expect(categoryCompletion(profile, "blue-gear")).toBe(100);
+
+    // 141 de 150 com os outros onze completos dá 99,5%, que o arredondamento comum mostrava como 100%.
+    profile.materials.greatOceanIron = 141;
+    expect(getMissing(profile, "greatOceanIron")).toBe(9);
+    expect(categoryCompletion(profile, "blue-gear")).toBe(99);
+  });
+
+  it("não perde um ponto por erro de ponto flutuante", () => {
+    expect(toPercent(0.29)).toBe(29);
+    expect(toPercent(0.57)).toBe(57);
+    expect(toPercent(1)).toBe(100);
   });
 });
 
