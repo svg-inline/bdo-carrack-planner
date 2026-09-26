@@ -20,6 +20,14 @@ Os links do menu lateral pedem pré-carregamento completo (`prefetch`). As pági
 
 Sem nenhum preset, a página inicial mostra a escolha da Carraca, com links para o guia de cada seção. As outras páginas mostram o guia delas e um convite para escolher a Carraca: é o conteúdo que o visitante veio buscar, e é também o que o buscador vê ao renderizar a página, já que ele não tem preset salvo.
 
+## Buscadores e compartilhamento
+
+`pageMetadata` dá a cada página, além do título e da URL canônica, o cartão de compartilhamento do Open Graph e do X com a imagem `public/assets/compartilhar.png`. O fundo dela é a captura oficial do Navio Mercante de Epheria, a mesma de `epheria-caravel.png`. A imagem fica em `public` e é citada em cada página, e não no arquivo `opengraph-image` do Next, porque o Open Graph definido por uma página substitui o do arquivo e as páginas ficariam sem imagem.
+
+O ícone do site é o timão da barra lateral (`app/icon.svg`), com versões PNG em `app/icon1.png` e `app/apple-icon.png`. É a única arte que não vem do jogo: um navio reduzido a 32 pixels fica ilegível, e o timão já é a marca do planner. As versões PNG são o próprio SVG rasterizado; quem mudar o SVG gera as duas de novo.
+
+Os dados estruturados seguem a recomendação do Next, um `<script type="application/ld+json">` renderizado por `app/json-ld.tsx`. O layout raiz descreve o site (`WebSite`) e o planner (`WebApplication`, gratuito, em português) fora do componente interativo, então a descrição vale em qualquer página e com qualquer estado. Cada página de seção e cada guia de Carraca acrescenta a trilha de navegação (`BreadcrumbList`) a partir do início. Nas páginas de seção, a trilha faz parte do guia e sai do documento quando o planner assume a tela, mas continua lá para o buscador, que não tem preset salvo. As listas de materiais e receitas do guia de cada Carraca começam abertas, porque são o conteúdo principal da página.
+
 O aviso de conta (`?conta=erro`, `?conta=indisponivel`, `?conta=origem`) vale em qualquer página. O guia sem JavaScript o lê do `searchParams` da página; o planner o lê do endereço na montagem, e não com `useSearchParams`, que obrigaria a página a esperar o JavaScript. Trocar de seção pelo menu limpa o aviso.
 
 O catálogo marítimo mantém 27 missões diárias e 11 semanais de Iliya, Velia, Olho da Okilua e Terra do Amanhecer, conforme o levantamento em `docs/bdo-guia-quests.md`. Cada missão guarda a fonte consultada e o link correspondente.

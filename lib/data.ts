@@ -28,7 +28,7 @@ export const CARRACKS: Record<CarrackTarget, CarrackDefinition> = {
     branch: "galleass",
     sourceShip: "Contratorpedeiro de Epheria",
     role: "Velocidade / manobra",
-    description: "Linha veloz do Contratorpedeiro. O ID interno é 'ascensao' por compatibilidade; o nome exibido no jogo é Emergência.",
+    description: "Linha veloz do Contratorpedeiro, com foco em velocidade e manobra para cruzar o oceano mais rápido.",
   },
   bravura: {
     id: "bravura",

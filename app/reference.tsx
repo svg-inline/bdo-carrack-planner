@@ -1,12 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import AccountBar, { type AccountBarProps } from "./account-bar";
+import JsonLd from "./json-ld";
 import { CADENCE_BY_ID, CARRACK_GEAR_SETS, CARRACK_ORDER, CARRACKS, CATEGORY_LABELS, FALASI_PERMIT_SELLER, FALASI_PERMIT_SILVER, FALASI_WORKSHOP, GEAR_SETS, LYNGBAKR_HORN_EXCHANGE, MATERIALS, MATERIAL_BY_ID, QUESTS, QUEST_CADENCES, QUEST_GROUPS, SOURCES, YELLOW_ENHANCEMENT, YELLOW_GEAR_SETS, YELLOW_PROCESSING, YELLOW_ROUTE_ITEMS } from "@/lib/data";
 import { carrackGearSetEstimate, formatDuration, materialEstimate, shipEstimate } from "@/lib/estimate";
 import { getGoal } from "@/lib/planner";
 import { questsOfGroup } from "@/lib/quests";
 import { createInitialProfile } from "@/lib/profile";
 import { carrackPath, PLANNER_PAGES, type PlannerPage } from "@/lib/routes";
+import { breadcrumbJsonLd } from "@/lib/site";
 import type { CarrackTarget, GearKey, MaterialId } from "@/types";
 
 /**
@@ -79,16 +81,16 @@ export function CarrackGuide({ id }: { id: CarrackTarget }) {
   return <section className="panel">
     <h2>Rota e prazo</h2><p>{carrack.sourceShip} → {carrack.shortName} · {carrack.role}</p><p>{carrack.description}</p>
     <p>Partindo do zero, os materiais da rota levam <strong>{eta(ship.days)}</strong> e o conjunto de Shiro, mais <strong>{eta(shiroSet.days)}</strong>. Veja <Link className="text-gold-bright" href="/estrategia">como o tempo é estimado</Link>.</p>
-    <details><summary className="cursor-pointer text-gold-bright">Materiais e quantidades para {carrack.shortName}</summary>
+    <details open><summary className="cursor-pointer text-gold-bright">Materiais e quantidades para {carrack.shortName}</summary>
       <ul className="my-4 space-y-2">{MATERIALS.filter((m) => getGoal(profile, m.id) > 0).map((m) => <li className="flex flex-wrap items-center justify-between gap-2" key={m.id}><Item id={m.id} /><strong>{m.required[id]} · {eta(materialEstimate(profile, m.id).days)}</strong></li>)}</ul>
     </details>
-    <details><summary className="cursor-pointer text-gold-bright">Receitas dos quatro equipamentos azuis +10</summary>
+    <details open><summary className="cursor-pointer text-gold-bright">Receitas dos quatro equipamentos azuis +10</summary>
       <div className="my-4 space-y-4">{(Object.keys(gearSet) as GearKey[]).map((key) => <article key={key}>
         <h3>{gearSet[key].name}</h3><p>Base: {gearSet[key].base}</p>
         <ul className="space-y-2">{(Object.entries(gearSet[key].materials) as [MaterialId, number][]).map(([material, qty]) => <li key={material}><Item id={material} /> · {qty}</li>)}</ul>
       </article>)}</div>
     </details>
-    <details><summary className="cursor-pointer text-gold-bright">Equipamento azul de Shiro da {carrack.shortName}</summary>
+    <details open><summary className="cursor-pointer text-gold-bright">Equipamento azul de Shiro da {carrack.shortName}</summary>
       <p>Conjunto fabricado depois que a Carraca existe. Cada peça parte da peça verde de Toro em +10, comprada com Lavinia no Ninho do Corvo.</p>
       <div className="my-4 space-y-4">{(Object.keys(carrackGearSet) as GearKey[]).map((key) => <article key={key}>
         <h3>{carrackGearSet[key].name}</h3><p>Base: {carrackGearSet[key].base}</p>
@@ -201,6 +203,7 @@ export function DataSources() {
 /** Topo comum das páginas do planner: aviso de conta e o título com a descrição da página. */
 export function GuidePage({ page, notice, children }: { page: PlannerPage; notice: string | null; children: React.ReactNode }) {
   return <>
+    {page.path !== "/" && <JsonLd data={breadcrumbJsonLd([{ name: "Início", path: "/" }, { name: page.label, path: page.path }])} />}
     <GuideNotice notice={notice} />
     <GuideIntro title={page.title}><p>{page.description}</p></GuideIntro>
     {children}
