@@ -6,6 +6,11 @@ Todas as mudanças relevantes para usuários são registradas em `Unreleased`, n
 
 ### Added
 
+- Cada seção do planner tem o próprio endereço: `/inventario`, `/como-obter`, `/equipamento-amarelo`, `/missoes` e `/estrategia`, além da Visão geral em `/`. Recarregar, compartilhar o link ou usar o voltar do navegador mantém a seção, e cada página tem título e descrição próprios nos buscadores.
+- Página de guia de cada Carraca em `/carraca/gradual`, `/carraca/equilibrio`, `/carraca/emergencia` e `/carraca/bravura`, com materiais, receitas e prazo partindo do zero.
+- Sem preset salvo, as páginas de seção mostram o guia do assunto com um convite para escolher a Carraca, e a tela de escolha da Carraca traz links para o guia.
+- `robots.txt`, `sitemap.xml` com todas as páginas, URL canônica, cartão de compartilhamento e verificação do Google Search Console e do Bing Webmaster Tools.
+
 - Média de drop por dia de cada material, informada pelo jogador na coluna "Drop/dia" do inventário ou no cartão do material em "Como obter". A média substitui a estimativa do planner para aquele material — mesmo com a atividade fora da rotina — e se soma às missões no ritmo e no prazo. Aceita vírgula e frações (ex.: 0,5); zero diz que o item não sai fora das missões; campo vazio volta à estimativa, que aparece como dica. A média pertence ao preset.
 
 - Aba "Equip. amarelo" com o equipamento de Falasi da Carraca do preset: as quatro peças com receita, base de Shiro +10 e permissão; o passo a passo para conseguir cada item (Colônia de Lyngbakr, processamento dos espólios, troca do Chifre de Lyngbakr, plantas com Philaberto Falasi e permissão de 5 bilhões de prata); o que falta juntar; a comparação de atributos entre Shiro +10 e Falasi +10; a tabela de aprimoramento com Pedra Negra da Onda Crepuscular; e o preço no Mercado Mundial. Ícones oficiais do anúncio de 27/08/2026.
@@ -41,6 +46,9 @@ Todas as mudanças relevantes para usuários são registradas em `Unreleased`, n
 - Regra de trilha única do jogo: aceitar a caçada ao Rei do Mar Jovem bloqueia as três caçadas da Guilda Lua Minguante do Ravikel, e vice-versa. O planner deixa de somar alternativas que não podem ser aceitas no mesmo dia. O Ravikel é o único NPC do catálogo com essa exclusividade.
 
 ### Changed
+
+- Entrar com o Discord e sair da conta devolvem o jogador à página em que ele estava, em vez da página inicial.
+- O guia sem JavaScript foi dividido pelas mesmas páginas do planner, cada uma com o próprio conteúdo, e o menu dele navega entre elas.
 
 - A Pedra Negra da Onda ganhou a troca dos espólios de Lyngbakr no Comerciante de Moeda Corvo como fonte.
 

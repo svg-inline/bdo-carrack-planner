@@ -1,4 +1,4 @@
-import type { CarrackDefinition, CarrackGearDefinition, CarrackTarget, GearDefinition, GearKey, MaterialDefinition, MaterialId, QuestCadence, QuestCadenceDefinition, QuestDefinition, QuestGroupDefinition, ShipBranch, ShipSetStats, YellowGearDefinition } from "@/types";
+import type { CarrackDefinition, CarrackGearDefinition, CarrackTarget, GearDefinition, GearKey, MaterialCategory, MaterialDefinition, MaterialId, QuestCadence, QuestCadenceDefinition, QuestDefinition, QuestGroupDefinition, ShipBranch, ShipSetStats, YellowGearDefinition } from "@/types";
 
 const req = (gradual: number, equilibrio: number, ascensao: number, bravura: number): Record<CarrackTarget, number> => ({ gradual, equilibrio, ascensao, bravura });
 
@@ -42,6 +42,15 @@ export const CARRACKS: Record<CarrackTarget, CarrackDefinition> = {
 };
 
 export const CARRACK_ORDER: CarrackTarget[] = ["gradual", "equilibrio", "ascensao", "bravura"];
+
+/** Nome curto de cada categoria de material, o mesmo no planner e no guia. */
+export const CATEGORY_LABELS: Record<MaterialCategory, string> = {
+  carrack: "Carraca",
+  "blue-gear": "Equip. azul",
+  "carrack-gear": "Equip. Carraca",
+  "yellow-gear": "Equip. amarelo",
+  enhancement: "Aprimoramento",
+};
 
 export const MATERIALS: MaterialDefinition[] = [
   {

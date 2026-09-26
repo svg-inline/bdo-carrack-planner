@@ -4,6 +4,7 @@ import { flushPending, loadFromCloud } from "@/lib/cloud-sync";
 import {
   CADENCE_BY_ID,
   CARRACKS,
+  CATEGORY_LABELS,
   CARRACK_GEAR_SETS,
   CARRACK_ORDER,
   CARRACK_PART_COUNT,
@@ -71,6 +72,14 @@ import {
   switchStorageScope,
   usePlannerStore,
 } from "@/lib/store";
+import { accountNotice } from "@/lib/notices";
+import {
+  CARRACK_SLUGS,
+  carrackPath,
+  PLANNER_PAGES,
+  tabOfPath,
+  type PlannerTab,
+} from "@/lib/routes";
 import { planImport, shouldOfferImport } from "@/lib/sync";
 import type {
   Account,
@@ -94,19 +103,11 @@ import type {
 } from "@/types";
 import { cva, type VariantProps } from "class-variance-authority";
 import Image from "next/image";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import AccountBar from "./account-bar";
 
-const tabs = [
-  ["overview", "Visão geral"],
-  ["inventory", "Inventário"],
-  ["materials", "Como obter"],
-  ["yellow", "Equip. amarelo"],
-  ["quests", "Missões"],
-  ["strategy", "Estratégia"],
-] as const;
-
-type Tab = (typeof tabs)[number][0];
 type SourceFilter =
   | "all"
   | "missions"
@@ -119,13 +120,6 @@ type InventorySort = {
   dir: "asc" | "desc";
 };
 
-const categoryLabel: Record<MaterialCategory, string> = {
-  carrack: "Carraca",
-  "blue-gear": "Equip. azul",
-  "carrack-gear": "Equip. Carraca",
-  "yellow-gear": "Equip. amarelo",
-  enhancement: "Aprimoramento",
-};
 const sourceLabel: Record<AcquisitionType, string> = {
   daily: "Missão diária",
   weekly: "Missão semanal",
@@ -662,11 +656,11 @@ function PresetSetup({
 
 function Sidebar({
   tab,
-  setTab,
+  onNavigate,
   onAddPreset,
 }: {
-  tab: Tab;
-  setTab: (tab: Tab) => void;
+  tab: PlannerTab | null;
+  onNavigate: () => void;
   onAddPreset: () => void;
 }) {
   const { presets, activePresetId, selectPreset, removePreset } =
@@ -721,16 +715,21 @@ function Sidebar({
         </div>
       </div>
       <nav aria-label="Seções do planner">
-        {tabs.map(([key, label], idx) => (
-          <button
-            key={key}
-            aria-current={tab === key ? "page" : undefined}
-            className={tab === key ? "active" : ""}
-            onClick={() => setTab(key)}
+        {/* As páginas são dinâmicas (leem a sessão), e o Next só pré-carrega rota dinâmica
+            quando pedido. Sem isso, cada clique no menu esperaria o servidor para trocar a aba;
+            um loading.tsx resolveria a espera, mas entregaria o guia escondido sem JavaScript. */}
+        {PLANNER_PAGES.map((page, idx) => (
+          <Link
+            key={page.tab}
+            href={page.path}
+            prefetch
+            aria-current={tab === page.tab ? "page" : undefined}
+            className={tab === page.tab ? "active" : ""}
+            onClick={onNavigate}
           >
             <span>0{idx + 1}</span>
-            {label}
-          </button>
+            {page.label}
+          </Link>
         ))}
       </nav>
       <div className="sidebar-footer">
@@ -1357,7 +1356,7 @@ function Inventory() {
           <span>
             {filter === "all"
               ? "Tempo até a Carraca"
-              : `Tempo · ${categoryLabel[filter]}`}
+              : `Tempo · ${CATEGORY_LABELS[filter]}`}
           </span>
           <strong>{hasGoal ? etaText(eta.days) : "—"}</strong>
         </div>
@@ -1486,7 +1485,7 @@ function Inventory() {
                             : "default"
                   }
                 >
-                  {categoryLabel[m.category]}
+                  {CATEGORY_LABELS[m.category]}
                 </Badge>
               </span>
               <strong
@@ -3055,13 +3054,42 @@ interface AccountShellProps {
   notice: string | null;
 }
 
+/** Atalhos para o guia de cada página, na tela de escolha da primeira Carraca. */
+function GuideLinks() {
+  return (
+    <nav
+      aria-label="Guia de Carracas"
+      className="mx-auto mt-6 flex max-w-6xl flex-wrap gap-4 text-gold-bright"
+    >
+      <span className="text-muted">Consultar o guia:</span>
+      {PLANNER_PAGES.filter((page) => page.tab !== "overview").map((page) => (
+        <Link key={page.path} href={page.path}>
+          {page.label}
+        </Link>
+      ))}
+      {CARRACK_ORDER.map((id) => (
+        <Link key={CARRACK_SLUGS[id]} href={carrackPath(id)}>
+          {CARRACKS[id].shortName}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+/**
+ * A aba vem da URL: cada seção é uma página com endereço, título e guia próprios. O
+ * componente fica no layout, então trocar de página não refaz a carga do progresso nem a
+ * sincronização com a conta — só troca a aba.
+ */
 function App({
   children,
   account,
   accountEnabled,
-  notice,
-}: { children: React.ReactNode } & AccountShellProps) {
-  const [tab, setTab] = useState<Tab>("overview");
+}: { children: React.ReactNode } & Omit<AccountShellProps, "notice">) {
+  const pathname = usePathname();
+  const tab = tabOfPath(pathname);
+  const [notice, setNotice] = useState<string | null>(null);
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [creatingPreset, setCreatingPreset] = useState(false);
   const [importable, setImportable] = useState<PlannerPreset[]>([]);
@@ -3079,6 +3107,13 @@ function App({
       await usePlannerStore.persist.rehydrate();
       const local = usePlannerStore.getState().presets;
       if (!active) return;
+      // O aviso de conta chega na URL depois do login ou da saída. É lido do endereço, e não
+      // com `useSearchParams`, que obrigaria a página a esperar o JavaScript; o painel da
+      // conta só aparece depois da montagem, então nada se perde.
+      const params = new URLSearchParams(window.location.search);
+      setNotice(
+        accountNotice({ conta: params.get("conta"), error: params.get("error") }),
+      );
 
       if (!accountId) {
         usePlannerStore.getState().setAccount(null);
@@ -3127,9 +3162,16 @@ function App({
   useEffect(() => {
     mainRef.current?.focus({ preventScroll: true });
     window.scrollTo(0, 0);
-  }, [tab]);
+  }, [pathname]);
 
-  if (!mounted) return children;
+
+  // Antes da hidratação vale o guia da página, que é o mesmo HTML entregue sem JavaScript.
+  if (!mounted)
+    return (
+      <main id="main-content" tabIndex={-1}>
+        {children}
+      </main>
+    );
   const accountPanel = (
     <AccountPanel
       account={account}
@@ -3146,6 +3188,25 @@ function App({
       />
     ) : null;
   const activePreset = presets.find((preset) => preset.id === activePresetId);
+  // Sem preset, as páginas de assunto continuam mostrando o guia delas — é o conteúdo que o
+  // visitante veio buscar —, com o convite para montar o plano. A escolha da Carraca fica na
+  // página inicial.
+  if (!activePreset && tab !== "overview")
+    return (
+      <main id="main-content" tabIndex={-1} ref={mainRef}>
+        {offer}
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 pt-4 sm:px-8 sm:pt-8">
+          <p>
+            Monte o seu plano: escolha a Carraca e acompanhe estoque, prazos e
+            missões.
+          </p>
+          <Link className="button primary no-underline" href="/">
+            Escolher minha Carraca
+          </Link>
+        </div>
+        {children}
+      </main>
+    );
   if (!activePreset)
     return (
       <main
@@ -3167,11 +3228,13 @@ function App({
           canCancel={false}
           onClose={() => setCreatingPreset(false)}
         />
+        <GuideLinks />
       </main>
     );
 
   function showPresetCreator() {
-    setTab("overview");
+    router.push("/");
+    setNotice(null);
     setCreatingPreset(true);
   }
 
@@ -3183,9 +3246,9 @@ function App({
     <div className="app-shell">
       <Sidebar
         tab={tab}
-        setTab={(nextTab) => {
+        onNavigate={() => {
+          setNotice(null);
           setCreatingPreset(false);
-          setTab(nextTab);
         }}
         onAddPreset={showPresetCreator}
       />

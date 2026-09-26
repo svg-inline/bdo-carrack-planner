@@ -2,13 +2,25 @@
 
 ## Renderização e resiliência
 
-A rota `/` entrega no HTML um guia completo com Carracas, materiais, receitas, missões e fontes. Esse conteúdo é independente de JavaScript, `localStorage` e APIs externas. Após a hidratação no navegador, o componente interativo substitui o guia e carrega o progresso local.
+Cada seção do planner é uma página com URL própria, e cada página entrega no HTML o guia do próprio assunto: `/` resume as quatro Carracas, `/inventario` traz a quantidade de cada material por Carraca, `/como-obter` as fontes de cada material, `/equipamento-amarelo` a rota de Falasi, `/missoes` o catálogo de missões e `/estrategia` a explicação do tempo estimado e as fontes de dados. `/carraca/gradual`, `/carraca/equilibrio`, `/carraca/emergencia` e `/carraca/bravura` são o guia de cada Carraca — materiais, receitas e prazo partindo do zero —, geradas na compilação e sem planner nem conta. Esse conteúdo é independente de JavaScript, `localStorage` e APIs externas, e o menu do guia usa links comuns, então navegar entre as páginas também funciona sem JavaScript. Após a hidratação no navegador, o componente interativo substitui o guia e carrega o progresso local.
 
 Os dados de jogo usados nos cálculos ficam em `lib/data.ts` e não dependem de serviço externo nenhum. O único serviço externo em tempo de execução é o Supabase, e só para conta e sincronização do progresso: guia, cálculos e o planner sobre a cópia local continuam funcionando com ele fora do ar. Entrar e sair da conta são formulários `POST`, então também funcionam sem JavaScript. As decisões estão em `docs/adr/0001-contas-e-persistencia-na-nuvem.md`.
 
 O botão de login compartilhado em `app/account-bar.tsx` exibe o símbolo oficial do Discord, obtido nos [assets da marca](https://discord.com/branding) e servido localmente por `next/image` a partir de `public/assets/discord.svg`. O ícone é decorativo; o texto “Entrar com Discord” mantém o nome acessível da ação.
 
-Ler a sessão torna a rota `/` dinâmica: o guia continua entregue inteiro no HTML, mas montado a cada requisição em vez de na compilação.
+Ler a sessão torna as páginas do planner dinâmicas: o guia continua entregue inteiro no HTML, mas montado a cada requisição em vez de na compilação.
+
+## Páginas e URLs
+
+`lib/routes.ts` é a única lista das páginas: aba, endereço, rótulo do menu, título e descrição. O menu lateral, o guia sem JavaScript, os metadados de cada página e o `sitemap.xml` leem dela, e `pageMetadata`, em `lib/site.ts`, monta título, descrição, URL canônica e cartão de compartilhamento de cada uma. O endereço da Emergência é `/carraca/emergencia`, pelo nome exibido, embora o identificador interno continue `ascensao`. A decisão está em `docs/adr/0002-uma-url-por-secao.md`.
+
+As páginas do planner ficam no grupo `app/(planner)`, e o componente interativo mora no layout do grupo, não na página. Assim, trocar de seção não desmonta o planner: a carga do `localStorage`, a conta e a fila de envio para a nuvem acontecem uma vez por visita, e a aba ativa é só a leitura da URL atual por `usePathname`. Recarregar, abrir um link compartilhado ou usar o voltar do navegador cai na mesma seção. Adicionar um preset leva à Visão geral, como antes.
+
+Os links do menu lateral pedem pré-carregamento completo (`prefetch`). As páginas são dinâmicas, e sem isso o Next esperaria o servidor a cada clique antes de trocar a aba. A alternativa recomendada pela documentação, um `loading.tsx`, foi descartada: com ele o conteúdo da página chega por streaming dentro de um bloco escondido, que só aparece com JavaScript, e o guia sem JavaScript ficaria vazio.
+
+Sem nenhum preset, a página inicial mostra a escolha da Carraca, com links para o guia de cada seção. As outras páginas mostram o guia delas e um convite para escolher a Carraca: é o conteúdo que o visitante veio buscar, e é também o que o buscador vê ao renderizar a página, já que ele não tem preset salvo.
+
+O aviso de conta (`?conta=erro`, `?conta=indisponivel`, `?conta=origem`) vale em qualquer página. O guia sem JavaScript o lê do `searchParams` da página; o planner o lê do endereço na montagem, e não com `useSearchParams`, que obrigaria a página a esperar o JavaScript. Trocar de seção pelo menu limpa o aviso.
 
 O catálogo marítimo mantém 27 missões diárias e 11 semanais de Iliya, Velia, Olho da Okilua e Terra do Amanhecer, conforme o levantamento em `docs/bdo-guia-quests.md`. Cada missão guarda a fonte consultada e o link correspondente.
 
@@ -72,6 +84,8 @@ Com a conta ligada, o progresso deixa de depender de um navegador. A decisão co
 
 O cliente nunca fala com o Supabase direto. A interface chama `/api/presets`, e são as Route Handlers que usam o cliente de servidor com a sessão em cookie. Isso mantém `supabase-js` fora do bundle, deixa a validação do que chega nas mesmas funções de `lib/profile.ts` usadas pelo armazenamento local, e permite que entrar e sair sejam formulários. A renovação do token não passa por `proxy.ts`: esta versão do Next depreciou a convenção `middleware`, renomeada para `proxy`, e desaconselha proxy para gerenciar sessão, então quem grava os cookies renovados são as próprias Route Handlers.
 
+Login e saída devolvem o jogador à página em que ele estava. A rota de login lê o `Referer` do formulário e guarda o caminho no cookie `carrack-retorno`, restrito a `/auth` e válido por dez minutos; o callback o lê, apaga e redireciona para lá. O caminho vai em cookie, e não na URL de retorno, porque a lista de Redirect URLs do Supabase teria de aceitar cada variação. `returnPath`, em `lib/routes.ts`, só aceita as páginas públicas do site, e qualquer outro valor volta para `/`, para que o retorno não vire um redirecionamento para fora do site.
+
 A rota `/` também aceita um código de autorização e o encaminha ao callback. O Supabase devolve o código na Site URL quando o retorno pedido não está na lista de Redirect URLs, e sem esse encaminhamento o login terminaria sem sessão e sem aviso. Um erro devolvido pelo provedor também vira aviso na tela, pelo mesmo motivo.
 
 Cada preset é uma linha de `public.presets`, com o progresso em `JSONB` e proteção por Row Level Security. A migração versionada está em `supabase/migrations/0001_presets.sql` e inclui as políticas e o gatilho que limita a conta a 50 presets.
@@ -88,6 +102,6 @@ O preset selecionado é preferência de cada aparelho e não sincroniza. Ao entr
 
 ## Verificação
 
-Use `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` e `npm run test:e2e`. O fluxo E2E crítico valida o guia sem JavaScript, o carregamento das artes principais, a criação de presets diferentes e repetidos, o isolamento do progresso, a persistência após recarregar a página, o tempo estimado acompanhando o inventário, a escolha das missões que alimentam o cálculo, incluindo a troca de trilha do Ravikel, a escolha do item de uma recompensa de escolha chegando ao ritmo do material, e o equipamento amarelo entrando na conta só quando o jogador liga, com a peça pronta descontada da meta.
+Use `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` e `npm run test:e2e`. O fluxo E2E crítico valida o guia sem JavaScript em cada página, com título, URL canônica e navegação pelo menu do guia, a URL de cada seção do planner sobrevivendo a recarregar e ao voltar do navegador, o guia da seção para quem ainda não tem preset, o carregamento das artes principais, a criação de presets diferentes e repetidos, o isolamento do progresso, a persistência após recarregar a página, o tempo estimado acompanhando o inventário, a escolha das missões que alimentam o cálculo, incluindo a troca de trilha do Ravikel, a escolha do item de uma recompensa de escolha chegando ao ritmo do material, e o equipamento amarelo entrando na conta só quando o jogador liga, com a peça pronta descontada da meta.
 
 O fluxo completo de login pelo Discord fica fora do E2E: automatizá-lo exigiria um projeto Supabase dedicado a testes com sessão semeada, ou uma autenticação falsa acionada por variável de ambiente, que é o tipo de atalho que escapa para produção. A lacuna é assumida no ADR 0001. As partes puras — formato do preset, regra de versão, fila de envio e plano de importação — são cobertas por testes unitários em `tests/schema.test.ts`, `tests/sync.test.ts` e `tests/store.test.ts`, e o caminho logado é conferido à mão: entrar, criar um preset, recarregar, abrir em outro navegador, editar sem rede e confirmar o aviso de pendência, e sair verificando que o progresso da conta não fica no cache local.
